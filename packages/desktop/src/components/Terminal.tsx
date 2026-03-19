@@ -16,12 +16,14 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
   const fitAddonRef = useRef<FitAddon | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
   const initializedRef = useRef(false)
+  const terminalReadyRef = useRef(false)
 
+  // Main effect: create xterm + connect to pty (runs once per id)
   useEffect(() => {
     if (!containerRef.current || !window.agentflow?.terminal || !id) return
-    // Prevent double-init (React StrictMode, etc)
     if (initializedRef.current) return
     initializedRef.current = true
+    terminalReadyRef.current = false
 
     let isMounted = true
 
@@ -54,7 +56,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       xtermRef.current = xterm
       fitAddonRef.current = fitAddon
 
-      // Register output listener FIRST to avoid losing data during reconnect
+      // Register output listener FIRST to avoid losing data
       const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
         if (termId === id && isMounted && xtermRef.current) {
           xtermRef.current.write(data)
@@ -72,13 +74,12 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
         xterm.write('\r\n\x1b[33m[agentflow] session reconnected\x1b[0m\r\n')
       }
 
+      terminalReadyRef.current = true
+
       // Inject initial prompt only on NEW terminals
       if (!result.existed && initialPrompt) {
-        let promptInjected = false
-        // Fallback: inject after 3s regardless
         setTimeout(() => {
-          if (!promptInjected && isMounted) {
-            promptInjected = true
+          if (isMounted) {
             window.agentflow.terminal.input(id, initialPrompt + '\n')
           }
         }, 3000)
@@ -111,11 +112,25 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
     return () => {
       isMounted = false
       initializedRef.current = false
+      terminalReadyRef.current = false
       cleanupRef.current?.()
       xtermRef.current?.dispose()
       xtermRef.current = null
     }
-  }, [id]) // id is stable per agent — effect runs once
+  }, [id])
+
+  // Separate effect: inject prompt into EXISTING terminal when initialPrompt changes
+  // This handles the InitBanner flow (user clicks template after terminal is already running)
+  useEffect(() => {
+    if (!initialPrompt || !id || !terminalReadyRef.current) return
+
+    // Terminal is already running — inject the prompt directly
+    const timer = setTimeout(() => {
+      window.agentflow.terminal.input(id, initialPrompt + '\n')
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [initialPrompt]) // React to prompt changes, not id
 
   return React.createElement('div', {
     ref: containerRef,

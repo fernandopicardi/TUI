@@ -23,10 +23,10 @@ const InitBanner: React.FC<Props> = ({ onSelect }) => {
     },
       React.createElement('div', {
         style: { color: '#ededed', fontSize: '14px', fontWeight: 500, marginBottom: '6px' },
-      }, '\u25C6 Este projeto ainda n\u00E3o tem estrutura agentflow'),
+      }, '\u25C6 This project has no agentflow structure yet'),
       React.createElement('div', {
         style: { color: '#666', fontSize: '13px', lineHeight: '1.5' },
-      }, 'Configure com Claude Code para ativar plugins, contexto de agentes e workflows autom\u00E1ticos.')
+      }, 'Pick a template below to start a Claude Code session that will analyze the project and set up the right structure automatically.')
     ),
     React.createElement('div', {
       style: { display: 'flex', gap: '8px', flexWrap: 'wrap' as const },
@@ -39,7 +39,7 @@ const InitBanner: React.FC<Props> = ({ onSelect }) => {
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.85' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' },
-      }, 'Deixar Claude Code decidir'),
+      }, 'Let Claude Code decide'),
       // Secondary pills
       ...(['agencyOS', 'bmad', 'generic'] as const).map((t) =>
         React.createElement('button', {
