@@ -1,27 +1,20 @@
-import { useEffect, useRef, useMemo } from 'react'
-import { store } from '../store/index'
-import { WorktreeData } from '../types'
+import { useEffect } from 'react'
+import { useStore } from '../store/index'
 
 /**
- * Polls agent status for each worktree via IPC.
+ * Polls agent status for all agents across all projects.
  */
-export function useAgentStatusWatcher(worktrees: WorktreeData[]) {
-  const lastModifiedRef = useRef<Record<string, number>>({})
-
-  const worktreeKey = useMemo(
-    () => worktrees.map(w => w.path).join('\0'),
-    [worktrees]
-  )
+export function useAgentStatusWatcher(refreshInterval = 2000) {
+  const allAgents = useStore(s => s.projects.flatMap(p => p.agents))
 
   useEffect(() => {
-    if (worktrees.length === 0) return
+    if (allAgents.length === 0) return
 
     const poll = async () => {
-      for (const wt of worktrees) {
-        const lastMod = lastModifiedRef.current[wt.path]
+      for (const agent of allAgents) {
         try {
-          const status = await window.agentflow.agents.getStatus(wt, lastMod)
-          store.getState().setAgentStatus(wt.path, status as any)
+          const status = await window.agentflow.agents.getStatus(agent.worktreePath)
+          useStore.getState().updateAgent(agent.id, { status, lastActivity: Date.now() })
         } catch {
           // Ignore status poll errors
         }
@@ -29,7 +22,7 @@ export function useAgentStatusWatcher(worktrees: WorktreeData[]) {
     }
 
     poll()
-    const interval = setInterval(poll, 2000)
+    const interval = setInterval(poll, refreshInterval)
     return () => clearInterval(interval)
-  }, [worktreeKey])
+  }, [allAgents.length, refreshInterval])
 }

@@ -49,6 +49,10 @@ contextBridge.exposeInMainWorld('agentflow', {
     },
     close: (id: string) =>
       ipcRenderer.send('terminal:close', id),
+    getBuffer: (id: string) =>
+      ipcRenderer.invoke('terminal:get-buffer', id),
+    isAlive: (id: string) =>
+      ipcRenderer.invoke('terminal:is-alive', id),
   },
   github: {
     getDiff: (worktreePath: string) =>

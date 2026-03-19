@@ -1,97 +1,179 @@
-import { createStore } from 'zustand/vanilla'
-import { WorktreeData, PluginContextData, ConfigData, AgentStatusValue } from '../types'
-
-export interface ToastItem {
-  id: number
-  message: string
-  type: 'info' | 'success' | 'warning'
-}
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { Project, AgentSession, Toast } from '../types'
 
 export interface AgentflowStore {
   // State
-  rootPath: string | null
-  worktrees: WorktreeData[]
-  agentStatuses: Record<string, AgentStatusValue>
-  pluginName: string | null
-  pluginContext: PluginContextData | null
-  config: ConfigData | null
-  selectedWorktreeId: string | null
-  activeView: 'welcome' | 'dashboard' | 'workspace'
-  isLoading: boolean
-  error: string | null
-  toasts: ToastItem[]
+  projects: Project[]
+  activeProjectId: string | null
+  activeAgentId: string | null
+  isContextPanelOpen: boolean
+  isCreateAgentModalOpen: boolean
+  isAddProjectModalOpen: boolean
+  isSettingsOpen: boolean
+  isCommandPaletteOpen: boolean
+  isQuickPromptOpen: boolean
+  toasts: Toast[]
   initPrompt: string | null
-  recentProjects: string[]
 
-  // Actions
-  setRootPath: (path: string) => void
-  setWorktrees: (worktrees: WorktreeData[]) => void
-  setAgentStatus: (path: string, status: AgentStatusValue) => void
-  setPlugin: (name: string, context: PluginContextData | null) => void
-  setConfig: (config: ConfigData) => void
-  selectWorktree: (path: string | null) => void
-  setActiveView: (view: 'welcome' | 'dashboard' | 'workspace') => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
+  // Project actions
+  addProject: (project: Omit<Project, 'agents' | 'addedAt' | 'lastOpenedAt'>) => void
+  removeProject: (projectId: string) => void
+  updateProject: (projectId: string, updates: Partial<Project>) => void
+  setActiveProject: (projectId: string | null) => void
+
+  // Agent actions
+  addAgent: (projectId: string, agent: AgentSession) => void
+  removeAgent: (projectId: string, agentId: string) => void
+  updateAgent: (agentId: string, updates: Partial<AgentSession>) => void
+  setActiveAgent: (agentId: string | null) => void
+
+  // UI actions
+  openAddProject: () => void
+  closeAddProject: () => void
+  openCreateAgent: () => void
+  closeCreateAgent: () => void
+  openSettings: () => void
+  closeSettings: () => void
+  toggleContextPanel: () => void
+  openCommandPalette: () => void
+  closeCommandPalette: () => void
+  openQuickPrompt: () => void
+  closeQuickPrompt: () => void
+
+  // Toast
   showToast: (message: string, type?: 'info' | 'success' | 'warning') => void
-  dismissToast: (id: number) => void
+  dismissToast: (id: string) => void
+
+  // Prompt
   setInitPrompt: (prompt: string | null) => void
-  addRecentProject: (path: string) => void
+
+  // Computed helpers
+  getActiveProject: () => Project | null
+  getActiveAgent: () => AgentSession | null
+  getAllAgents: () => AgentSession[]
+  getProjectById: (id: string) => Project | null
 }
 
-let toastId = 0
+export const useStore = create<AgentflowStore>()(
+  persist(
+    (set, get) => ({
+      projects: [],
+      activeProjectId: null,
+      activeAgentId: null,
+      isContextPanelOpen: false,
+      isCreateAgentModalOpen: false,
+      isAddProjectModalOpen: false,
+      isSettingsOpen: false,
+      isCommandPaletteOpen: false,
+      isQuickPromptOpen: false,
+      toasts: [],
+      initPrompt: null,
 
-function loadRecents(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem('agentflow:recents') || '[]')
-  } catch { return [] }
-}
+      addProject: (projectData) => set(state => ({
+        projects: [...state.projects, {
+          ...projectData,
+          agents: [],
+          addedAt: Date.now(),
+          lastOpenedAt: Date.now(),
+        }],
+        activeProjectId: projectData.id,
+      })),
 
-function saveRecents(recents: string[]) {
-  try { localStorage.setItem('agentflow:recents', JSON.stringify(recents)) } catch {}
-}
+      removeProject: (projectId) => set(state => ({
+        projects: state.projects.filter(p => p.id !== projectId),
+        activeProjectId: state.activeProjectId === projectId ? null : state.activeProjectId,
+        activeAgentId: state.projects.find(p => p.id === projectId)?.agents.some(a => a.id === state.activeAgentId)
+          ? null : state.activeAgentId,
+      })),
 
-export const store = createStore<AgentflowStore>((set) => ({
-  rootPath: null,
-  worktrees: [],
-  agentStatuses: {},
-  pluginName: null,
-  pluginContext: null,
-  config: null,
-  selectedWorktreeId: null,
-  activeView: 'welcome',
-  isLoading: false,
-  error: null,
-  toasts: [],
-  initPrompt: null,
-  recentProjects: loadRecents(),
+      updateProject: (projectId, updates) => set(state => ({
+        projects: state.projects.map(p =>
+          p.id === projectId ? { ...p, ...updates } : p
+        ),
+      })),
 
-  setRootPath: (rootPath) => set({ rootPath, activeView: 'dashboard', error: null }),
-  setWorktrees: (worktrees) => set({ worktrees }),
-  setAgentStatus: (path, status) => set((state) => ({
-    agentStatuses: { ...state.agentStatuses, [path]: status },
-  })),
-  setPlugin: (name, context) => set({ pluginName: name, pluginContext: context }),
-  setConfig: (config) => set({ config }),
-  selectWorktree: (id) => set({
-    selectedWorktreeId: id,
-    activeView: id ? 'workspace' : 'dashboard',
-  }),
-  setActiveView: (view) => set({ activeView: view }),
-  setLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
-  showToast: (message, type = 'info') => {
-    const id = ++toastId
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }))
-    setTimeout(() => {
-      set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) }))
-    }, 3000)
-  },
-  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
-  setInitPrompt: (prompt) => set({ initPrompt: prompt }),
-  addRecentProject: (path) => set((s) => {
-    const recents = [path, ...s.recentProjects.filter(p => p !== path)].slice(0, 5)
-    saveRecents(recents)
-    return { recentProjects: recents }
-  }),
-}))
+      setActiveProject: (projectId) => set({
+        activeProjectId: projectId,
+        activeAgentId: null,
+      }),
+
+      addAgent: (projectId, agent) => set(state => ({
+        projects: state.projects.map(p =>
+          p.id === projectId
+            ? { ...p, agents: [...p.agents, agent] }
+            : p
+        ),
+        activeAgentId: agent.id,
+      })),
+
+      removeAgent: (projectId, agentId) => set(state => ({
+        projects: state.projects.map(p =>
+          p.id === projectId
+            ? { ...p, agents: p.agents.filter(a => a.id !== agentId) }
+            : p
+        ),
+        activeAgentId: state.activeAgentId === agentId ? null : state.activeAgentId,
+      })),
+
+      updateAgent: (agentId, updates) => set(state => ({
+        projects: state.projects.map(p => ({
+          ...p,
+          agents: p.agents.map(a =>
+            a.id === agentId ? { ...a, ...updates } : a
+          ),
+        })),
+      })),
+
+      setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+
+      openAddProject: () => set({ isAddProjectModalOpen: true }),
+      closeAddProject: () => set({ isAddProjectModalOpen: false }),
+      openCreateAgent: () => set({ isCreateAgentModalOpen: true }),
+      closeCreateAgent: () => set({ isCreateAgentModalOpen: false }),
+      openSettings: () => set({ isSettingsOpen: true }),
+      closeSettings: () => set({ isSettingsOpen: false }),
+      toggleContextPanel: () => set(s => ({ isContextPanelOpen: !s.isContextPanelOpen })),
+      openCommandPalette: () => set({ isCommandPaletteOpen: true }),
+      closeCommandPalette: () => set({ isCommandPaletteOpen: false }),
+      openQuickPrompt: () => set({ isQuickPromptOpen: true }),
+      closeQuickPrompt: () => set({ isQuickPromptOpen: false }),
+
+      showToast: (message, type = 'info') => {
+        const id = Date.now().toString()
+        set(s => ({ toasts: [...s.toasts, { id, message, type }] }))
+        setTimeout(() => get().dismissToast(id), 3000)
+      },
+      dismissToast: (id) => set(s => ({
+        toasts: s.toasts.filter(t => t.id !== id),
+      })),
+
+      setInitPrompt: (prompt) => set({ initPrompt: prompt }),
+
+      getActiveProject: () => {
+        const s = get()
+        return s.projects.find(p => p.id === s.activeProjectId) ?? null
+      },
+      getActiveAgent: () => {
+        const s = get()
+        for (const p of s.projects) {
+          const agent = p.agents.find(a => a.id === s.activeAgentId)
+          if (agent) return agent
+        }
+        return null
+      },
+      getAllAgents: () => get().projects.flatMap(p => p.agents),
+      getProjectById: (id) => get().projects.find(p => p.id === id) ?? null,
+    }),
+    {
+      name: 'agentflow-store',
+      partialize: (state) => ({
+        projects: state.projects,
+        activeProjectId: state.activeProjectId,
+      }),
+    }
+  )
+)
+
+// Alias for imperative access: store.getState().xxx()
+export const store = useStore

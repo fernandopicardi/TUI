@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useCallback, useState, useMemo } from 'react'
-import { store } from '../store/index'
 import { useStore } from '../hooks/useStore'
 import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
@@ -11,49 +10,51 @@ import WorkspaceNotes from '../components/WorkspaceNotes'
 type Tab = 'terminal' | 'diff' | 'pr' | 'notes'
 
 const Workspace: React.FC = () => {
-  const selectedId = useStore(s => s.selectedWorktreeId)
-  const worktrees = useStore(s => s.worktrees)
-  const rootPath = useStore(s => s.rootPath)
+  const activeAgent = useStore(s => s.getActiveAgent())
+  const activeProject = useStore(s => s.getActiveProject())
   const initPrompt = useStore(s => s.initPrompt)
   const [activeTab, setActiveTab] = useState<Tab>('terminal')
 
-  const worktree = worktrees.find(w => w.path === selectedId)
-
   const terminalId = useMemo(() => {
-    if (!worktree) return ''
-    return `term-${worktree.branch.replace(/[^a-zA-Z0-9]/g, '-')}`
-  }, [worktree?.branch])
+    if (!activeAgent) return ''
+    return activeAgent.terminalId
+  }, [activeAgent?.terminalId])
 
   // Clear initPrompt after navigation to workspace
   React.useEffect(() => {
     if (initPrompt) {
-      // Clear after a small delay so Terminal picks it up
-      const timer = setTimeout(() => store.getState().setInitPrompt(null), 100)
+      const timer = setTimeout(() => useStore.getState().setInitPrompt(null), 100)
       return () => clearTimeout(timer)
     }
   }, [initPrompt])
 
   const handleBack = useCallback(() => {
-    store.getState().selectWorktree(null)
+    useStore.getState().setActiveAgent(null)
   }, [])
 
   const handleDelete = useCallback(async () => {
-    if (!rootPath || !selectedId || worktree?.isMain) return
-    if (!confirm(`Deletar worktree "${worktree?.branch}"?`)) return
+    if (!activeAgent || !activeProject) return
+    if (!confirm(`Delete agent "${activeAgent.branch}"?`)) return
     try {
-      await window.agentflow.git.removeWorktree(rootPath, selectedId)
-      const wts = await window.agentflow.git.listWorktrees(rootPath)
-      store.getState().setWorktrees(wts)
-      store.getState().selectWorktree(null)
+      // Close terminal
+      window.agentflow?.terminal?.close(activeAgent.terminalId)
+      // Remove worktree if not main project path
+      if (activeAgent.worktreePath !== activeProject.rootPath) {
+        await window.agentflow.git.removeWorktree(activeProject.rootPath, activeAgent.worktreePath)
+      }
+      useStore.getState().removeAgent(activeProject.id, activeAgent.id)
     } catch (err: unknown) {
-      store.getState().setError(err instanceof Error ? err.message : String(err))
+      useStore.getState().showToast(
+        err instanceof Error ? err.message : String(err),
+        'warning'
+      )
     }
-  }, [rootPath, selectedId, worktree])
+  }, [activeAgent, activeProject])
 
-  if (!worktree) {
+  if (!activeAgent || !activeProject) {
     return React.createElement('div', {
       style: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '13px' },
-    }, 'Selecione um workspace na sidebar')
+    }, 'Select an agent in the sidebar')
   }
 
   const tabStyle = (tab: Tab): React.CSSProperties => ({
@@ -75,8 +76,12 @@ const Workspace: React.FC = () => {
         style: { background: 'none', border: '1px solid #333', borderRadius: '4px', color: '#888', padding: '2px 10px', cursor: 'pointer', fontSize: '12px' },
       }, '\u2190'),
       React.createElement('span', {
+        style: { fontSize: '11px', color: '#555' },
+      }, activeProject.name),
+      React.createElement('span', { style: { color: '#333', fontSize: '12px' } }, '/'),
+      React.createElement('span', {
         style: { fontSize: '13px', fontWeight: 500, color: '#ededed', fontFamily: 'Consolas, monospace' },
-      }, worktree.branch || 'detached'),
+      }, activeAgent.branch || 'detached'),
       // Tabs
       React.createElement('div', { style: { display: 'flex', gap: '2px', marginLeft: '16px' } },
         React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
@@ -85,12 +90,10 @@ const Workspace: React.FC = () => {
         React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
       ),
       React.createElement('div', { style: { flex: 1 } }),
-      !worktree.isMain
-        ? React.createElement('button', {
-            onClick: handleDelete,
-            style: { background: 'none', border: '1px solid #ef444466', borderRadius: '4px', color: '#ef4444', padding: '2px 10px', cursor: 'pointer', fontSize: '12px' },
-          }, 'Deletar')
-        : null,
+      React.createElement('button', {
+        onClick: handleDelete,
+        style: { background: 'none', border: '1px solid #ef444466', borderRadius: '4px', color: '#ef4444', padding: '2px 10px', cursor: 'pointer', fontSize: '12px' },
+      }, 'Delete'),
     ),
 
     // Tab content
@@ -99,30 +102,34 @@ const Workspace: React.FC = () => {
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
       },
-        React.createElement(Terminal, { id: terminalId, worktreePath: worktree.path, initialPrompt: initPrompt || undefined })
+        React.createElement(Terminal, {
+          id: terminalId,
+          worktreePath: activeAgent.worktreePath,
+          initialPrompt: initPrompt || undefined,
+        })
       ),
       // Diff
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
       },
-        React.createElement(DiffViewer, { worktreePath: worktree.path })
+        React.createElement(DiffViewer, { worktreePath: activeAgent.worktreePath })
       ),
       // PR
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
       },
-        React.createElement(PRPanel, { worktreePath: worktree.path, branch: worktree.branch })
+        React.createElement(PRPanel, { worktreePath: activeAgent.worktreePath, branch: activeAgent.branch })
       ),
       // Notes
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
       },
-        React.createElement(WorkspaceNotes, { branch: worktree.branch, rootPath: rootPath || '' })
+        React.createElement(WorkspaceNotes, { branch: activeAgent.branch, rootPath: activeProject.rootPath })
       ),
     ),
 
     // MCP Panel — always visible, collapsible
-    React.createElement(MCPPanel, { worktreePath: worktree.path })
+    React.createElement(MCPPanel, { worktreePath: activeAgent.worktreePath })
   )
 }
 

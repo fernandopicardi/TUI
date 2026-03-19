@@ -1,12 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { store } from '../store/index'
-import { useStore } from '../hooks/useStore'
+import { useStore } from '../store/index'
 import { PROMPT_TEMPLATES } from '../data/promptTemplates'
-
-interface Props {
-  onClose: () => void
-}
 
 const HISTORY_KEY = 'agentflow:prompt-history'
 const MAX_HISTORY = 20
@@ -20,34 +15,37 @@ function saveHistory(prompt: string) {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)) } catch {}
 }
 
-const QuickPrompt: React.FC<Props> = ({ onClose }) => {
+const QuickPrompt: React.FC = () => {
   const [value, setValue] = useState('')
   const [histIdx, setHistIdx] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
-  const pluginName = useStore(s => s.pluginName)
-  const selectedId = useStore(s => s.selectedWorktreeId)
-  const worktrees = useStore(s => s.worktrees)
 
-  const selectedWt = worktrees.find(w => w.path === selectedId)
-  const branchName = selectedWt?.branch || worktrees[0]?.branch || '...'
+  const activeAgent = useStore(s => s.getActiveAgent())
+  const activeProject = useStore(s => s.getActiveProject())
+  const allAgents = useStore(s => s.projects.flatMap(p => p.agents))
 
+  const targetAgent = activeAgent || allAgents[0]
+  const targetProjectName = activeProject?.name || 'no project'
+  const branchName = targetAgent?.branch || '...'
+
+  const pluginName = activeProject?.plugin || 'all'
   const templates = PROMPT_TEMPLATES.filter(t => t.plugin === pluginName || t.plugin === 'all')
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
+  const onClose = useCallback(() => {
+    useStore.getState().closeQuickPrompt()
+  }, [])
+
   const handleSend = useCallback(() => {
     const prompt = value.trim()
-    if (!prompt) return
+    if (!prompt || !targetAgent) return
     saveHistory(prompt)
 
-    // Navigate to workspace if needed
-    const wt = selectedId ? worktrees.find(w => w.path === selectedId) : worktrees[0]
-    if (wt) {
-      store.getState().setInitPrompt(prompt)
-      store.getState().selectWorktree(wt.path)
-    }
+    useStore.getState().setInitPrompt(prompt)
+    useStore.getState().setActiveAgent(targetAgent.id)
     onClose()
-  }, [value, selectedId, worktrees, onClose])
+  }, [value, targetAgent, onClose])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { handleSend(); return }
@@ -89,6 +87,8 @@ const QuickPrompt: React.FC<Props> = ({ onClose }) => {
       },
         React.createElement('span', { style: { color: '#5b6af0', fontSize: '13px' } }, '\u26A1'),
         React.createElement('span', { style: { color: '#888', fontSize: '12px' } }, 'Quick prompt \u2192'),
+        React.createElement('span', { style: { color: '#666', fontSize: '11px' } }, targetProjectName),
+        React.createElement('span', { style: { color: '#333', fontSize: '12px' } }, '/'),
         React.createElement('span', { style: { color: '#ededed', fontSize: '12px', fontFamily: 'Consolas, monospace' } }, branchName),
       ),
       // Template suggestions
@@ -116,20 +116,21 @@ const QuickPrompt: React.FC<Props> = ({ onClose }) => {
       React.createElement('input', {
         ref: inputRef, value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => { setValue(e.target.value); setHistIdx(-1) },
         onKeyDown: handleKeyDown,
-        placeholder: 'Digite um prompt para o agente...',
+        placeholder: 'Type a prompt for the agent...',
         style: {
           width: '100%', padding: '10px 14px', background: '#0a0a0a',
           border: '1px solid #333', borderRadius: '8px', color: '#ededed',
           fontSize: '13px', outline: 'none', fontFamily: 'inherit',
+          boxSizing: 'border-box',
         },
       }),
       // Footer
       React.createElement('div', {
         style: { display: 'flex', gap: '16px', marginTop: '8px', justifyContent: 'flex-end' },
       },
-        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, '\u21B5 Enviar'),
-        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, 'Esc Fechar'),
-        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, '\u2191\u2193 Hist\u00F3rico'),
+        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, '\u21B5 Send'),
+        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, 'Esc Close'),
+        React.createElement('span', { style: { color: '#444', fontSize: '11px' } }, '\u2191\u2193 History'),
       )
     )
   )

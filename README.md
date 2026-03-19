@@ -1,56 +1,100 @@
 # agentflow
 
-Orquestre múltiplos agentes Claude Code em paralelo, com Git worktrees isolados e detecção automática de contexto por projeto.
+Orchestrate multiple Claude Code agents in parallel across multiple projects, with isolated Git worktrees and automatic project context detection.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  ⬡ agentflow                                         │
-│                                                      │
-│  ◆ Agency OS — 3 cliente(s) ativo(s)                 │
-│  ├ client-acme       ● loop ativo                    │
-│  ├ client-techco     ○ aguardando                    │
-│  └ client-store      ✓ winner pronto                 │
-│  ──────────────────────────────────────────────────   │
-│                                                      │
-│  ╭──────────────────────────────────────────────────╮ │
-│  │  ● working   main (main)                        │ │
-│  │              modificado há 8s                    │ │
-│  ╰──────────────────────────────────────────────────╯ │
-│  ╭──────────────────────────────────────────────────╮ │
-│  │  ● working   feature/auth-backend               │ │
-│  │              modificado há 3s                    │ │
-│  ╰──────────────────────────────────────────────────╯ │
-│  ╭──────────────────────────────────────────────────╮ │
-│  │  ○ idle      feature/landing-page               │ │
-│  ╰──────────────────────────────────────────────────╯ │
-│                                                      │
-│  [↑↓] navegar  [enter] abrir  [n] novo  [d] deletar │
-│  [r] refresh  [q] sair                               │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  ◆ agentflow                                                        │
+├──────────────────────────────────────────────────────────────────────┤
+│  3 running · 1 waiting                                              │
+│  ┌───────────────────┐ ┌───────────────────┐ ┌──────────────────┐   │
+│  │ agency-os         │ │ agency-os         │ │ mirra            │   │
+│  │ ● feature/acme    │ │ ○ feature/techco  │ │ ● feature/clone  │   │
+│  └───────────────────┘ └───────────────────┘ └──────────────────┘   │
+├─────────────┬────────────────────────────────────────────────────────┤
+│  AGENCY-OS  │                                                       │
+│  ├ ● acme   │   Terminal │ Diff │ PR │ Notes                        │
+│  ├ ○ techco │                                                       │
+│  └ ○ main   │   claude> analyzing project structure...              │
+│             │   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   │
+│  MIRRA      │                                                       │
+│  └ ● clone  │                                                       │
+│             │                                                       │
+│  AGENTFLOW  │                                                       │
+│  └ ○ main   │                                                       │
+│─────────────│                                                       │
+│ [+ project] │                                                       │
+│─────────────│                                                       │
+│ v0.1.1  ⚙  │                                                       │
+└─────────────┴────────────────────────────────────────────────────────┘
 ```
 
-## Arquitetura
+## Architecture
 
-Monorepo com pnpm workspaces:
+pnpm workspaces monorepo:
 
 ```
 agentflow/
 ├── packages/
-│   ├── core/       ← lógica compartilhada (git, plugins, agents, config)
-│   ├── tui/        ← app TUI (Ink/React terminal)
-│   └── desktop/    ← app Electron (MVP)
+│   ├── core/       ← shared logic (git, plugins, agents, config)
+│   ├── tui/        ← TUI app (Ink/React terminal)
+│   └── desktop/    ← Electron app (multi-project MVP)
 ├── package.json
 ├── pnpm-workspace.yaml
 └── tsconfig.base.json
 ```
 
-| Package | Descrição |
-|---------|-----------|
-| `@agentflow/core` | Git worktrees, plugin system, agent status, config loader |
-| `@agentflow/tui` | TUI com Ink 4.x — `agentflow` CLI global |
-| `@agentflow/desktop` | Electron app — dark mode, sidebar, terminal integrado |
+| Package | Description |
+|---------|-------------|
+| `@agentflow/core` | Git worktrees, plugin system, agent status detection, config loader |
+| `@agentflow/tui` | TUI with Ink 4.x — `agentflow` CLI |
+| `@agentflow/desktop` | Electron desktop app — multi-project, persistent terminals, dark mode |
 
-## Instalação
+## Key Concepts
+
+### Multi-Project Model
+
+agentflow manages **multiple projects** in a single window. Each project contains **agents** — independent Claude Code sessions running in isolated Git worktrees.
+
+```
+agentflow (multi-project)
+├── agency-os
+│   ├── ● feature/acme-homepage    working
+│   ├── ○ feature/techco-pricing   waiting
+│   └── ✓ fix/store-nav            done
+├── mirra
+│   └── ● feature/clone-mode       working
+└── agentflow
+    └── ○ main                     idle
+```
+
+### Persistent Terminal Sessions
+
+Terminal sessions survive navigation. Switching between agents does **not** kill the terminal process — the pty stays alive in the main process with a 1000-chunk output buffer for instant replay on reconnection.
+
+### Plugin Context Detection
+
+Plugins detect project structure automatically and activate relevant context panels.
+
+| Plugin | Priority | Detects when |
+|--------|----------|--------------|
+| Agency OS | 100 | `agency/clients/` or subfolders with `profile.md` |
+| BMAD | 90 | `.bmad/`, "BMAD" in CLAUDE.md, or `.claude/agents/` |
+| Generic | 10 | `CLAUDE.md` at root |
+| Raw | 0 | Always (fallback) |
+
+## Installation
+
+### Desktop (Electron)
+
+```bash
+git clone https://github.com/fernandopicardi/TUI.git
+cd TUI
+pnpm install
+cd packages/desktop
+pnpm build:win
+# Installer output in release/
+```
 
 ### TUI (CLI)
 
@@ -58,66 +102,47 @@ agentflow/
 pnpm install -g github:fernandopicardi/TUI
 ```
 
-### Desktop
-
-```bash
-cd packages/desktop
-pnpm build:win
-# Installer em release/
-```
-
-## Uso
-
-```bash
-cd seu-projeto
-agentflow
-```
-
-## Build (desenvolvimento)
+## Development
 
 ```bash
 pnpm install
-pnpm build          # compila core + tui + desktop
+pnpm build          # build core + tui + desktop
+pnpm dev:desktop    # run Electron in dev mode
 pnpm dev:tui        # watch mode TUI
-pnpm dev:desktop    # watch mode Electron
 ```
 
-## Atalhos (TUI)
+## Keyboard Shortcuts (Desktop)
 
-| Tecla | Ação |
-|-------|------|
-| `↑` `↓` | Navegar entre workspaces |
-| `Enter` | Abrir workspace no terminal com Claude Code |
-| `n` | Criar novo worktree |
-| `d` | Deletar worktree selecionado |
-| `r` | Forçar refresh |
-| `q` | Sair |
+| Key | Action |
+|-----|--------|
+| `Ctrl+Shift+P` | Add project |
+| `Ctrl+N` | New agent (in active project) |
+| `Ctrl+W` | Close active agent |
+| `Ctrl+K` | Command palette |
+| `Ctrl+Space` | Quick prompt |
+| `Ctrl+B` | Toggle context panel |
+| `Ctrl+,` | Settings |
+| `Esc` | Close modals |
 
-## Atalhos (Desktop)
+## Keyboard Shortcuts (TUI)
 
-| Tecla | Ação |
-|-------|------|
-| `Ctrl+N` | Novo worktree |
-| `Ctrl+W` | Fechar workspace |
-| `Ctrl+R` | Refresh |
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Navigate between workspaces |
+| `Enter` | Open workspace with Claude Code |
+| `n` | Create new worktree |
+| `d` | Delete selected worktree |
+| `r` | Force refresh |
+| `q` | Quit |
 
-## Plugins de contexto
+## Configuration
 
-Plugins detectam automaticamente a estrutura do projeto e ativam painéis relevantes.
-
-| Plugin | Prioridade | Detecta quando |
-|--------|-----------|----------------|
-| Agency OS | 100 | `agency/clients/` ou subpastas com `profile.md` |
-| BMAD | 90 | `.bmad/`, "BMAD" em CLAUDE.md, ou `.claude/agents/` |
-| Generic | 10 | `CLAUDE.md` na raiz |
-| Raw | 0 | Sempre (fallback) |
-
-## `agentflow.config.json`
+`agentflow.config.json` at project root:
 
 ```json
 {
   "plugin": "agency-os",
-  "agencyPath": "caminho/customizado/para/clients",
+  "agencyPath": "custom/path/to/clients",
   "refreshInterval": 3000,
   "terminal": "wt",
   "maxVisibleWorkspaces": 8,
@@ -126,17 +151,39 @@ Plugins detectam automaticamente a estrutura do projeto e ativam painéis releva
 }
 ```
 
-## Stack
+## Tech Stack
 
-- **TypeScript** — tipagem estrita
-- **pnpm workspaces** — monorepo
-- **Ink 4.x** — React para terminal (TUI)
-- **Electron 28** — app desktop
-- **React 18** — UI
-- **Zustand** — estado (desktop)
-- **simple-git** — operações git
-- **chokidar** — file watching
+- **TypeScript** — strict typing throughout
+- **pnpm workspaces** — monorepo management
+- **Electron 28** — desktop app with frameless window
+- **React 18** — UI rendering (React.createElement, no JSX)
+- **Zustand 4** — state management with localStorage persistence
+- **xterm.js 5.3** — terminal rendering with fit addon
+- **node-pty 1.1** — Windows ConPTY process spawning
+- **simple-git** — git operations
+- **esbuild** — 3-target build (main/preload/renderer)
+- **Ink 4.x** — React for terminal (TUI package)
 
-## Licença
+## Data Model
+
+```typescript
+interface Project {
+  id: string           // hash of rootPath
+  name: string         // repo folder name
+  rootPath: string
+  plugin: string       // 'raw' | 'generic' | 'agency-os' | 'bmad'
+  agents: AgentSession[]
+}
+
+interface AgentSession {
+  id: string           // `${projectId}-${branch}`
+  branch: string
+  worktreePath: string
+  status: 'working' | 'waiting' | 'idle' | 'done'
+  terminalId: string   // persistent pty in main process
+}
+```
+
+## License
 
 MIT

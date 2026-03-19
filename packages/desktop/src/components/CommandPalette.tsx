@@ -1,13 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { store } from '../store/index'
-import { useStore } from '../hooks/useStore'
-
-interface Props {
-  onClose: () => void
-  onOpenLocal: () => void
-  onOpenClone: () => void
-}
+import { useStore } from '../store/index'
 
 interface PaletteItem {
   id: string
@@ -17,52 +10,58 @@ interface PaletteItem {
   action: () => void
 }
 
-const CommandPalette: React.FC<Props> = ({ onClose, onOpenLocal, onOpenClone }) => {
+const CommandPalette: React.FC = () => {
   const [query, setQuery] = useState('')
   const [selectedIdx, setSelectedIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const recents = useStore(s => s.recentProjects)
-  const worktrees = useStore(s => s.worktrees)
-  const statuses = useStore(s => s.agentStatuses)
+  const projects = useStore(s => s.projects)
+  const allAgents = projects.flatMap(p => p.agents)
 
   useEffect(() => { inputRef.current?.focus() }, [])
+
+  const onClose = useCallback(() => {
+    useStore.getState().closeCommandPalette()
+  }, [])
 
   const items: PaletteItem[] = React.useMemo(() => {
     const list: PaletteItem[] = []
 
-    // Recent projects
-    recents.forEach(p => {
-      const name = p.split(/[\\/]/).pop() || p
+    // Active agents
+    allAgents.forEach(agent => {
+      const projectName = projects.find(p => p.id === agent.projectId)?.name || ''
+      const statusIcon = agent.status === 'working' ? '\u25CF' : agent.status === 'waiting' ? '\u25CF' : '\u25CB'
       list.push({
-        id: `proj-${p}`, icon: '\uD83D\uDCC1', label: name, sublabel: p,
-        action: async () => {
-          try {
-            const config = await window.agentflow.config.load(p)
-            store.getState().setConfig(config)
-            store.getState().setRootPath(p)
-            store.getState().addRecentProject(p)
-          } catch {}
-          onClose()
-        },
+        id: `agent-${agent.id}`,
+        icon: statusIcon,
+        label: `${projectName} / ${agent.branch}`,
+        sublabel: agent.status,
+        action: () => { useStore.getState().setActiveAgent(agent.id); onClose() },
       })
     })
 
-    // Active worktrees
-    worktrees.forEach(wt => {
-      const status = statuses[wt.path] || 'idle'
-      const icon = status === 'working' ? '\u25CF' : status === 'waiting' ? '\u25CF' : '\u25CB'
+    // Projects
+    projects.forEach(p => {
       list.push({
-        id: `wt-${wt.path}`, icon, label: wt.branch || 'detached', sublabel: status,
-        action: () => { store.getState().selectWorktree(wt.path); onClose() },
+        id: `proj-${p.id}`,
+        icon: '\uD83D\uDCC1',
+        label: p.name,
+        sublabel: `${p.agents.length} agent(s) \u2014 ${p.plugin}`,
+        action: () => { useStore.getState().setActiveProject(p.id); onClose() },
       })
     })
 
     // Actions
-    list.push({ id: 'clone', icon: '\u2B07', label: 'Clonar reposit\u00F3rio', sublabel: 'Baixar do GitHub', action: () => { onOpenClone(); onClose() } })
-    list.push({ id: 'open', icon: '\uD83D\uDCC1', label: 'Abrir pasta local', sublabel: 'Selecionar diret\u00F3rio', action: () => { onOpenLocal(); onClose() } })
+    list.push({
+      id: 'add-project', icon: '\u2795', label: 'Add project', sublabel: 'Open local folder or clone',
+      action: () => { useStore.getState().openAddProject(); onClose() },
+    })
+    list.push({
+      id: 'new-agent', icon: '\u2795', label: 'New agent', sublabel: 'Create agent in active project',
+      action: () => { useStore.getState().openCreateAgent(); onClose() },
+    })
 
     return list
-  }, [recents, worktrees, statuses, onClose, onOpenLocal, onOpenClone])
+  }, [projects, allAgents, onClose])
 
   const filtered = query
     ? items.filter(i => (i.label + i.sublabel).toLowerCase().includes(query.toLowerCase()))
@@ -101,7 +100,7 @@ const CommandPalette: React.FC<Props> = ({ onClose, onOpenLocal, onOpenClone }) 
           ref: inputRef, value: query,
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value),
           onKeyDown: handleKeyDown,
-          placeholder: 'Buscar projeto ou workspace...',
+          placeholder: 'Search project, agent, or action...',
           style: {
             flex: 1, background: 'transparent', border: 'none', color: '#ededed',
             fontSize: '14px', outline: 'none',
@@ -115,7 +114,7 @@ const CommandPalette: React.FC<Props> = ({ onClose, onOpenLocal, onOpenClone }) 
         filtered.length === 0
           ? React.createElement('div', {
               style: { padding: '16px', color: '#555', fontSize: '13px', textAlign: 'center' as const },
-            }, 'Nenhum resultado')
+            }, 'No results')
           : filtered.slice(0, 8).map((item, i) =>
               React.createElement('button', {
                 key: item.id,

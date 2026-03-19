@@ -16,7 +16,6 @@ import {
 } from '@agentflow/core'
 import { simpleGit } from 'simple-git'
 
-// Prevent crashes from unhandled exceptions
 process.on('uncaughtException', (err) => {
   console.error('[agentflow] Uncaught exception:', err)
 })
@@ -26,7 +25,14 @@ process.on('unhandledRejection', (err) => {
 
 let mainWindow: BrowserWindow | null = null
 const worktreeWatchers = new Map<string, () => void>()
-const terminals = new Map<string, { kill: () => void; write: (data: string) => void; resize: (cols: number, rows: number) => void; simulated: boolean }>()
+
+// Terminal registry — survives navigation, persistent across renderer lifecycle
+const terminalRegistry = new Map<string, {
+  pty: any
+  buffer: string[]
+  isAlive: boolean
+  simulated: boolean
+}>()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -44,16 +50,11 @@ function createWindow() {
     },
   })
 
-  // Load the renderer HTML — src/index.html is two dirs up from dist/electron/
   mainWindow.loadFile(path.join(__dirname, '..', '..', 'src', 'index.html'))
-
   registerIpcHandlers()
 
   const menu = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [{ role: 'quit' }],
-    },
+    { label: 'File', submenu: [{ role: 'quit' }] },
     {
       label: 'Edit',
       submenu: [
@@ -71,7 +72,6 @@ function createWindow() {
   ])
   Menu.setApplicationMenu(menu)
 
-  // Open devtools in dev mode for debugging
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   }
@@ -86,7 +86,7 @@ function registerIpcHandlers() {
       if (!mainWindow) return null
       const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory'],
-        title: 'Selecionar projeto',
+        title: 'Select project',
       })
       if (result.canceled || result.filePaths.length === 0) return null
       const dir = result.filePaths[0]
@@ -107,10 +107,7 @@ function registerIpcHandlers() {
   // ── Git ──
   ipcMain.handle('git:list-worktrees', async (_e, rootPath: string) => {
     try {
-      console.log('[agentflow] listWorktrees called with:', rootPath)
       const result = await listWorktrees(normalizePath(rootPath))
-      console.log('[agentflow] listWorktrees returned:', result.length, 'worktrees')
-      // Force clean serialization — no circular refs or non-serializable values
       return JSON.parse(JSON.stringify(result))
     } catch (err) {
       console.error('[agentflow] list-worktrees error:', err)
@@ -121,10 +118,11 @@ function registerIpcHandlers() {
   ipcMain.handle('git:create-worktree', async (_e, rootPath: string, branch: string) => {
     try {
       const result = await createWorktree(normalizePath(rootPath), branch)
-      return JSON.parse(JSON.stringify(result))
-    } catch (err) {
+      const data = JSON.parse(JSON.stringify(result))
+      return { success: true, path: data.path, error: undefined }
+    } catch (err: any) {
       console.error('[agentflow] create-worktree error:', err)
-      throw err
+      return { success: false, path: undefined, error: err.message || String(err) }
     }
   })
 
@@ -220,7 +218,7 @@ function registerIpcHandlers() {
     }
   })
 
-  // ── Terminal ──
+  // ── Terminal (persistent registry) ──
   let nodePty: any = null
   try {
     nodePty = require('node-pty')
@@ -229,24 +227,31 @@ function registerIpcHandlers() {
   }
 
   ipcMain.handle('terminal:create', async (event, id: string, worktreePath: string, command: string) => {
-    // Kill existing terminal with same id
-    if (terminals.has(id)) {
-      const old = terminals.get(id)!
-      if (!old.simulated) old.kill()
-      terminals.delete(id)
+    // If already exists and alive, return existing with buffer for replay
+    if (terminalRegistry.has(id)) {
+      const existing = terminalRegistry.get(id)!
+      if (existing.isAlive) {
+        return { success: true, existed: true, buffer: existing.buffer }
+      }
+      // Dead terminal — clean up and recreate
+      terminalRegistry.delete(id)
     }
 
     if (!nodePty) {
-      terminals.set(id, {
-        simulated: true,
-        kill: () => {},
-        write: () => {},
-        resize: () => {},
+      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true }
+      terminalRegistry.set(id, entry)
+
+      const simMsg = `\x1b[36m[agentflow]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
+      const dirMsg = `\x1b[36m[agentflow]\x1b[0m Directory: ${worktreePath}\r\n`
+      entry.buffer.push(simMsg, dirMsg)
+
+      BrowserWindow.getAllWindows().forEach(win => {
+        if (!win.isDestroyed()) {
+          win.webContents.send('terminal:output', id, simMsg)
+          win.webContents.send('terminal:output', id, dirMsg)
+        }
       })
-      event.sender.send('terminal:output', id, `\x1b[36m[agentflow]\x1b[0m Terminal simulado — node-pty não compilado\r\n`)
-      event.sender.send('terminal:output', id, `\x1b[36m[agentflow]\x1b[0m Diretório: ${worktreePath}\r\n`)
-      event.sender.send('terminal:output', id, `\x1b[36m[agentflow]\x1b[0m Instale node-pty para terminal real\r\n`)
-      return { success: true, simulated: true }
+      return { success: true, existed: false, simulated: true, buffer: [] }
     }
 
     try {
@@ -259,43 +264,62 @@ function registerIpcHandlers() {
         useConpty: true,
       })
 
+      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false }
+      terminalRegistry.set(id, entry)
+
       pty.onData((data: string) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('terminal:output', id, data)
-        }
+        // Keep last 1000 chunks for replay on reconnect
+        entry.buffer.push(data)
+        if (entry.buffer.length > 1000) entry.buffer.shift()
+
+        // Send to all renderer windows
+        BrowserWindow.getAllWindows().forEach(win => {
+          if (!win.isDestroyed()) {
+            win.webContents.send('terminal:output', id, data)
+          }
+        })
       })
 
-      terminals.set(id, {
-        simulated: false,
-        kill: () => pty.kill(),
-        write: (data: string) => pty.write(data),
-        resize: (cols: number, rows: number) => pty.resize(cols, rows),
+      pty.onExit(() => {
+        entry.isAlive = false
       })
 
       // Auto-run command after small delay
       setTimeout(() => { pty.write(command + '\r') }, 300)
 
-      return { success: true, simulated: false }
+      return { success: true, existed: false, simulated: false, buffer: [] }
     } catch (err: any) {
       return { success: false, error: err.message }
     }
   })
 
+  // Replay buffer for reconnecting terminal
+  ipcMain.handle('terminal:get-buffer', (_: any, id: string) => {
+    return terminalRegistry.get(id)?.buffer ?? []
+  })
+
+  // Check if terminal is alive
+  ipcMain.handle('terminal:is-alive', (_: any, id: string) => {
+    const entry = terminalRegistry.get(id)
+    return entry?.isAlive ?? false
+  })
+
   ipcMain.on('terminal:input', (_e, id: string, data: string) => {
-    const t = terminals.get(id)
-    if (t && !t.simulated) t.write(data)
+    const entry = terminalRegistry.get(id)
+    if (entry && !entry.simulated && entry.pty) entry.pty.write(data)
   })
 
   ipcMain.on('terminal:resize', (_e, id: string, cols: number, rows: number) => {
-    const t = terminals.get(id)
-    if (t && !t.simulated) t.resize(cols, rows)
+    const entry = terminalRegistry.get(id)
+    if (entry && !entry.simulated && entry.pty) entry.pty.resize(cols, rows)
   })
 
+  // Explicit close — only called when agent is removed, NOT on component unmount
   ipcMain.on('terminal:close', (_e, id: string) => {
-    const t = terminals.get(id)
-    if (t) {
-      if (!t.simulated) t.kill()
-      terminals.delete(id)
+    const entry = terminalRegistry.get(id)
+    if (entry) {
+      if (!entry.simulated && entry.pty) entry.pty.kill()
+      terminalRegistry.delete(id)
     }
   })
 
@@ -318,11 +342,7 @@ function registerIpcHandlers() {
   ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
     try {
       if (!Notification.isSupported()) return
-      new Notification({
-        title,
-        body,
-        silent: type === 'info',
-      }).show()
+      new Notification({ title, body, silent: type === 'info' }).show()
     } catch (err) {
       console.error('[agentflow] notification error:', err)
     }
@@ -340,14 +360,12 @@ function registerIpcHandlers() {
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
-  // Cleanup watchers
   for (const cleanup of worktreeWatchers.values()) cleanup()
   worktreeWatchers.clear()
-  // Cleanup terminals
-  for (const t of terminals.values()) {
-    if (!t.simulated) t.kill()
+  for (const entry of terminalRegistry.values()) {
+    if (!entry.simulated && entry.pty) entry.pty.kill()
   }
-  terminals.clear()
+  terminalRegistry.clear()
   app.quit()
 })
 

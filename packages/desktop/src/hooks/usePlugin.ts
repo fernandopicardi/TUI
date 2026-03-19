@@ -1,19 +1,27 @@
 import { useEffect } from 'react'
-import { store } from '../store/index'
+import { useStore } from '../store/index'
 
 /**
- * Loads plugin data via IPC when rootPath changes.
+ * Loads plugin data for the active project if not already loaded.
  */
-export function usePluginLoader(rootPath: string | null) {
-  useEffect(() => {
-    if (!rootPath || !window.agentflow?.plugins) return
+export function usePluginLoader() {
+  const activeProject = useStore(s => {
+    const p = s.projects.find(pr => pr.id === s.activeProjectId)
+    return p ? { id: p.id, rootPath: p.rootPath, plugin: p.plugin, hasContext: !!p.pluginContext } : null
+  })
 
-    window.agentflow.plugins.load(rootPath)
+  useEffect(() => {
+    if (!activeProject || activeProject.hasContext || !window.agentflow?.plugins) return
+
+    window.agentflow.plugins.load(activeProject.rootPath)
       .then(({ pluginName, context }) => {
-        store.getState().setPlugin(pluginName, context)
+        useStore.getState().updateProject(activeProject.id, {
+          plugin: pluginName,
+          pluginContext: context,
+        })
       })
       .catch((err: unknown) => {
         console.error('[agentflow] plugin load failed:', err)
       })
-  }, [rootPath])
+  }, [activeProject?.id, activeProject?.hasContext])
 }
