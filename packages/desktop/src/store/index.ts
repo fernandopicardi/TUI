@@ -1,6 +1,12 @@
 import { createStore } from 'zustand/vanilla'
 import { WorktreeData, PluginContextData, ConfigData, AgentStatusValue } from '../types'
 
+export interface ToastItem {
+  id: number
+  message: string
+  type: 'info' | 'success' | 'warning'
+}
+
 export interface AgentflowStore {
   // State
   rootPath: string | null
@@ -13,6 +19,9 @@ export interface AgentflowStore {
   activeView: 'welcome' | 'dashboard' | 'workspace'
   isLoading: boolean
   error: string | null
+  toasts: ToastItem[]
+  initPrompt: string | null
+  recentProjects: string[]
 
   // Actions
   setRootPath: (path: string) => void
@@ -24,6 +33,22 @@ export interface AgentflowStore {
   setActiveView: (view: 'welcome' | 'dashboard' | 'workspace') => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  showToast: (message: string, type?: 'info' | 'success' | 'warning') => void
+  dismissToast: (id: number) => void
+  setInitPrompt: (prompt: string | null) => void
+  addRecentProject: (path: string) => void
+}
+
+let toastId = 0
+
+function loadRecents(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem('agentflow:recents') || '[]')
+  } catch { return [] }
+}
+
+function saveRecents(recents: string[]) {
+  try { localStorage.setItem('agentflow:recents', JSON.stringify(recents)) } catch {}
 }
 
 export const store = createStore<AgentflowStore>((set) => ({
@@ -37,6 +62,9 @@ export const store = createStore<AgentflowStore>((set) => ({
   activeView: 'welcome',
   isLoading: false,
   error: null,
+  toasts: [],
+  initPrompt: null,
+  recentProjects: loadRecents(),
 
   setRootPath: (rootPath) => set({ rootPath, activeView: 'dashboard', error: null }),
   setWorktrees: (worktrees) => set({ worktrees }),
@@ -52,13 +80,18 @@ export const store = createStore<AgentflowStore>((set) => ({
   setActiveView: (view) => set({ activeView: view }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  showToast: (message, type = 'info') => {
+    const id = ++toastId
+    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }))
+    setTimeout(() => {
+      set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) }))
+    }, 3000)
+  },
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+  setInitPrompt: (prompt) => set({ initPrompt: prompt }),
+  addRecentProject: (path) => set((s) => {
+    const recents = [path, ...s.recentProjects.filter(p => p !== path)].slice(0, 5)
+    saveRecents(recents)
+    return { recentProjects: recents }
+  }),
 }))
-
-// React hook helper — simple subscribe pattern for use without React bindings
-export function getState() {
-  return store.getState()
-}
-
-export function subscribe(listener: (state: AgentflowStore) => void) {
-  return store.subscribe(listener)
-}

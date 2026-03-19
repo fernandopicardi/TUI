@@ -7,9 +7,10 @@ interface Props {
   id: string
   worktreePath: string
   openCommand?: string
+  initialPrompt?: string
 }
 
-const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' }) => {
+const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', initialPrompt }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -37,8 +38,6 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' })
     const fitAddon = new FitAddon()
     xterm.loadAddon(fitAddon)
     xterm.open(containerRef.current)
-
-    // Small delay for DOM to be ready before fit
     setTimeout(() => fitAddon.fit(), 50)
 
     xtermRef.current = xterm
@@ -47,10 +46,22 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' })
     // Create process in main
     window.agentflow.terminal.create(id, worktreePath, openCommand)
 
+    // Track if initial prompt has been injected
+    let promptInjected = !initialPrompt
+
     // Receive output from process
     const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
-      if (termId === id && xtermRef.current) {
-        xtermRef.current.write(data)
+      if (termId !== id || !xtermRef.current) return
+      xtermRef.current.write(data)
+
+      // Inject initial prompt when terminal is ready (prompt char detected)
+      if (!promptInjected && initialPrompt) {
+        if (data.includes('>') || data.includes('$') || data.includes('\u276F')) {
+          promptInjected = true
+          setTimeout(() => {
+            window.agentflow.terminal.input(id, initialPrompt + '\n')
+          }, 800)
+        }
       }
     })
 
@@ -65,9 +76,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' })
       try {
         fitAddonRef.current.fit()
         window.agentflow.terminal.resize(id, xtermRef.current.cols, xtermRef.current.rows)
-      } catch {
-        // Ignore resize errors during teardown
-      }
+      } catch {}
     })
     resizeObserver.observe(containerRef.current)
 
@@ -82,16 +91,13 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' })
       cleanupRef.current?.()
       cleanupRef.current = null
     }
-  }, [id, worktreePath, openCommand])
+  }, [id, worktreePath, openCommand, initialPrompt])
 
   return React.createElement('div', {
     ref: containerRef,
     style: {
-      width: '100%',
-      height: '100%',
-      minHeight: '200px',
-      backgroundColor: '#0a0a0a',
-      padding: '4px',
+      width: '100%', height: '100%', minHeight: '200px',
+      backgroundColor: '#0a0a0a', padding: '4px',
     },
   })
 }

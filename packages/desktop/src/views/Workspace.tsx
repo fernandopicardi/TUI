@@ -13,6 +13,7 @@ const Workspace: React.FC = () => {
   const selectedId = useStore(s => s.selectedWorktreeId)
   const worktrees = useStore(s => s.worktrees)
   const rootPath = useStore(s => s.rootPath)
+  const initPrompt = useStore(s => s.initPrompt)
   const [activeTab, setActiveTab] = useState<Tab>('terminal')
 
   const worktree = worktrees.find(w => w.path === selectedId)
@@ -21,6 +22,15 @@ const Workspace: React.FC = () => {
     if (!worktree) return ''
     return `term-${worktree.branch.replace(/[^a-zA-Z0-9]/g, '-')}`
   }, [worktree?.branch])
+
+  // Clear initPrompt after navigation to workspace
+  React.useEffect(() => {
+    if (initPrompt) {
+      // Clear after a small delay so Terminal picks it up
+      const timer = setTimeout(() => store.getState().setInitPrompt(null), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [initPrompt])
 
   const handleBack = useCallback(() => {
     store.getState().selectWorktree(null)
@@ -87,7 +97,7 @@ const Workspace: React.FC = () => {
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
       },
-        React.createElement(Terminal, { id: terminalId, worktreePath: worktree.path })
+        React.createElement(Terminal, { id: terminalId, worktreePath: worktree.path, initialPrompt: initPrompt || undefined })
       ),
       // Diff
       React.createElement('div', {
