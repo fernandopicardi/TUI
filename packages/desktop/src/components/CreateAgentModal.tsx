@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 import { useStore } from '../store/index'
 
 const CreateAgentModal: React.FC = () => {
-  const [input, setInput] = useState('feature/')
+  const [input, setInput] = useState('')
   const [createWorktree, setCreateWorktree] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -14,9 +14,23 @@ const CreateAgentModal: React.FC = () => {
     useStore.getState().closeCreateAgent()
   }, [])
 
+  // Validate branch name per git-check-ref-format rules
+  const isValidBranch = (name: string): boolean => {
+    if (!name || name.endsWith('/') || name.endsWith('.') || name.startsWith('-')) return false
+    if (/\.\./.test(name) || /[\x00-\x1f\x7f ~^:?*\[\\]/.test(name)) return false
+    if (name.includes('@{') || name === '@') return false
+    if (name.endsWith('.lock')) return false
+    return true
+  }
+
   const handleCreate = useCallback(async () => {
     const branchName = input.trim()
     if (!branchName || !activeProject) return
+
+    if (!isValidBranch(branchName)) {
+      setError(`"${branchName}" is not a valid branch name. Must not end with / or contain spaces.`)
+      return
+    }
 
     setCreating(true)
     setError(null)
@@ -85,6 +99,7 @@ const CreateAgentModal: React.FC = () => {
         React.createElement('input', {
           type: 'text',
           value: input,
+          placeholder: 'feature/my-task',
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value),
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === 'Enter') handleCreate()
