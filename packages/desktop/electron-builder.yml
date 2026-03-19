@@ -27,5 +27,8 @@ files:
 
 npmRebuild: false
 
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+
 extraMetadata:
   main: dist/electron/main.js

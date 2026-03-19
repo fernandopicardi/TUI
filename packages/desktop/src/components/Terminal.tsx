@@ -1,5 +1,7 @@
 import * as React from 'react'
 import { useEffect, useRef } from 'react'
+import { Terminal as XTerm } from 'xterm'
+import { FitAddon } from 'xterm-addon-fit'
 
 interface Props {
   id: string
@@ -9,74 +11,89 @@ interface Props {
 
 const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude' }) => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<string>('')
-  const preRef = useRef<HTMLPreElement>(null)
+  const xtermRef = useRef<XTerm | null>(null)
+  const fitAddonRef = useRef<FitAddon | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
-    if (!window.agentflow?.terminal) return
+    if (!containerRef.current || !window.agentflow?.terminal) return
 
-    // Create terminal in main process
+    const xterm = new XTerm({
+      theme: {
+        background: '#0a0a0a',
+        foreground: '#ededed',
+        cursor: '#5b6af0',
+        selectionBackground: '#5b6af033',
+        black: '#1a1a1a',
+        brightBlack: '#444444',
+      },
+      fontFamily: 'Consolas, "Cascadia Code", "Courier New", monospace',
+      fontSize: 13,
+      lineHeight: 1.4,
+      cursorBlink: true,
+      scrollback: 5000,
+    })
+
+    const fitAddon = new FitAddon()
+    xterm.loadAddon(fitAddon)
+    xterm.open(containerRef.current)
+
+    // Small delay for DOM to be ready before fit
+    setTimeout(() => fitAddon.fit(), 50)
+
+    xtermRef.current = xterm
+    fitAddonRef.current = fitAddon
+
+    // Create process in main
     window.agentflow.terminal.create(id, worktreePath, openCommand)
 
-    // Listen for output
-    const cleanup = window.agentflow.terminal.onOutput((termId: string, data: string) => {
-      if (termId === id && preRef.current) {
-        contentRef.current += data
-        preRef.current.textContent = contentRef.current
-        preRef.current.scrollTop = preRef.current.scrollHeight
+    // Receive output from process
+    const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
+      if (termId === id && xtermRef.current) {
+        xtermRef.current.write(data)
       }
     })
 
-    return () => {
-      cleanup()
+    // Send input to process
+    xterm.onData((data: string) => {
+      window.agentflow.terminal.input(id, data)
+    })
+
+    // Auto-resize
+    const resizeObserver = new ResizeObserver(() => {
+      if (!fitAddonRef.current || !xtermRef.current) return
+      try {
+        fitAddonRef.current.fit()
+        window.agentflow.terminal.resize(id, xtermRef.current.cols, xtermRef.current.rows)
+      } catch {
+        // Ignore resize errors during teardown
+      }
+    })
+    resizeObserver.observe(containerRef.current)
+
+    cleanupRef.current = () => {
+      removeOutput?.()
+      resizeObserver.disconnect()
       window.agentflow.terminal.close(id)
+      xterm.dispose()
+    }
+
+    return () => {
+      cleanupRef.current?.()
+      cleanupRef.current = null
     }
   }, [id, worktreePath, openCommand])
 
-  // Simple input handler
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!window.agentflow?.terminal) return
-    if (e.key === 'Enter') {
-      window.agentflow.terminal.input(id, '\r')
-    } else if (e.key === 'Backspace') {
-      window.agentflow.terminal.input(id, '\x7f')
-    } else if (e.key.length === 1) {
-      window.agentflow.terminal.input(id, e.key)
-    }
-  }
-
   return React.createElement('div', {
     ref: containerRef,
-    tabIndex: 0,
-    onKeyDown: handleKeyDown,
     style: {
       width: '100%',
       height: '100%',
+      minHeight: '200px',
       backgroundColor: '#0a0a0a',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      outline: 'none',
+      padding: '4px',
     },
-  },
-    React.createElement('pre', {
-      ref: preRef,
-      style: {
-        flex: 1,
-        margin: 0,
-        padding: '8px 12px',
-        fontFamily: 'Consolas, "Courier New", monospace',
-        fontSize: '13px',
-        lineHeight: '1.4',
-        color: '#ededed',
-        overflow: 'auto',
-        whiteSpace: 'pre-wrap' as const,
-        wordBreak: 'break-all' as const,
-      },
-    }),
-    React.createElement('div', {
-      style: { padding: '4px 12px', borderTop: '1px solid #1f1f1f', color: '#555', fontSize: '11px' },
-    }, 'Clique para focar \u2022 Terminal b\u00E1sico (xterm.js dispon\u00EDvel via node-pty)')
-  )
+  })
 }
 
 export default Terminal

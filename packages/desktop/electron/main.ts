@@ -110,16 +110,18 @@ function registerIpcHandlers() {
       console.log('[agentflow] listWorktrees called with:', rootPath)
       const result = await listWorktrees(normalizePath(rootPath))
       console.log('[agentflow] listWorktrees returned:', result.length, 'worktrees')
-      return result
+      // Force clean serialization — no circular refs or non-serializable values
+      return JSON.parse(JSON.stringify(result))
     } catch (err) {
       console.error('[agentflow] list-worktrees error:', err)
-      throw err
+      return []
     }
   })
 
   ipcMain.handle('git:create-worktree', async (_e, rootPath: string, branch: string) => {
     try {
-      return await createWorktree(normalizePath(rootPath), branch)
+      const result = await createWorktree(normalizePath(rootPath), branch)
+      return JSON.parse(JSON.stringify(result))
     } catch (err) {
       console.error('[agentflow] create-worktree error:', err)
       throw err
@@ -152,7 +154,7 @@ function registerIpcHandlers() {
       }
       const cleanup = watchWorktrees(normalized, (wts) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('git:worktrees-changed', wts)
+          mainWindow.webContents.send('git:worktrees-changed', JSON.parse(JSON.stringify(wts)))
         }
       }, interval)
       worktreeWatchers.set(normalized, cleanup)
@@ -178,7 +180,7 @@ function registerIpcHandlers() {
       const config = await loadConfig(normalizePath(rootPath))
       const plugin = await resolvePlugin(normalizePath(rootPath), config)
       const context = await loadPluginSafe(plugin, normalizePath(rootPath))
-      return { pluginName: plugin.name, context }
+      return JSON.parse(JSON.stringify({ pluginName: plugin.name, context }))
     } catch (err) {
       console.error('[agentflow] plugin-load error:', err)
       return { pluginName: 'raw', context: null }
