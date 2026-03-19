@@ -15,7 +15,26 @@ import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
 
 const App: React.FC = () => {
-  const hydrated = useStore(s => s._hydrated)
+  // Hydration: zustand persist loads from localStorage asynchronously (microtask).
+  // Wait one frame before rendering to avoid flash of empty Welcome screen.
+  const [hydrated, setHydrated] = React.useState(false)
+  useEffect(() => {
+    // Try zustand persist API first
+    const persistApi = (useStore as any).persist
+    if (persistApi && typeof persistApi.hasHydrated === 'function') {
+      if (persistApi.hasHydrated()) {
+        setHydrated(true)
+      } else if (typeof persistApi.onFinishHydration === 'function') {
+        persistApi.onFinishHydration(() => setHydrated(true))
+      } else {
+        // Fallback: next tick (after sync thenable chain completes)
+        setTimeout(() => setHydrated(true), 0)
+      }
+    } else {
+      setTimeout(() => setHydrated(true), 0)
+    }
+  }, [])
+
   const projects = useStore(s => s.projects)
   const activeAgentId = useStore(s => s.activeAgentId)
   const toasts = useStore(s => s.toasts)
@@ -54,9 +73,6 @@ const App: React.FC = () => {
         s.closeSettings()
         return
       }
-      if (e.key === '?' && !e.ctrlKey && !isInput) {
-        return
-      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -64,12 +80,8 @@ const App: React.FC = () => {
 
   const hasProjects = projects.length > 0
   const hasActiveAgent = !!activeAgentId
-
-  // Derive active project name for title bar
   const activeProject = useStore(s => s.projects.find(p => p.id === s.activeProjectId))
   const projectName = activeProject?.name
-
-  // Collect all agents that have been activated (have a terminalId) for persistent mounting
   const allAgents = projects.flatMap(p => p.agents)
 
   return React.createElement('div', {
@@ -82,28 +94,22 @@ const App: React.FC = () => {
   },
     React.createElement(TitleBar, { projectName }),
 
-    // Preload error
     !preloadOk
       ? React.createElement('div', {
           style: { padding: '12px 16px', backgroundColor: '#1a0000', borderBottom: '1px solid #ef4444', color: '#ef4444', fontSize: '12px' },
         }, 'Error: preload failed. Restart the app.')
       : null,
 
-    // Wait for persist hydration before rendering content
+    // Wait for persist hydration
     !hydrated
       ? React.createElement('div', {
           style: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' },
         },
-          React.createElement('div', {
-            style: { color: '#555', fontSize: '13px' },
-          }, 'Loading...')
+          React.createElement('span', { style: { color: '#5b6af0', fontSize: '16px' } }, '\u25C6'),
         )
       : hasProjects
         ? React.createElement(React.Fragment, null,
-            // Agent Bar (horizontal, all agents across projects)
             React.createElement(AgentBar),
-
-            // Content area: Sidebar + Main
             React.createElement('div', {
               style: { display: 'flex', flex: 1, overflow: 'hidden' },
             },
@@ -121,9 +127,7 @@ const App: React.FC = () => {
                 },
                   React.createElement(Dashboard)
                 ),
-
-                // Workspace per agent — keep ALL mounted to preserve terminal sessions
-                // Only the active one is visible; others are hidden but alive
+                // Workspaces — keep ALL mounted to preserve terminal sessions
                 ...allAgents.map(agent =>
                   React.createElement('div', {
                     key: agent.id,

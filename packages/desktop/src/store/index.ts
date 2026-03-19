@@ -3,9 +3,6 @@ import { persist } from 'zustand/middleware'
 import { Project, AgentSession, Toast } from '../types'
 
 export interface AgentflowStore {
-  // Hydration flag
-  _hydrated: boolean
-
   // State
   projects: Project[]
   activeProjectId: string | null
@@ -61,8 +58,6 @@ export interface AgentflowStore {
 export const useStore = create<AgentflowStore>()(
   persist(
     (set, get) => ({
-      _hydrated: false,
-
       projects: [],
       activeProjectId: null,
       activeAgentId: null,
@@ -178,10 +173,6 @@ export const useStore = create<AgentflowStore>()(
         activeProjectId: state.activeProjectId,
         activeAgentId: state.activeAgentId,
       }),
-      onRehydrateStorage: () => () => {
-        // Mark hydration complete after persist loads from localStorage
-        useStore.setState({ _hydrated: true })
-      },
     }
   )
 )
