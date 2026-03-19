@@ -15,9 +15,13 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
+  const initializedRef = useRef(false)
 
   useEffect(() => {
-    if (!containerRef.current || !window.agentflow?.terminal) return
+    if (!containerRef.current || !window.agentflow?.terminal || !id) return
+    // Prevent double-init (React StrictMode, etc)
+    if (initializedRef.current) return
+    initializedRef.current = true
 
     let isMounted = true
 
@@ -50,42 +54,37 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       xtermRef.current = xterm
       fitAddonRef.current = fitAddon
 
-      // Create or reconnect to existing terminal
-      const result = await window.agentflow.terminal.create(id, worktreePath, openCommand)
-
-      // Replay buffer if terminal already existed (persistent session)
-      if (result.existed) {
-        const buffer = await window.agentflow.terminal.getBuffer(id)
-        buffer.forEach((chunk: string) => xterm.write(chunk))
-        xterm.write('\r\n\x1b[33m[agentflow] session reconnected\x1b[0m\r\n')
-      }
-
-      // Inject initial prompt only on new terminals
-      if (!result.existed && initialPrompt) {
-        let promptInjected = false
-
-        const checkInterval = setInterval(() => {
-          if (promptInjected || !isMounted) { clearInterval(checkInterval); return }
-        }, 500)
-
-        // Fallback: inject after 3s
-        setTimeout(() => {
-          if (!promptInjected && isMounted) {
-            promptInjected = true
-            clearInterval(checkInterval)
-            window.agentflow.terminal.input(id, initialPrompt + '\n')
-          }
-        }, 3000)
-      }
-
-      // Receive output from main process
+      // Register output listener FIRST to avoid losing data during reconnect
       const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
         if (termId === id && isMounted && xtermRef.current) {
           xtermRef.current.write(data)
         }
       })
 
-      // Send input to main process
+      // Create or reconnect to existing terminal in main process
+      const result = await window.agentflow.terminal.create(id, worktreePath, openCommand)
+
+      if (!isMounted) { removeOutput?.(); return }
+
+      // Replay buffer if terminal already existed (persistent session)
+      if (result.existed && result.buffer) {
+        result.buffer.forEach((chunk: string) => xterm.write(chunk))
+        xterm.write('\r\n\x1b[33m[agentflow] session reconnected\x1b[0m\r\n')
+      }
+
+      // Inject initial prompt only on NEW terminals
+      if (!result.existed && initialPrompt) {
+        let promptInjected = false
+        // Fallback: inject after 3s regardless
+        setTimeout(() => {
+          if (!promptInjected && isMounted) {
+            promptInjected = true
+            window.agentflow.terminal.input(id, initialPrompt + '\n')
+          }
+        }, 3000)
+      }
+
+      // Send input from xterm to main process
       xterm.onData((data: string) => {
         window.agentflow.terminal.input(id, data)
       })
@@ -103,7 +102,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       cleanupRef.current = () => {
         removeOutput?.()
         resizeObserver.disconnect()
-        // Do NOT close the pty on unmount — only disconnect the xterm renderer
+        // Do NOT close the pty — it persists in main process across navigation
       }
     }
 
@@ -111,10 +110,12 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
 
     return () => {
       isMounted = false
+      initializedRef.current = false
       cleanupRef.current?.()
       xtermRef.current?.dispose()
+      xtermRef.current = null
     }
-  }, [id]) // id is stable — effect runs once per terminal
+  }, [id]) // id is stable per agent — effect runs once
 
   return React.createElement('div', {
     ref: containerRef,

@@ -9,52 +9,66 @@ import WorkspaceNotes from '../components/WorkspaceNotes'
 
 type Tab = 'terminal' | 'diff' | 'pr' | 'notes'
 
-const Workspace: React.FC = () => {
-  const activeAgent = useStore(s => s.getActiveAgent())
-  const activeProject = useStore(s => s.getActiveProject())
+interface Props {
+  agentId: string
+}
+
+const Workspace: React.FC<Props> = ({ agentId }) => {
+  // Find this specific agent and its project
+  const agent = useStore(s => {
+    for (const p of s.projects) {
+      const a = p.agents.find(ag => ag.id === agentId)
+      if (a) return a
+    }
+    return null
+  })
+  const project = useStore(s => {
+    return s.projects.find(p => p.agents.some(a => a.id === agentId)) ?? null
+  })
   const initPrompt = useStore(s => s.initPrompt)
+  const isActive = useStore(s => s.activeAgentId === agentId)
   const [activeTab, setActiveTab] = useState<Tab>('terminal')
 
   const terminalId = useMemo(() => {
-    if (!activeAgent) return ''
-    return activeAgent.terminalId
-  }, [activeAgent?.terminalId])
+    if (!agent) return ''
+    return agent.terminalId
+  }, [agent?.terminalId])
 
-  // Clear initPrompt after navigation to workspace
+  // Clear initPrompt after pickup — only for the active agent
   React.useEffect(() => {
-    if (initPrompt) {
+    if (initPrompt && isActive) {
       const timer = setTimeout(() => useStore.getState().setInitPrompt(null), 100)
       return () => clearTimeout(timer)
     }
-  }, [initPrompt])
+  }, [initPrompt, isActive])
 
   const handleBack = useCallback(() => {
     useStore.getState().setActiveAgent(null)
   }, [])
 
   const handleDelete = useCallback(async () => {
-    if (!activeAgent || !activeProject) return
-    if (!confirm(`Delete agent "${activeAgent.branch}"?`)) return
+    if (!agent || !project) return
+    if (!confirm(`Delete agent "${agent.branch}"?`)) return
     try {
-      // Close terminal
-      window.agentflow?.terminal?.close(activeAgent.terminalId)
+      // Explicitly close pty in main process
+      window.agentflow?.terminal?.close(agent.terminalId)
       // Remove worktree if not main project path
-      if (activeAgent.worktreePath !== activeProject.rootPath) {
-        await window.agentflow.git.removeWorktree(activeProject.rootPath, activeAgent.worktreePath)
+      if (agent.worktreePath !== project.rootPath) {
+        await window.agentflow.git.removeWorktree(project.rootPath, agent.worktreePath)
       }
-      useStore.getState().removeAgent(activeProject.id, activeAgent.id)
+      useStore.getState().removeAgent(project.id, agent.id)
     } catch (err: unknown) {
       useStore.getState().showToast(
         err instanceof Error ? err.message : String(err),
         'warning'
       )
     }
-  }, [activeAgent, activeProject])
+  }, [agent, project])
 
-  if (!activeAgent || !activeProject) {
+  if (!agent || !project) {
     return React.createElement('div', {
       style: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '13px' },
-    }, 'Select an agent in the sidebar')
+    }, 'Agent not found')
   }
 
   const tabStyle = (tab: Tab): React.CSSProperties => ({
@@ -63,6 +77,9 @@ const Workspace: React.FC = () => {
     color: activeTab === tab ? '#ededed' : '#666', fontSize: '12px',
     transition: 'all 0.15s',
   })
+
+  // Only pass initialPrompt if this is the active agent and prompt exists
+  const effectivePrompt = isActive ? (initPrompt || undefined) : undefined
 
   return React.createElement('div', {
     style: { display: 'flex', flexDirection: 'column' as const, height: '100%', backgroundColor: '#0a0a0a' },
@@ -77,11 +94,11 @@ const Workspace: React.FC = () => {
       }, '\u2190'),
       React.createElement('span', {
         style: { fontSize: '11px', color: '#555' },
-      }, activeProject.name),
+      }, project.name),
       React.createElement('span', { style: { color: '#333', fontSize: '12px' } }, '/'),
       React.createElement('span', {
         style: { fontSize: '13px', fontWeight: 500, color: '#ededed', fontFamily: 'Consolas, monospace' },
-      }, activeAgent.branch || 'detached'),
+      }, agent.branch || 'detached'),
       // Tabs
       React.createElement('div', { style: { display: 'flex', gap: '2px', marginLeft: '16px' } },
         React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
@@ -98,38 +115,38 @@ const Workspace: React.FC = () => {
 
     // Tab content
     React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
-      // Terminal — always mounted to preserve state, hidden when not active
+      // Terminal — always mounted to preserve state, hidden when not active tab
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
       },
         React.createElement(Terminal, {
           id: terminalId,
-          worktreePath: activeAgent.worktreePath,
-          initialPrompt: initPrompt || undefined,
+          worktreePath: agent.worktreePath,
+          initialPrompt: effectivePrompt,
         })
       ),
       // Diff
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
       },
-        React.createElement(DiffViewer, { worktreePath: activeAgent.worktreePath })
+        React.createElement(DiffViewer, { worktreePath: agent.worktreePath })
       ),
       // PR
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
       },
-        React.createElement(PRPanel, { worktreePath: activeAgent.worktreePath, branch: activeAgent.branch })
+        React.createElement(PRPanel, { worktreePath: agent.worktreePath, branch: agent.branch })
       ),
       // Notes
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
       },
-        React.createElement(WorkspaceNotes, { branch: activeAgent.branch, rootPath: activeProject.rootPath })
+        React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
       ),
     ),
 
-    // MCP Panel — always visible, collapsible
-    React.createElement(MCPPanel, { worktreePath: activeAgent.worktreePath })
+    // MCP Panel
+    React.createElement(MCPPanel, { worktreePath: agent.worktreePath })
   )
 }
 

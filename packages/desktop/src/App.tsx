@@ -15,6 +15,7 @@ import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
 
 const App: React.FC = () => {
+  const hydrated = useStore(s => s._hydrated)
   const projects = useStore(s => s.projects)
   const activeAgentId = useStore(s => s.activeAgentId)
   const toasts = useStore(s => s.toasts)
@@ -36,25 +37,24 @@ const App: React.FC = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const isInput = (e.target as HTMLElement)?.matches?.('input,textarea')
-      const store = useStore.getState()
+      const s = useStore.getState()
 
-      if (e.ctrlKey && e.shiftKey && e.key === 'P') { e.preventDefault(); store.openAddProject(); return }
-      if (e.ctrlKey && e.key === 'n') { e.preventDefault(); store.openCreateAgent(); return }
-      if (e.ctrlKey && e.key === 'k') { e.preventDefault(); store.openCommandPalette(); return }
-      if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); store.openQuickPrompt(); return }
-      if (e.ctrlKey && e.key === 'b') { e.preventDefault(); store.toggleContextPanel(); return }
-      if (e.ctrlKey && e.key === ',') { e.preventDefault(); store.openSettings(); return }
-      if (e.ctrlKey && e.key === 'w') { e.preventDefault(); store.setActiveAgent(null); return }
+      if (e.ctrlKey && e.shiftKey && e.key === 'P') { e.preventDefault(); s.openAddProject(); return }
+      if (e.ctrlKey && e.key === 'n') { e.preventDefault(); s.openCreateAgent(); return }
+      if (e.ctrlKey && e.key === 'k') { e.preventDefault(); s.openCommandPalette(); return }
+      if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); s.openQuickPrompt(); return }
+      if (e.ctrlKey && e.key === 'b') { e.preventDefault(); s.toggleContextPanel(); return }
+      if (e.ctrlKey && e.key === ',') { e.preventDefault(); s.openSettings(); return }
+      if (e.ctrlKey && e.key === 'w') { e.preventDefault(); s.setActiveAgent(null); return }
       if (e.key === 'Escape') {
-        store.closeAddProject()
-        store.closeCreateAgent()
-        store.closeCommandPalette()
-        store.closeQuickPrompt()
-        store.closeSettings()
+        s.closeAddProject()
+        s.closeCreateAgent()
+        s.closeCommandPalette()
+        s.closeQuickPrompt()
+        s.closeSettings()
         return
       }
       if (e.key === '?' && !e.ctrlKey && !isInput) {
-        // Could show shortcuts cheatsheet
         return
       }
     }
@@ -68,6 +68,9 @@ const App: React.FC = () => {
   // Derive active project name for title bar
   const activeProject = useStore(s => s.projects.find(p => p.id === s.activeProjectId))
   const projectName = activeProject?.name
+
+  // Collect all agents that have been activated (have a terminalId) for persistent mounting
+  const allAgents = projects.flatMap(p => p.agents)
 
   return React.createElement('div', {
     style: {
@@ -86,27 +89,57 @@ const App: React.FC = () => {
         }, 'Error: preload failed. Restart the app.')
       : null,
 
-    // Main layout
-    hasProjects
-      ? React.createElement(React.Fragment, null,
-          // Agent Bar (horizontal, all agents across projects)
-          React.createElement(AgentBar),
-
-          // Content area: Sidebar + Main + ContextPanel
+    // Wait for persist hydration before rendering content
+    !hydrated
+      ? React.createElement('div', {
+          style: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        },
           React.createElement('div', {
-            style: { display: 'flex', flex: 1, overflow: 'hidden' },
-          },
-            React.createElement(Sidebar),
-            React.createElement('main', {
-              style: { flex: 1, overflow: 'hidden' },
-            },
-              hasActiveAgent
-                ? React.createElement(Workspace)
-                : React.createElement(Dashboard)
-            ),
-          )
+            style: { color: '#555', fontSize: '13px' },
+          }, 'Loading...')
         )
-      : React.createElement(Welcome),
+      : hasProjects
+        ? React.createElement(React.Fragment, null,
+            // Agent Bar (horizontal, all agents across projects)
+            React.createElement(AgentBar),
+
+            // Content area: Sidebar + Main
+            React.createElement('div', {
+              style: { display: 'flex', flex: 1, overflow: 'hidden' },
+            },
+              React.createElement(Sidebar),
+              React.createElement('main', {
+                style: { flex: 1, overflow: 'hidden', position: 'relative' as const },
+              },
+                // Dashboard — visible when no agent selected
+                React.createElement('div', {
+                  style: {
+                    position: 'absolute' as const, inset: 0,
+                    display: hasActiveAgent ? 'none' : 'block',
+                    overflow: 'auto' as const,
+                  },
+                },
+                  React.createElement(Dashboard)
+                ),
+
+                // Workspace per agent — keep ALL mounted to preserve terminal sessions
+                // Only the active one is visible; others are hidden but alive
+                ...allAgents.map(agent =>
+                  React.createElement('div', {
+                    key: agent.id,
+                    style: {
+                      position: 'absolute' as const, inset: 0,
+                      display: agent.id === activeAgentId ? 'flex' : 'none',
+                      flexDirection: 'column' as const,
+                    },
+                  },
+                    React.createElement(Workspace, { agentId: agent.id })
+                  )
+                ),
+              ),
+            )
+          )
+        : React.createElement(Welcome),
 
     // Toasts
     ...toasts.map(t =>
