@@ -34,17 +34,17 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       style: { display: 'flex', gap: '4px', WebkitAppRegion: 'no-drag' } as React.CSSProperties,
     },
       React.createElement('button', {
-        onClick: () => window.agentflow.window.minimize(),
+        onClick: () => window.agentflow?.window?.minimize(),
         className: 'window-btn',
         title: 'Minimize',
       }, '\u2212'),
       React.createElement('button', {
-        onClick: () => window.agentflow.window.maximize(),
+        onClick: () => window.agentflow?.window?.maximize(),
         className: 'window-btn',
         title: 'Maximize',
       }, '\u25A1'),
       React.createElement('button', {
-        onClick: () => window.agentflow.window.close(),
+        onClick: () => window.agentflow?.window?.close(),
         className: 'window-btn window-btn-close',
         title: 'Close',
       }, '\u00D7')

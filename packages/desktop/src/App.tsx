@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { store } from './store/index'
 import { useStore } from './hooks/useStore'
 import TitleBar from './components/TitleBar'
@@ -12,33 +12,48 @@ const App: React.FC = () => {
   const rootPath = useStore(s => s.rootPath)
   const pluginContext = useStore(s => s.pluginContext)
   const error = useStore(s => s.error)
+  const [preloadOk, setPreloadOk] = useState(false)
 
   const projectName = pluginContext?.summary || (rootPath ? rootPath.split(/[\\/]/).pop() : undefined)
 
+  // Check preload loaded
+  useEffect(() => {
+    if (window.agentflow) {
+      setPreloadOk(true)
+    } else {
+      console.error('[agentflow] PRELOAD FAILED — window.agentflow is undefined')
+    }
+  }, [])
+
   const handleOpenProject = useCallback(async () => {
-    const path = await window.agentflow.dialog.openDirectory()
-    if (path) {
-      const config = await window.agentflow.config.load(path)
+    if (!window.agentflow?.dialog) {
+      store.getState().setError('Preload não carregou — reinicie o app')
+      return
+    }
+    const selectedPath = await window.agentflow.dialog.openDirectory()
+    if (!selectedPath) return
+
+    try {
+      const config = await window.agentflow.config.load(selectedPath)
       store.getState().setConfig(config)
-      store.getState().setRootPath(path)
+      store.getState().setRootPath(selectedPath)
+    } catch (err: unknown) {
+      store.getState().setError(err instanceof Error ? err.message : String(err))
     }
   }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'n') {
-        e.preventDefault()
-        // Trigger new worktree — handled in Dashboard
-      }
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault()
         store.getState().selectWorktree(null)
       }
       if (e.ctrlKey && e.key === 'r') {
         e.preventDefault()
-        if (rootPath) {
-          window.agentflow.git.listWorktrees(rootPath).then((wts) => {
+        const rp = store.getState().rootPath
+        if (rp && window.agentflow) {
+          window.agentflow.git.listWorktrees(rp).then((wts) => {
             store.getState().setWorktrees(wts)
           })
         }
@@ -46,7 +61,7 @@ const App: React.FC = () => {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rootPath])
+  }, [])
 
   return React.createElement('div', {
     style: {
@@ -60,26 +75,28 @@ const App: React.FC = () => {
       overflow: 'hidden',
     },
   },
-    // Title bar
     React.createElement(TitleBar, { projectName }),
+
+    // Preload error
+    !preloadOk
+      ? React.createElement('div', {
+          style: { padding: '12px 16px', backgroundColor: '#1a0000', borderBottom: '1px solid #ef4444', color: '#ef4444', fontSize: '12px' },
+        }, 'Erro: preload n\u00E3o carregou. window.agentflow indispon\u00EDvel.')
+      : null,
 
     // Error banner
     error
       ? React.createElement('div', {
           style: {
-            padding: '8px 16px',
-            backgroundColor: 'rgba(239,68,68,0.1)',
-            borderBottom: '1px solid #ef4444',
-            color: '#ef4444',
-            fontSize: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
+            padding: '8px 16px', backgroundColor: 'rgba(239,68,68,0.1)',
+            borderBottom: '1px solid #ef4444', color: '#ef4444', fontSize: '12px',
+            display: 'flex', justifyContent: 'space-between',
           },
         },
           React.createElement('span', null, error),
           React.createElement('button', {
             onClick: () => store.getState().setError(null),
-            style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' },
+            style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' },
           }, '\u00D7')
         )
       : null,

@@ -3,16 +3,17 @@
   "version": "0.1.0",
   "main": "dist/electron/main.js",
   "scripts": {
-    "build": "tsc && node scripts/build-renderer.mjs",
-    "build:win": "tsc && node scripts/build-renderer.mjs && electron-builder --win",
-    "dev": "concurrently \"tsc -w\" \"node scripts/build-renderer.mjs\" \"wait-on dist/electron/main.js && electron .\"",
-    "start": "electron .",
+    "build": "node scripts/build-renderer.mjs",
+    "build:win": "node scripts/build-renderer.mjs && electron-builder --win",
+    "start": "node scripts/build-renderer.mjs && electron .",
+    "dev": "node scripts/build-renderer.mjs && electron .",
     "clean": "rimraf dist release"
   },
   "dependencies": {
     "@agentflow/core": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "simple-git": "^3.33.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

@@ -1,45 +1,60 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC } from './ipc/channels'
 
 contextBridge.exposeInMainWorld('agentflow', {
+  dialog: {
+    openDirectory: () => ipcRenderer.invoke('dialog:open-directory'),
+  },
   git: {
     listWorktrees: (rootPath: string) =>
-      ipcRenderer.invoke(IPC.LIST_WORKTREES, rootPath),
+      ipcRenderer.invoke('git:list-worktrees', rootPath),
     createWorktree: (rootPath: string, branch: string) =>
-      ipcRenderer.invoke(IPC.CREATE_WORKTREE, rootPath, branch),
+      ipcRenderer.invoke('git:create-worktree', rootPath, branch),
     removeWorktree: (rootPath: string, worktreePath: string) =>
-      ipcRenderer.invoke(IPC.REMOVE_WORKTREE, rootPath, worktreePath),
+      ipcRenderer.invoke('git:remove-worktree', rootPath, worktreePath),
     watchWorktrees: (rootPath: string, interval: number) =>
-      ipcRenderer.invoke(IPC.WATCH_WORKTREES, rootPath, interval),
+      ipcRenderer.invoke('git:watch-worktrees', rootPath, interval),
     onWorktreesChanged: (cb: (worktrees: unknown[]) => void) => {
       const handler = (_event: unknown, data: unknown[]) => cb(data)
-      ipcRenderer.on(IPC.WATCH_WORKTREES, handler)
-      return () => ipcRenderer.removeListener(IPC.WATCH_WORKTREES, handler)
+      ipcRenderer.on('git:worktrees-changed', handler)
+      return () => { ipcRenderer.removeListener('git:worktrees-changed', handler) }
     },
     getCurrentBranch: (rootPath: string) =>
-      ipcRenderer.invoke(IPC.GET_CURRENT_BRANCH, rootPath),
+      ipcRenderer.invoke('git:get-current-branch', rootPath),
   },
   agents: {
-    getStatus: (worktree: unknown, lastModifiedTime?: number) =>
-      ipcRenderer.invoke(IPC.GET_AGENT_STATUS, worktree, lastModifiedTime),
+    getStatus: (worktreePath: string) =>
+      ipcRenderer.invoke('agent:get-status', worktreePath),
   },
   plugins: {
-    resolve: (rootPath: string) =>
-      ipcRenderer.invoke(IPC.RESOLVE_PLUGIN, rootPath),
     load: (rootPath: string) =>
-      ipcRenderer.invoke(IPC.LOAD_PLUGIN, rootPath),
+      ipcRenderer.invoke('plugin:load', rootPath),
   },
   config: {
     load: (rootPath: string) =>
-      ipcRenderer.invoke(IPC.LOAD_CONFIG, rootPath),
+      ipcRenderer.invoke('config:load', rootPath),
   },
-  dialog: {
-    openDirectory: () =>
-      ipcRenderer.invoke(IPC.OPEN_DIRECTORY),
+  terminal: {
+    create: (id: string, worktreePath: string, command: string) =>
+      ipcRenderer.invoke('terminal:create', id, worktreePath, command),
+    input: (id: string, data: string) =>
+      ipcRenderer.send('terminal:input', id, data),
+    resize: (id: string, cols: number, rows: number) =>
+      ipcRenderer.send('terminal:resize', id, cols, rows),
+    onOutput: (cb: (id: string, data: string) => void) => {
+      const handler = (_event: unknown, id: string, data: string) => cb(id, data)
+      ipcRenderer.on('terminal:output', handler)
+      return () => { ipcRenderer.removeListener('terminal:output', handler) }
+    },
+    close: (id: string) =>
+      ipcRenderer.send('terminal:close', id),
+  },
+  github: {
+    getDiff: (worktreePath: string) =>
+      ipcRenderer.invoke('github:get-diff', worktreePath),
   },
   window: {
-    minimize: () => ipcRenderer.send(IPC.WINDOW_MINIMIZE),
-    maximize: () => ipcRenderer.send(IPC.WINDOW_MAXIMIZE),
-    close: () => ipcRenderer.send(IPC.WINDOW_CLOSE),
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close'),
   },
 })

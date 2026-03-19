@@ -1,5 +1,7 @@
-// Types for the renderer process — mirrors the preload API
 export interface AgentflowAPI {
+  dialog: {
+    openDirectory: () => Promise<string | null>
+  }
   git: {
     listWorktrees: (rootPath: string) => Promise<WorktreeData[]>
     createWorktree: (rootPath: string, branch: string) => Promise<WorktreeData>
@@ -9,17 +11,23 @@ export interface AgentflowAPI {
     getCurrentBranch: (rootPath: string) => Promise<string>
   }
   agents: {
-    getStatus: (worktree: WorktreeData, lastModifiedTime?: number) => Promise<string>
+    getStatus: (worktreePath: string) => Promise<AgentStatusValue>
   }
   plugins: {
-    resolve: (rootPath: string) => Promise<{ name: string; priority: number }>
     load: (rootPath: string) => Promise<{ pluginName: string; context: PluginContextData | null }>
   }
   config: {
     load: (rootPath: string) => Promise<ConfigData>
   }
-  dialog: {
-    openDirectory: () => Promise<string | null>
+  terminal: {
+    create: (id: string, worktreePath: string, command: string) => Promise<{ success: boolean; simulated?: boolean; error?: string }>
+    input: (id: string, data: string) => void
+    resize: (id: string, cols: number, rows: number) => void
+    onOutput: (cb: (id: string, data: string) => void) => () => void
+    close: (id: string) => void
+  }
+  github: {
+    getDiff: (worktreePath: string) => Promise<{ files: string[]; diffs: Record<string, { original: string; modified: string }> }>
   }
   window: {
     minimize: () => void
