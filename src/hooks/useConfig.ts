@@ -7,10 +7,17 @@ export interface AgentflowConfig {
   agencyPath?: string
   refreshInterval?: number
   terminal?: 'wt' | 'cmd'
+  maxVisibleWorkspaces?: number
+  showTimestamps?: boolean
+  openCommand?: string
 }
 
-const DEFAULT_CONFIG: AgentflowConfig = {
+const DEFAULT_CONFIG: Required<Omit<AgentflowConfig, 'plugin' | 'agencyPath'>> & Pick<AgentflowConfig, 'plugin' | 'agencyPath'> = {
   refreshInterval: 3000,
+  terminal: undefined as unknown as 'wt' | 'cmd',
+  maxVisibleWorkspaces: 8,
+  showTimestamps: true,
+  openCommand: 'claude',
 }
 
 export function useConfig(rootPath: string) {
@@ -21,7 +28,9 @@ export function useConfig(rootPath: string) {
       const loaded = await readJsonSafe<AgentflowConfig>(
         joinPath(rootPath, 'agentflow.config.json')
       )
-      setConfig({ ...DEFAULT_CONFIG, ...loaded })
+      if (loaded) {
+        setConfig({ ...DEFAULT_CONFIG, ...loaded })
+      }
     }
     load()
   }, [rootPath])

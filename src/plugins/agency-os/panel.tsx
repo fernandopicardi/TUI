@@ -8,11 +8,19 @@ interface ClientInfo {
   hasActiveTests: boolean
   hasWinners: boolean
   hypothesisCount: number
-  lastCycleDate?: string
 }
 
 const AgencyOSPanel: React.FC<{ context: PluginContext }> = ({ context }) => {
   const clients = (context.data.clients || []) as ClientInfo[]
+
+  if (clients.length === 0) {
+    return React.createElement(
+      Box,
+      { flexDirection: 'column' },
+      React.createElement(Text, { bold: true }, '◆ Agency OS'),
+      React.createElement(Text, { dimColor: true }, '  Nenhum cliente encontrado ainda')
+    )
+  }
 
   return React.createElement(
     Box,

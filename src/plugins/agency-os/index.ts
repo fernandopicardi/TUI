@@ -1,6 +1,6 @@
 import { AgentflowPlugin, PluginContext } from '../types.js'
 import { detectAgencyOS } from './detect.js'
-import { readFileSafe, fileExists, listDirs } from '../../utils/fs.js'
+import { readFileSafe, fileExists, listDirs, splitLines } from '../../utils/fs.js'
 import { joinPath } from '../../utils/paths.js'
 import AgencyOSPanel from './panel.js'
 
@@ -19,11 +19,11 @@ async function loadClients(clientsPath: string): Promise<ClientInfo[]> {
   for (const slug of dirs) {
     const clientPath = joinPath(clientsPath, slug)
 
-    // Extract name from profile.md
+    // Extract name from profile.md — fallback to folder name
     let name = slug
     const profile = await readFileSafe(joinPath(clientPath, 'profile.md'))
     if (profile) {
-      const firstLine = profile.split('\n').find(l => l.trim().startsWith('#'))
+      const firstLine = splitLines(profile).find(l => l.trim().startsWith('#'))
       if (firstLine) {
         name = firstLine.replace(/^#+\s*/, '').trim() || slug
       }
@@ -35,7 +35,6 @@ async function loadClients(clientsPath: string): Promise<ClientInfo[]> {
     let hypothesisCount = 0
     const hypothesisLog = await readFileSafe(joinPath(clientPath, 'hypothesis-log.md'))
     if (hypothesisLog) {
-      // Count lines starting with "- [ ]" as pending hypotheses
       hypothesisCount = (hypothesisLog.match(/^- \[ \]/gm) || []).length
     }
 

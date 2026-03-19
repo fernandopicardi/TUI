@@ -21,13 +21,24 @@ async function main() {
         { flexDirection: 'column' },
         React.createElement(
           Text,
+          { bold: true, color: 'cyan' },
+          '⬡ agentflow'
+        ),
+        React.createElement(Text, null, ''),
+        React.createElement(
+          Text,
           { color: 'red' },
-          'Erro: não é um repositório git.'
+          'Nenhum repositório git encontrado neste diretório.'
         ),
         React.createElement(
           Text,
           { dimColor: true },
           'Execute agentflow dentro de um repositório git.'
+        ),
+        React.createElement(
+          Text,
+          { dimColor: true },
+          `Diretório atual: ${cwd}`
         )
       )
     )

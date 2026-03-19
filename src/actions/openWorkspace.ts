@@ -1,47 +1,61 @@
 import execa from 'execa'
 import { normalizePath } from '../utils/paths.js'
+import { isClaudeInstalled } from '../utils/claude.js'
+
+export interface OpenWorkspaceResult {
+  success: boolean
+  message: string
+}
 
 export async function openWorkspace(
   worktreePath: string,
-  preferredTerminal?: 'wt' | 'cmd'
-): Promise<void> {
+  preferredTerminal?: 'wt' | 'cmd',
+  openCommand = 'claude'
+): Promise<OpenWorkspaceResult> {
   const normalizedPath = normalizePath(worktreePath)
 
+  // Check if claude is installed when using default command
+  if (openCommand === 'claude' && !(await isClaudeInstalled())) {
+    return {
+      success: false,
+      message: 'Claude Code não encontrado. Instale com: npm install -g @anthropic-ai/claude-code',
+    }
+  }
+
   if (preferredTerminal === 'cmd') {
-    await openWithCmd(normalizedPath)
-    return
+    return openWithCmd(normalizedPath, openCommand)
   }
 
   // Try Windows Terminal first
   if (preferredTerminal === 'wt' || !preferredTerminal) {
     try {
-      await execa('wt', ['-d', normalizedPath, 'cmd', '/k', 'claude'], {
+      await execa('wt', ['-d', normalizedPath, 'cmd', '/k', openCommand], {
         detached: true,
         windowsHide: false,
         cleanup: false,
       })
-      return
+      return { success: true, message: `Abrindo no Windows Terminal...` }
     } catch {
-      // Fall through to CMD
+      // wt not available, fall through to CMD silently
     }
   }
 
   // Fallback to CMD
-  try {
-    await openWithCmd(normalizedPath)
-    return
-  } catch {
-    // All methods failed
-    throw new Error(
-      `Não foi possível abrir terminal. Execute manualmente:\n  cd /d "${normalizedPath}" && claude`
-    )
-  }
+  return openWithCmd(normalizedPath, openCommand)
 }
 
-async function openWithCmd(normalizedPath: string): Promise<void> {
-  await execa('cmd', ['/c', 'start', 'cmd', '/k', `cd /d "${normalizedPath}" && claude`], {
-    detached: true,
-    windowsHide: false,
-    cleanup: false,
-  })
+async function openWithCmd(normalizedPath: string, openCommand: string): Promise<OpenWorkspaceResult> {
+  try {
+    await execa('cmd', ['/c', 'start', 'cmd', '/k', `cd /d "${normalizedPath}" && ${openCommand}`], {
+      detached: true,
+      windowsHide: false,
+      cleanup: false,
+    })
+    return { success: true, message: 'Abrindo no CMD...' }
+  } catch {
+    return {
+      success: false,
+      message: `Não foi possível abrir terminal. Execute manualmente: cd /d "${normalizedPath}" && ${openCommand}`,
+    }
+  }
 }

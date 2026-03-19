@@ -1,11 +1,13 @@
 import { simpleGit, SimpleGit } from 'simple-git'
 import { normalizePath } from './paths.js'
+import { pathExistsOnDisk } from './fs.js'
 
 export interface Worktree {
   path: string
   branch: string
   head: string
   isMain: boolean
+  existsOnDisk: boolean
   lastModified?: Date
 }
 
@@ -15,10 +17,13 @@ export function createGit(basePath: string): SimpleGit {
 
 export async function listWorktrees(git: SimpleGit): Promise<Worktree[]> {
   const raw = await git.raw(['worktree', 'list', '--porcelain'])
-  const blocks = raw.trim().split('\n\n').filter(Boolean)
+  const blocks = raw.trim().split(/\r?\n\r?\n/).filter(Boolean)
 
-  return blocks.map(block => {
-    const lines = block.split('\n')
+  const worktrees: Worktree[] = []
+
+  for (let idx = 0; idx < blocks.length; idx++) {
+    const block = blocks[idx]
+    const lines = block.split(/\r?\n/)
     let wtPath = ''
     let branch = ''
     let head = ''
@@ -38,12 +43,15 @@ export async function listWorktrees(git: SimpleGit): Promise<Worktree[]> {
     }
 
     // First worktree in the list is always the main one
-    if (blocks.indexOf(block) === 0) {
+    if (idx === 0) {
       isMain = true
     }
 
-    return { path: wtPath, branch, head, isMain }
-  })
+    const existsOnDisk = await pathExistsOnDisk(wtPath)
+    worktrees.push({ path: wtPath, branch, head, isMain, existsOnDisk })
+  }
+
+  return worktrees
 }
 
 export async function addWorktree(

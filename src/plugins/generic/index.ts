@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Text, Box } from 'ink'
 import { AgentflowPlugin, PluginContext } from '../types.js'
-import { fileExists, readFileSafe } from '../../utils/fs.js'
+import { fileExists, readFileSafe, splitLines } from '../../utils/fs.js'
 import { joinPath } from '../../utils/paths.js'
 import { createGit, listWorktrees } from '../../utils/git.js'
 
@@ -28,7 +28,7 @@ const genericPlugin: AgentflowPlugin = {
     const content = await readFileSafe(joinPath(rootPath, 'CLAUDE.md'))
     let projectName = 'Project'
     if (content) {
-      const firstLine = content.split('\n').find(l => l.trim().length > 0)
+      const firstLine = splitLines(content).find(l => l.trim().length > 0)
       if (firstLine) {
         projectName = firstLine.replace(/^#+\s*/, '').trim() || 'Project'
       }

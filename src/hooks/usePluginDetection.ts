@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { AgentflowPlugin, PluginContext } from '../plugins/types.js'
-import { resolvePlugin } from '../plugins/registry.js'
+import { resolvePlugin, loadPluginSafe, rawPlugin } from '../plugins/registry.js'
 
 export function usePluginDetection(rootPath: string) {
   const [plugin, setPlugin] = useState<AgentflowPlugin | null>(null)
   const [pluginContext, setPluginContext] = useState<PluginContext | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -15,11 +16,23 @@ export function usePluginDetection(rootPath: string) {
         if (cancelled) return
         setPlugin(resolved)
 
-        const ctx = await resolved.load(rootPath)
+        const ctx = await loadPluginSafe(resolved, rootPath)
         if (cancelled) return
-        setPluginContext(ctx)
+
+        if (ctx) {
+          // If loadPluginSafe fell back to raw, update plugin ref
+          if (ctx.pluginName !== resolved.name) {
+            setPlugin(rawPlugin)
+            setWarning(`Plugin "${resolved.name}" falhou ao carregar, usando fallback`)
+          }
+          setPluginContext(ctx)
+        } else {
+          setWarning(`Plugin "${resolved.name}" falhou ao carregar`)
+        }
       } catch {
-        // If detection fails, leave plugin as null
+        if (!cancelled) {
+          setWarning('Falha na detecção de plugins')
+        }
       }
     }
 
@@ -27,5 +40,5 @@ export function usePluginDetection(rootPath: string) {
     return () => { cancelled = true }
   }, [rootPath])
 
-  return { plugin, pluginContext }
+  return { plugin, pluginContext, warning }
 }

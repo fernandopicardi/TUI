@@ -1,6 +1,6 @@
 import { AgentflowPlugin, PluginContext } from '../types.js'
 import { detectBMAD } from './detect.js'
-import { dirExists, listDirs, readFileSafe } from '../../utils/fs.js'
+import { dirExists, listDirs, readFileSafe, splitLines } from '../../utils/fs.js'
 import { joinPath } from '../../utils/paths.js'
 import BMADPanel from './panel.js'
 
@@ -23,7 +23,7 @@ const bmadPlugin: AgentflowPlugin = {
     if (await dirExists(bmadDir)) {
       const statusFile = await readFileSafe(joinPath(bmadDir, 'status.md'))
       if (statusFile) {
-        const phaseLine = statusFile.split('\n').find(l => /phase|fase/i.test(l))
+        const phaseLine = splitLines(statusFile).find(l => /phase|fase/i.test(l))
         if (phaseLine) {
           phase = phaseLine.replace(/^[#\-*\s]+/, '').trim()
         }

@@ -19,6 +19,15 @@ export async function dirExists(dirPath: string): Promise<boolean> {
   }
 }
 
+export async function pathExistsOnDisk(p: string): Promise<boolean> {
+  try {
+    await fs.promises.access(normalizePath(p))
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function readFileSafe(filePath: string): Promise<string | null> {
   try {
     return await fs.promises.readFile(normalizePath(filePath), 'utf-8')
@@ -33,6 +42,7 @@ export async function readJsonSafe<T>(filePath: string): Promise<T | null> {
   try {
     return JSON.parse(content) as T
   } catch {
+    console.error(`[agentflow] Warning: Invalid JSON in ${filePath}, using defaults`)
     return null
   }
 }
@@ -44,4 +54,11 @@ export async function listDirs(dirPath: string): Promise<string[]> {
   } catch {
     return []
   }
+}
+
+/**
+ * Split file content by lines, handling both \n and \r\n
+ */
+export function splitLines(content: string): string[] {
+  return content.split(/\r?\n/)
 }
