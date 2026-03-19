@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </linearGradient>
+    <linearGradient id="diamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5b6af0"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5b6af0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+  <!-- Subtle glow behind diamond -->
+  <polygon points="128,40 200,128 128,216 56,128" fill="url(#glow)"/>
+  <!-- Main diamond -->
+  <polygon points="128,52 192,128 128,204 64,128" fill="url(#diamond)"/>
+  <!-- Inner highlight facet (top-left) -->
+  <polygon points="128,52 192,128 128,128 64,128" fill="white" opacity="0.12"/>
+  <!-- Top edge highlight -->
+  <polygon points="128,52 160,90 128,80 96,90" fill="white" opacity="0.2"/>
+  <!-- Small center dot -->
+  <circle cx="128" cy="128" r="4" fill="white" opacity="0.5"/>
+</svg>
