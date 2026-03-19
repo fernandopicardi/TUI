@@ -25,5 +25,7 @@ files:
   - node_modules/**/*
   - package.json
 
+npmRebuild: false
+
 extraMetadata:
   main: dist/electron/main.js

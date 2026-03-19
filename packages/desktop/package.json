@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@agentflow/core": "workspace:*",
+    "node-pty": "^1.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "simple-git": "^3.33.0",

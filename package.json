@@ -11,6 +11,6 @@
     "clean": "pnpm -r clean"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron"]
+    "onlyBuiltDependencies": ["electron", "node-pty"]
   }
 }
