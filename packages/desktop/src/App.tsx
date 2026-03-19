@@ -4,6 +4,9 @@ import { store } from './store/index'
 import { useStore } from './hooks/useStore'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
+import OpenProjectModal from './components/OpenProjectModal'
+import QuickPrompt from './components/QuickPrompt'
+import CommandPalette from './components/CommandPalette'
 import Welcome from './views/Welcome'
 import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
@@ -16,22 +19,21 @@ const App: React.FC = () => {
   const toasts = useStore(s => s.toasts)
   const [preloadOk, setPreloadOk] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showOpenModal, setShowOpenModal] = useState(false)
+  const [showQuickPrompt, setShowQuickPrompt] = useState(false)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
 
   const projectName = pluginContext?.summary
     ? pluginContext.summary.split('\u2014')[0]?.trim()
     : rootPath ? rootPath.split(/[\\/]/).pop() : undefined
 
-  // Check preload
   useEffect(() => {
     if (window.agentflow) setPreloadOk(true)
     else console.error('[agentflow] PRELOAD FAILED')
   }, [])
 
-  const handleOpenProject = useCallback(async () => {
-    if (!window.agentflow?.dialog) {
-      store.getState().setError('Preload n\u00E3o carregou')
-      return
-    }
+  const handleOpenLocal = useCallback(async () => {
+    if (!window.agentflow?.dialog) return
     const selectedPath = await window.agentflow.dialog.openDirectory()
     if (!selectedPath) return
     try {
@@ -44,32 +46,29 @@ const App: React.FC = () => {
     }
   }, [])
 
-  // Keyboard shortcuts
+  // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'w') {
-        e.preventDefault()
-        store.getState().selectWorktree(null)
-      }
+      const isInput = (e.target as HTMLElement)?.matches?.('input,textarea')
+
+      if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); setShowQuickPrompt(true); return }
+      if (e.ctrlKey && e.key === 'k') { e.preventDefault(); setShowCommandPalette(true); return }
+      if (e.ctrlKey && e.key === 'w') { e.preventDefault(); store.getState().selectWorktree(null); return }
       if (e.ctrlKey && e.key === 'r') {
         e.preventDefault()
         const rp = store.getState().rootPath
         if (rp && window.agentflow) {
-          window.agentflow.git.listWorktrees(rp).then((wts) => store.getState().setWorktrees(wts))
+          window.agentflow.git.listWorktrees(rp).then(wts => store.getState().setWorktrees(wts))
           store.getState().showToast('Refresh...', 'info')
         }
+        return
       }
-      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !(e.target as HTMLElement)?.matches?.('input,textarea')) {
-        setShowShortcuts(v => !v)
-      }
-      if (e.key === 'Escape') {
-        setShowShortcuts(false)
-      }
-      // Ctrl+1-5 to select worktree by index
+      if (e.key === '?' && !e.ctrlKey && !isInput) { setShowShortcuts(v => !v); return }
+      if (e.key === 'Escape') { setShowShortcuts(false); setShowQuickPrompt(false); setShowCommandPalette(false); setShowOpenModal(false); return }
       if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
         e.preventDefault()
-        const idx = parseInt(e.key) - 1
         const wts = store.getState().worktrees
+        const idx = parseInt(e.key) - 1
         if (wts[idx]) store.getState().selectWorktree(wts[idx].path)
       }
     }
@@ -87,14 +86,12 @@ const App: React.FC = () => {
   },
     React.createElement(TitleBar, { projectName }),
 
-    // Preload error
     !preloadOk
       ? React.createElement('div', {
           style: { padding: '12px 16px', backgroundColor: '#1a0000', borderBottom: '1px solid #ef4444', color: '#ef4444', fontSize: '12px' },
         }, 'Erro: preload n\u00E3o carregou. Reinicie o app.')
       : null,
 
-    // Error banner
     error
       ? React.createElement('div', {
           style: {
@@ -112,11 +109,9 @@ const App: React.FC = () => {
       : null,
 
     // Content
-    React.createElement('div', {
-      style: { flex: 1, overflow: 'hidden' },
-    },
+    React.createElement('div', { style: { flex: 1, overflow: 'hidden' } },
       activeView === 'welcome'
-        ? React.createElement(Welcome, { onOpenProject: handleOpenProject })
+        ? React.createElement(Welcome, { onOpenProject: () => setShowOpenModal(true) })
         : activeView === 'workspace'
           ? React.createElement(Workspace)
           : React.createElement(Dashboard)
@@ -125,14 +120,34 @@ const App: React.FC = () => {
     // Toasts
     ...toasts.map((t) =>
       React.createElement(Toast, {
-        key: t.id,
-        message: t.message,
-        type: t.type,
+        key: t.id, message: t.message, type: t.type,
         onDismiss: () => store.getState().dismissToast(t.id),
       })
     ),
 
-    // Shortcuts cheatsheet modal
+    // Open Project modal
+    showOpenModal
+      ? React.createElement(OpenProjectModal, {
+          onClose: () => setShowOpenModal(false),
+          onOpenLocal: handleOpenLocal,
+        })
+      : null,
+
+    // Quick Prompt
+    showQuickPrompt
+      ? React.createElement(QuickPrompt, { onClose: () => setShowQuickPrompt(false) })
+      : null,
+
+    // Command Palette
+    showCommandPalette
+      ? React.createElement(CommandPalette, {
+          onClose: () => setShowCommandPalette(false),
+          onOpenLocal: handleOpenLocal,
+          onOpenClone: () => { setShowCommandPalette(false); setShowOpenModal(true) },
+        })
+      : null,
+
+    // Shortcuts cheatsheet
     showShortcuts
       ? React.createElement('div', {
           style: {
@@ -145,7 +160,7 @@ const App: React.FC = () => {
           React.createElement('div', {
             style: {
               backgroundColor: '#111', border: '1px solid #1f1f1f', borderRadius: '12px',
-              padding: '24px 32px', minWidth: '320px',
+              padding: '24px 32px', minWidth: '340px', animation: 'fadeIn 0.12s ease-out',
             },
             onClick: (e: React.MouseEvent) => e.stopPropagation(),
           },
@@ -153,6 +168,8 @@ const App: React.FC = () => {
               style: { margin: '0 0 16px', color: '#ededed', fontSize: '16px', fontWeight: 600 },
             }, 'Atalhos'),
             ...([
+              ['Ctrl+K', 'Command palette'],
+              ['Ctrl+Space', 'Quick prompt'],
               ['Ctrl+W', 'Fechar workspace'],
               ['Ctrl+R', 'Refresh worktrees'],
               ['Ctrl+1\u20145', 'Selecionar worktree'],

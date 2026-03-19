@@ -6,8 +6,9 @@ import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
 import PRPanel from '../components/PRPanel'
 import MCPPanel from '../components/MCPPanel'
+import WorkspaceNotes from '../components/WorkspaceNotes'
 
-type Tab = 'terminal' | 'diff' | 'pr'
+type Tab = 'terminal' | 'diff' | 'pr' | 'notes'
 
 const Workspace: React.FC = () => {
   const selectedId = useStore(s => s.selectedWorktreeId)
@@ -81,6 +82,7 @@ const Workspace: React.FC = () => {
         React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
         React.createElement('button', { onClick: () => setActiveTab('diff'), style: tabStyle('diff') }, 'Diff'),
         React.createElement('button', { onClick: () => setActiveTab('pr'), style: tabStyle('pr') }, 'PR'),
+        React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
       ),
       React.createElement('div', { style: { flex: 1 } }),
       !worktree.isMain
@@ -110,6 +112,12 @@ const Workspace: React.FC = () => {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
       },
         React.createElement(PRPanel, { worktreePath: worktree.path, branch: worktree.branch })
+      ),
+      // Notes
+      React.createElement('div', {
+        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
+      },
+        React.createElement(WorkspaceNotes, { branch: worktree.branch, rootPath: rootPath || '' })
       ),
     ),
 

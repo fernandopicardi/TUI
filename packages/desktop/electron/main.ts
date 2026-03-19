@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, dialog, Notification } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
 import {
@@ -296,6 +296,35 @@ function registerIpcHandlers() {
     if (t) {
       if (!t.simulated) t.kill()
       terminals.delete(id)
+    }
+  })
+
+  // ── Clone ──
+  ipcMain.handle('git:clone', async (_e, url: string, targetPath: string, folderName: string) => {
+    try {
+      const fullPath = path.join(normalizePath(targetPath), folderName)
+      console.log('[agentflow] Cloning', url, 'to', fullPath)
+      const git = simpleGit()
+      await git.clone(url, fullPath)
+      console.log('[agentflow] Clone complete:', fullPath)
+      return { success: true, path: fullPath }
+    } catch (err: any) {
+      console.error('[agentflow] clone error:', err)
+      return { success: false, error: err.message }
+    }
+  })
+
+  // ── Notifications ──
+  ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
+    try {
+      if (!Notification.isSupported()) return
+      new Notification({
+        title,
+        body,
+        silent: type === 'info',
+      }).show()
+    } catch (err) {
+      console.error('[agentflow] notification error:', err)
     }
   })
 

@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('agentflow', {
     },
     getCurrentBranch: (rootPath: string) =>
       ipcRenderer.invoke('git:get-current-branch', rootPath),
+    clone: (url: string, targetPath: string, folderName: string) =>
+      ipcRenderer.invoke('git:clone', url, targetPath, folderName),
   },
   agents: {
     getStatus: (worktreePath: string) =>
@@ -52,6 +54,8 @@ contextBridge.exposeInMainWorld('agentflow', {
     getDiff: (worktreePath: string) =>
       ipcRenderer.invoke('github:get-diff', worktreePath),
   },
+  notify: (title: string, body: string, type: string) =>
+    ipcRenderer.send('notify', title, body, type),
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),

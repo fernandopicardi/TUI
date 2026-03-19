@@ -9,6 +9,7 @@ export interface AgentflowAPI {
     watchWorktrees: (rootPath: string, interval: number) => Promise<boolean>
     onWorktreesChanged: (cb: (worktrees: WorktreeData[]) => void) => () => void
     getCurrentBranch: (rootPath: string) => Promise<string>
+    clone: (url: string, targetPath: string, folderName: string) => Promise<{ success: boolean; path?: string; error?: string }>
   }
   agents: {
     getStatus: (worktreePath: string) => Promise<AgentStatusValue>
@@ -29,6 +30,7 @@ export interface AgentflowAPI {
   github: {
     getDiff: (worktreePath: string) => Promise<{ files: string[]; diffs: Record<string, { original: string; modified: string }> }>
   }
+  notify: (title: string, body: string, type: string) => void
   window: {
     minimize: () => void
     maximize: () => void
