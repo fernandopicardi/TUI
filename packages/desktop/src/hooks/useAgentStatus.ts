@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { store } from '../store/index'
 import { WorktreeData } from '../types'
 
@@ -7,6 +7,11 @@ import { WorktreeData } from '../types'
  */
 export function useAgentStatusWatcher(worktrees: WorktreeData[]) {
   const lastModifiedRef = useRef<Record<string, number>>({})
+
+  const worktreeKey = useMemo(
+    () => worktrees.map(w => w.path).join('\0'),
+    [worktrees]
+  )
 
   useEffect(() => {
     if (worktrees.length === 0) return
@@ -26,5 +31,5 @@ export function useAgentStatusWatcher(worktrees: WorktreeData[]) {
     poll()
     const interval = setInterval(poll, 2000)
     return () => clearInterval(interval)
-  }, [worktrees.map(w => w.path).join('\0')])
+  }, [worktreeKey])
 }

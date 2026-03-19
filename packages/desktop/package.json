@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "main": "dist/electron/main.js",
   "scripts": {
-    "dev": "concurrently \"tsc -w\" \"wait-on dist/electron/main.js && electron .\"",
-    "build": "tsc",
-    "build:win": "tsc && electron-builder --win",
+    "build": "tsc && node scripts/build-renderer.mjs",
+    "build:win": "tsc && node scripts/build-renderer.mjs && electron-builder --win",
+    "dev": "concurrently \"tsc -w\" \"node scripts/build-renderer.mjs\" \"wait-on dist/electron/main.js && electron .\"",
+    "start": "electron .",
     "clean": "rimraf dist release"
   },
   "dependencies": {
@@ -15,14 +16,15 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/node": "^20.0.0",
+    "concurrently": "^8.0.0",
     "electron": "^28.0.0",
     "electron-builder": "^24.0.0",
-    "concurrently": "^8.0.0",
-    "wait-on": "^7.0.0",
+    "esbuild": "^0.27.4",
+    "rimraf": "^5.0.0",
     "typescript": "^5.4.0",
-    "rimraf": "^5.0.0"
+    "wait-on": "^7.0.0"
   }
 }

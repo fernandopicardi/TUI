@@ -9,8 +9,6 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
-    "execa": "^8.0.1",
     "simple-git": "^3.22.0"
   },
   "devDependencies": {

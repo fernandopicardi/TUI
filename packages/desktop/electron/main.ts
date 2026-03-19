@@ -21,7 +21,7 @@ function createWindow() {
   })
 
   // Load the renderer HTML
-  mainWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'))
+  mainWindow.loadFile(path.join(__dirname, '..', '..', 'src', 'index.html'))
 
   // Register IPC handlers
   registerIpcHandlers(mainWindow)
