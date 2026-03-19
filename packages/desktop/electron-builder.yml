@@ -6,7 +6,6 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  icon: assets/icon.ico
 
 nsis:
   oneClick: false
@@ -22,5 +21,9 @@ directories:
 
 files:
   - dist/**/*
+  - src/index.html
   - node_modules/**/*
   - package.json
+
+extraMetadata:
+  main: dist/electron/main.js

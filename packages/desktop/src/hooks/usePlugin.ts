@@ -6,12 +6,14 @@ import { store } from '../store/index'
  */
 export function usePluginLoader(rootPath: string | null) {
   useEffect(() => {
-    if (!rootPath) return
+    if (!rootPath || !window.agentflow?.plugins) return
 
-    window.agentflow.plugins.load(rootPath).then(({ pluginName, context }) => {
-      store.getState().setPlugin(pluginName, context)
-    }).catch(() => {
-      // Plugin load failed — not critical
-    })
+    window.agentflow.plugins.load(rootPath)
+      .then(({ pluginName, context }) => {
+        store.getState().setPlugin(pluginName, context)
+      })
+      .catch((err: unknown) => {
+        console.error('[agentflow] plugin load failed:', err)
+      })
   }, [rootPath])
 }

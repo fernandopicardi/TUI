@@ -16,6 +16,14 @@ import {
 } from '@agentflow/core'
 import { simpleGit } from 'simple-git'
 
+// Prevent crashes from unhandled exceptions
+process.on('uncaughtException', (err) => {
+  console.error('[agentflow] Uncaught exception:', err)
+})
+process.on('unhandledRejection', (err) => {
+  console.error('[agentflow] Unhandled rejection:', err)
+})
+
 let mainWindow: BrowserWindow | null = null
 const worktreeWatchers = new Map<string, () => void>()
 const terminals = new Map<string, { kill: () => void; write: (data: string) => void; resize: (cols: number, rows: number) => void; simulated: boolean }>()
@@ -63,70 +71,127 @@ function createWindow() {
   ])
   Menu.setApplicationMenu(menu)
 
+  // Open devtools in dev mode for debugging
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  }
+
   mainWindow.on('closed', () => { mainWindow = null })
 }
 
 function registerIpcHandlers() {
   // ── Dialog ──
   ipcMain.handle('dialog:open-directory', async () => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
-      title: 'Selecionar projeto',
-    })
-    if (result.canceled || result.filePaths.length === 0) return null
-    const dir = result.filePaths[0]
-    const root = await getRepoRoot(dir)
-    return root // returns null if not a git repo
+    try {
+      if (!mainWindow) return null
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+        title: 'Selecionar projeto',
+      })
+      if (result.canceled || result.filePaths.length === 0) return null
+      const dir = result.filePaths[0]
+      console.log('[agentflow] Selected directory:', dir)
+      const root = await getRepoRoot(dir)
+      console.log('[agentflow] Git root:', root)
+      if (!root) {
+        console.log('[agentflow] Not a git repo')
+        return null
+      }
+      return root
+    } catch (err) {
+      console.error('[agentflow] open-directory error:', err)
+      return null
+    }
   })
 
   // ── Git ──
   ipcMain.handle('git:list-worktrees', async (_e, rootPath: string) => {
-    return listWorktrees(normalizePath(rootPath))
+    try {
+      console.log('[agentflow] listWorktrees called with:', rootPath)
+      const result = await listWorktrees(normalizePath(rootPath))
+      console.log('[agentflow] listWorktrees returned:', result.length, 'worktrees')
+      return result
+    } catch (err) {
+      console.error('[agentflow] list-worktrees error:', err)
+      throw err
+    }
   })
 
   ipcMain.handle('git:create-worktree', async (_e, rootPath: string, branch: string) => {
-    return createWorktree(normalizePath(rootPath), branch)
+    try {
+      return await createWorktree(normalizePath(rootPath), branch)
+    } catch (err) {
+      console.error('[agentflow] create-worktree error:', err)
+      throw err
+    }
   })
 
   ipcMain.handle('git:remove-worktree', async (_e, rootPath: string, wtPath: string) => {
-    await removeWorktree(normalizePath(rootPath), normalizePath(wtPath))
+    try {
+      await removeWorktree(normalizePath(rootPath), normalizePath(wtPath))
+    } catch (err) {
+      console.error('[agentflow] remove-worktree error:', err)
+      throw err
+    }
   })
 
   ipcMain.handle('git:get-current-branch', async (_e, rootPath: string) => {
-    return getCurrentBranch(normalizePath(rootPath))
+    try {
+      return await getCurrentBranch(normalizePath(rootPath))
+    } catch (err) {
+      console.error('[agentflow] get-current-branch error:', err)
+      return 'unknown'
+    }
   })
 
   ipcMain.handle('git:watch-worktrees', async (_e, rootPath: string, interval: number) => {
-    const normalized = normalizePath(rootPath)
-    if (worktreeWatchers.has(normalized)) {
-      worktreeWatchers.get(normalized)!()
-    }
-    const cleanup = watchWorktrees(normalized, (wts) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('git:worktrees-changed', wts)
+    try {
+      const normalized = normalizePath(rootPath)
+      if (worktreeWatchers.has(normalized)) {
+        worktreeWatchers.get(normalized)!()
       }
-    }, interval)
-    worktreeWatchers.set(normalized, cleanup)
-    return true
+      const cleanup = watchWorktrees(normalized, (wts) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('git:worktrees-changed', wts)
+        }
+      }, interval)
+      worktreeWatchers.set(normalized, cleanup)
+      return true
+    } catch (err) {
+      console.error('[agentflow] watch-worktrees error:', err)
+      return false
+    }
   })
 
   // ── Agent status ──
   ipcMain.handle('agent:get-status', async (_e, worktreePath: string) => {
-    return detectAgentStatus({ path: worktreePath, branch: '', head: '', isMain: false })
+    try {
+      return await detectAgentStatus({ path: worktreePath, branch: '', head: '', isMain: false })
+    } catch {
+      return 'idle'
+    }
   })
 
   // ── Plugins ──
   ipcMain.handle('plugin:load', async (_e, rootPath: string) => {
-    const config = await loadConfig(normalizePath(rootPath))
-    const plugin = await resolvePlugin(normalizePath(rootPath), config)
-    const context = await loadPluginSafe(plugin, normalizePath(rootPath))
-    return { pluginName: plugin.name, context }
+    try {
+      const config = await loadConfig(normalizePath(rootPath))
+      const plugin = await resolvePlugin(normalizePath(rootPath), config)
+      const context = await loadPluginSafe(plugin, normalizePath(rootPath))
+      return { pluginName: plugin.name, context }
+    } catch (err) {
+      console.error('[agentflow] plugin-load error:', err)
+      return { pluginName: 'raw', context: null }
+    }
   })
 
   // ── Config ──
   ipcMain.handle('config:load', async (_e, rootPath: string) => {
-    return loadConfig(normalizePath(rootPath))
+    try {
+      return await loadConfig(normalizePath(rootPath))
+    } catch {
+      return {}
+    }
   })
 
   // ── GitHub / Diff ──

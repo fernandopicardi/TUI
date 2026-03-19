@@ -6,16 +6,25 @@ import { store } from '../store/index'
  */
 export function useWorktreeWatcher(rootPath: string | null) {
   useEffect(() => {
-    if (!rootPath) return
+    if (!rootPath || !window.agentflow?.git) return
 
-    // Initial load
-    window.agentflow.git.listWorktrees(rootPath).then((wts) => {
-      store.getState().setWorktrees(wts)
-    })
+    // Initial load with error handling
+    window.agentflow.git.listWorktrees(rootPath)
+      .then((wts) => {
+        store.getState().setWorktrees(wts)
+      })
+      .catch((err: unknown) => {
+        console.error('[agentflow] listWorktrees failed:', err)
+        store.getState().setError(
+          'Falha ao listar worktrees: ' + (err instanceof Error ? err.message : String(err))
+        )
+      })
 
     // Start watching
     const interval = store.getState().config?.refreshInterval ?? 3000
-    window.agentflow.git.watchWorktrees(rootPath, interval)
+    window.agentflow.git.watchWorktrees(rootPath, interval).catch((err: unknown) => {
+      console.error('[agentflow] watchWorktrees failed:', err)
+    })
 
     // Listen for changes
     const cleanup = window.agentflow.git.onWorktreesChanged((wts) => {
@@ -26,10 +35,10 @@ export function useWorktreeWatcher(rootPath: string | null) {
   }, [rootPath])
 
   const refresh = useCallback(() => {
-    if (!rootPath) return
-    window.agentflow.git.listWorktrees(rootPath).then((wts) => {
-      store.getState().setWorktrees(wts)
-    })
+    if (!rootPath || !window.agentflow?.git) return
+    window.agentflow.git.listWorktrees(rootPath)
+      .then((wts) => store.getState().setWorktrees(wts))
+      .catch(() => {})
   }, [rootPath])
 
   return { refresh }
