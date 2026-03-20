@@ -15,6 +15,8 @@ const SettingsModal: React.FC = () => {
   // General settings
   const [openCommand, setOpenCommand] = useState('claude')
   const [refreshInterval, setRefreshInterval] = useState(3000)
+  const defaultModel = useStore(s => s.defaultModel)
+  const defaultMode = useStore(s => s.defaultMode)
 
   // GitHub settings
   const [githubToken, setGithubToken] = useState('')
@@ -158,6 +160,30 @@ const SettingsModal: React.FC = () => {
                 React.createElement('div', {
                   style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '4px' },
                 }, 'Command run in terminal when agent starts (e.g. claude, claude --dangerously-skip-permissions)'),
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { style: labelStyle }, 'Default model'),
+                React.createElement('select', {
+                  value: defaultModel,
+                  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => useStore.getState().setDefaultModel(e.target.value),
+                  style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
+                },
+                  React.createElement('option', { value: 'claude-opus-4-5' }, 'Claude Opus 4.5'),
+                  React.createElement('option', { value: 'claude-sonnet-4-5' }, 'Claude Sonnet 4.5'),
+                  React.createElement('option', { value: 'claude-haiku-4-5' }, 'Claude Haiku 4.5'),
+                ),
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { style: labelStyle }, 'Default mode'),
+                React.createElement('select', {
+                  value: defaultMode,
+                  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => useStore.getState().setDefaultMode(e.target.value as any),
+                  style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
+                },
+                  React.createElement('option', { value: 'normal' }, 'Normal'),
+                  React.createElement('option', { value: 'plan' }, 'Plan'),
+                  React.createElement('option', { value: 'auto' }, 'Auto-accept'),
+                ),
               ),
               React.createElement('div', null,
                 React.createElement('label', { style: labelStyle }, `Refresh interval: ${refreshInterval}ms`),

@@ -27,6 +27,12 @@ export interface AgentSession {
   source?: 'internal' | 'external'
   prUrl?: string
   prNumber?: number
+  hasLaunched: boolean          // false = show config panel, true = show terminal
+  launchConfig?: {
+    model: string
+    mode: 'normal' | 'plan' | 'auto'
+    initialPrompt?: string
+  }
 }
 
 export interface Project {

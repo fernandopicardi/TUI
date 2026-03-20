@@ -39,6 +39,9 @@ const CLAUDE_READY_SIGNALS = [
   'Tips for getting started',
 ]
 
+// Signals that Claude Code is waiting for user input (idle/waiting state)
+const CLAUDE_IDLE_SIGNALS = ['claude>', 'Human:', '? ', '❯ ']
+
 // Terminal registry — survives navigation, persistent across renderer lifecycle
 const terminalRegistry = new Map<string, {
   pty: any
@@ -47,6 +50,9 @@ const terminalRegistry = new Map<string, {
   simulated: boolean
   isClaudeReady: boolean
   pendingPrompt: string | null
+  lastActivityAt: number
+  lastMeaningfulActivityAt: number
+  worktreePath: string
 }>()
 
 // Worktree project watchers — polls worktrees per project
@@ -267,7 +273,29 @@ function registerIpcHandlers() {
   // ── Agent status ──
   ipcMain.handle('agent:get-status', async (_e, worktreePath: string) => {
     try {
-      return await detectAgentStatus({ path: worktreePath, branch: '', head: '', isMain: false })
+      const normalizedPath = normalizePath(worktreePath)
+
+      // Check terminal registry first for real-time status
+      const entry = Array.from(terminalRegistry.entries())
+        .map(([, e]) => e)
+        .find(e => normalizePath(e.worktreePath ?? '') === normalizedPath)
+
+      if (entry) {
+        if (!entry.isAlive) return 'idle'
+
+        // Check if the last meaningful output looks like a prompt (Claude waiting for input)
+        const recentBuffer = entry.buffer.slice(-5).join('')
+        const looksIdle = CLAUDE_IDLE_SIGNALS.some(s => recentBuffer.includes(s))
+
+        const timeSince = Date.now() - (entry.lastMeaningfulActivityAt ?? entry.lastActivityAt ?? 0)
+        if (looksIdle && timeSince > 5_000) return 'waiting'
+        if (timeSince < 15_000) return 'working'
+        if (timeSince < 60_000) return 'waiting'
+        return 'idle'
+      }
+
+      // Fallback to file heuristics from @runnio/core
+      return await detectAgentStatus({ path: normalizedPath, branch: '', head: '', isMain: false })
     } catch {
       return 'idle'
     }
@@ -439,7 +467,7 @@ function registerIpcHandlers() {
     }
 
     if (!nodePty) {
-      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null }
+      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
       terminalRegistry.set(id, entry)
 
       const simMsg = `\x1b[36m[runnio]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
@@ -465,10 +493,18 @@ function registerIpcHandlers() {
         useConpty: true,
       })
 
-      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null }
+      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
       terminalRegistry.set(id, entry)
 
       pty.onData((data: string) => {
+        // Track activity for status detection
+        entry.lastActivityAt = Date.now()
+        // Filter out ConPTY noise (cursor moves, empty data, control-only sequences)
+        const stripped = data.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/[\r\n\t]/g, '').trim()
+        if (stripped.length > 0) {
+          entry.lastMeaningfulActivityAt = Date.now()
+        }
+
         // Keep last 1000 chunks for replay on reconnect
         entry.buffer.push(data)
         if (entry.buffer.length > 1000) entry.buffer.shift()

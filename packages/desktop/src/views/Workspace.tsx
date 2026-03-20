@@ -9,6 +9,7 @@ import MCPPanel from '../components/MCPPanel'
 import WorkspaceNotes from '../components/WorkspaceNotes'
 import GitHistory from '../components/GitHistory'
 import UpgradeGate from '../components/UpgradeGate'
+import AgentLaunchPanel, { buildLaunchCommand } from '../components/AgentLaunchPanel'
 
 type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
@@ -135,8 +136,28 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       }, 'Delete'),
     ),
 
-    // Tab content
-    React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
+    // Launch panel (shown before first launch)
+    !agent.hasLaunched
+      ? React.createElement('div', { style: { flex: 1, overflow: 'hidden' } },
+          React.createElement(AgentLaunchPanel, {
+            agent,
+            projectName: project.name,
+            onLaunch: (config) => {
+              const command = buildLaunchCommand(config.model, config.mode)
+              useStore.getState().setAgentLaunched(agent.id, config)
+              window.runnio.terminal.create(agent.terminalId, agent.worktreePath, command)
+                .then(() => {
+                  if (config.initialPrompt) {
+                    window.runnio.terminal.injectWhenReady(agent.terminalId, config.initialPrompt)
+                  }
+                })
+            },
+          })
+        )
+      : null,
+
+    // Tab content (hidden until launched)
+    agent.hasLaunched ? React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
       },
@@ -177,12 +198,14 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
           React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
         )
       ),
-    ),
+    ) : null,
 
     // MCP Panel
-    React.createElement(UpgradeGate, { feature: 'mcpManager' },
-      React.createElement(MCPPanel, { worktreePath: agent.worktreePath })
-    )
+    agent.hasLaunched
+      ? React.createElement(UpgradeGate, { feature: 'mcpManager' },
+          React.createElement(MCPPanel, { worktreePath: agent.worktreePath })
+        )
+      : null,
   )
 }
 

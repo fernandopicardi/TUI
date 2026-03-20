@@ -10,7 +10,7 @@ await esbuild.build({
   platform: 'node',
   target: 'node18',
   format: 'cjs',
-  external: ['electron', 'node-pty'],
+  external: ['electron', 'node-pty', '@runnio/core'],
   sourcemap: true,
 })
 
