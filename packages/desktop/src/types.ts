@@ -1,5 +1,16 @@
 // Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
+// ── Task types ──
+
+export interface GitHubIssue {
+  id: string
+  title: string
+  state: string
+  labels: string[]
+  url: string
+  source: 'github'
+}
+
 // ── Domain types ──
 
 export interface AgentSession {
@@ -99,7 +110,7 @@ export interface RunnioAPI {
   git: {
     listWorktrees: (rootPath: string) => Promise<WorktreeData[]>
     createWorktree: (rootPath: string, branch: string) => Promise<{ success: boolean; path?: string; error?: string }>
-    removeWorktree: (rootPath: string, worktreePath: string) => Promise<void>
+    removeWorktree: (rootPath: string, worktreePath: string, deleteBranch?: boolean) => Promise<{ success: boolean; error?: string }>
     watchWorktrees: (rootPath: string, interval: number) => Promise<boolean>
     onWorktreesChanged: (cb: (worktrees: WorktreeData[]) => void) => () => void
     getCurrentBranch: (rootPath: string) => Promise<string>
@@ -138,6 +149,7 @@ export interface RunnioAPI {
   github: {
     getDiff: (worktreePath: string) => Promise<{ files: string[]; diffs: Record<string, { original: string; modified: string }> }>
     createPR: (data: { worktreePath: string; title: string; description: string; baseBranch: string; branch: string }) => Promise<{ success: boolean; url?: string; number?: number; error?: string }>
+    listIssues: (rootPath: string) => Promise<{ success: boolean; issues: GitHubIssue[] }>
   }
   mcp: {
     getConfig: (rootPath: string) => Promise<MCPServerEntry[]>

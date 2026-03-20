@@ -60,7 +60,7 @@ const Welcome: React.FC = () => {
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-        onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.97)' },
+        onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.98)' },
         onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(1)' },
       }, '+ Add project'),
     ),
@@ -80,17 +80,20 @@ const Welcome: React.FC = () => {
           React.createElement('div', {
             style: { display: 'flex', flexDirection: 'column' as const, gap: '2px' },
           },
-            ...projects.slice(0, 5).map(p =>
-              React.createElement('button', {
+            ...projects.slice(0, 5).map(p => {
+              const agentCount = p.agents.length
+              const activeCount = p.agents.filter(a => a.status === 'working').length
+
+              return React.createElement('button', {
                 key: p.id,
                 onClick: () => handleReopen(p.id),
                 style: {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 12px', background: 'transparent', border: 'none',
                   borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' as const,
-                  transition: 'background 150ms', width: '100%',
+                  transition: 'background 100ms', width: '100%',
                 },
-                onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-elevated)' },
+                onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
                 onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
               },
                 React.createElement('div', null,
@@ -98,15 +101,37 @@ const Welcome: React.FC = () => {
                     style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontFamily: 'Consolas, monospace' },
                   }, p.name),
                   React.createElement('div', {
-                    style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '2px' },
-                  }, getAgentSummary(p)),
+                    style: { display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' },
+                  },
+                    React.createElement('span', {
+                      style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' },
+                    }, getAgentSummary(p)),
+                    activeCount > 0
+                      ? React.createElement('span', {
+                          style: {
+                            width: '5px', height: '5px', borderRadius: '50%',
+                            backgroundColor: 'var(--working)', animation: 'pulse 2s infinite',
+                          },
+                        })
+                      : null,
+                  ),
                 ),
                 React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' } }, 'open \u2192')
               )
-            )
+            })
           )
         )
-      : null
+      // Empty state — no projects yet
+      : React.createElement('div', {
+          style: { textAlign: 'center' as const, maxWidth: '320px' },
+        },
+          React.createElement('div', {
+            style: { width: '100%', height: '1px', background: 'var(--border-default)', marginBottom: '20px' },
+          }),
+          React.createElement('p', {
+            style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', lineHeight: '1.6', margin: 0 },
+          }, 'Add a Git project to start orchestrating agents. Each agent runs in its own worktree with a persistent Claude Code terminal.'),
+        )
   )
 }
 

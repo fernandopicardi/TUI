@@ -16,6 +16,8 @@ export interface RunnioStore {
   isSettingsOpen: boolean
   isCommandPaletteOpen: boolean
   isQuickPromptOpen: boolean
+  isDeleteAgentModalOpen: boolean
+  deleteAgentTarget: { projectId: string; agentId: string } | null
   toasts: Toast[]
   initPrompt: string | null
 
@@ -43,6 +45,8 @@ export interface RunnioStore {
   closeCommandPalette: () => void
   openQuickPrompt: () => void
   closeQuickPrompt: () => void
+  openDeleteAgent: (projectId: string, agentId: string) => void
+  closeDeleteAgent: () => void
 
   // Toast
   showToast: (message: string, type?: 'info' | 'success' | 'warning') => void
@@ -70,6 +74,8 @@ export const useStore = create<RunnioStore>()(
       isSettingsOpen: false,
       isCommandPaletteOpen: false,
       isQuickPromptOpen: false,
+      isDeleteAgentModalOpen: false,
+      deleteAgentTarget: null,
       toasts: [],
       initPrompt: null,
 
@@ -162,6 +168,8 @@ export const useStore = create<RunnioStore>()(
       closeCommandPalette: () => set({ isCommandPaletteOpen: false }),
       openQuickPrompt: () => set({ isQuickPromptOpen: true }),
       closeQuickPrompt: () => set({ isQuickPromptOpen: false }),
+      openDeleteAgent: (projectId, agentId) => set({ isDeleteAgentModalOpen: true, deleteAgentTarget: { projectId, agentId } }),
+      closeDeleteAgent: () => set({ isDeleteAgentModalOpen: false, deleteAgentTarget: null }),
 
       showToast: (message, type = 'info') => {
         const id = Date.now().toString()

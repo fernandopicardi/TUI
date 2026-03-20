@@ -178,12 +178,26 @@ function registerIpcHandlers() {
     }
   })
 
-  ipcMain.handle('git:remove-worktree', async (_e, rootPath: string, wtPath: string) => {
+  ipcMain.handle('git:remove-worktree', async (_e, rootPath: string, wtPath: string, deleteBranch?: boolean) => {
     try {
-      await removeWorktree(normalizePath(rootPath), normalizePath(wtPath))
-    } catch (err) {
+      const git = simpleGit(normalizePath(rootPath))
+      const normalizedWorktree = normalizePath(wtPath)
+
+      await git.raw(['worktree', 'remove', '--force', normalizedWorktree])
+
+      if (deleteBranch) {
+        const branchName = path.basename(normalizedWorktree).replace(`${path.basename(normalizePath(rootPath))}-`, '')
+        try {
+          await git.deleteLocalBranch(branchName, true)
+        } catch {
+          // Branch delete is best-effort
+        }
+      }
+
+      return { success: true }
+    } catch (err: any) {
       console.error('[runnio] remove-worktree error:', err)
-      throw err
+      return { success: false, error: err.message }
     }
   })
 
@@ -357,6 +371,51 @@ function registerIpcHandlers() {
       return { success: true, url: result.html_url, number: result.number }
     } catch (err: any) {
       return { success: false, error: err.message }
+    }
+  })
+
+  // ── GitHub / List Issues ──
+  ipcMain.handle('github:list-issues', async (_e, rootPath: string) => {
+    try {
+      let token = process.env.GITHUB_TOKEN
+      try {
+        const raw = await fs.promises.readFile(globalConfigPath(), 'utf-8')
+        const globalSettings = JSON.parse(raw)
+        if (globalSettings.githubToken) token = globalSettings.githubToken
+      } catch { /* no global config */ }
+
+      const git = simpleGit(normalizePath(rootPath))
+      const remotes = await git.getRemotes(true)
+      const origin = remotes.find((r: any) => r.name === 'origin')
+      if (!origin) return { success: true, issues: [] }
+
+      const match = origin.refs.push.match(/github\.com[:/](.+?)\/(.+?)(?:\.git)?$/)
+      if (!match) return { success: true, issues: [] }
+      const [, owner, repo] = match
+
+      const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
+      if (token) headers.Authorization = `Bearer ${token}`
+
+      const res = await (globalThis as any).fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=50`,
+        { headers }
+      )
+      const issues = await res.json()
+      if (!Array.isArray(issues)) return { success: true, issues: [] }
+
+      return {
+        success: true,
+        issues: issues.map((i: any) => ({
+          id: String(i.number),
+          title: i.title,
+          state: i.state,
+          labels: i.labels?.map((l: any) => l.name) ?? [],
+          url: i.html_url,
+          source: 'github',
+        }))
+      }
+    } catch {
+      return { success: true, issues: [] }
     }
   })
 

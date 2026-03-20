@@ -48,21 +48,9 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     useStore.getState().setActiveAgent(null)
   }, [])
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     if (!agent || !project) return
-    if (!confirm(`Delete agent "${agent.branch}"?`)) return
-    try {
-      window.runnio?.terminal?.close(agent.terminalId)
-      if (agent.worktreePath !== project.rootPath) {
-        await window.runnio.git.removeWorktree(project.rootPath, agent.worktreePath)
-      }
-      useStore.getState().removeAgent(project.id, agent.id)
-    } catch (err: unknown) {
-      useStore.getState().showToast(
-        err instanceof Error ? err.message : String(err),
-        'warning'
-      )
-    }
+    useStore.getState().openDeleteAgent(project.id, agent.id)
   }, [agent, project])
 
   if (!agent || !project) {

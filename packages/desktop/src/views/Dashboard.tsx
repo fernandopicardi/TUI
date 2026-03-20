@@ -6,6 +6,13 @@ import InitBanner from '../components/InitBanner'
 import AgentStatusBadge from '../components/AgentStatusBadge'
 import { INIT_PROMPTS } from '../data/initPrompts'
 
+const PLUGIN_BADGES: Record<string, { label: string; color: string }> = {
+  'agency-os': { label: 'Agency OS', color: '#7c3aed' },
+  'bmad': { label: 'BMAD', color: '#f59e0b' },
+  'generic': { label: 'Generic', color: 'var(--accent)' },
+  'raw': { label: 'Raw', color: 'var(--text-disabled)' },
+}
+
 const Dashboard: React.FC = () => {
   const activeProject = useStore(s => {
     return s.projects.find(p => p.id === s.activeProjectId) ?? null
@@ -29,7 +36,6 @@ const Dashboard: React.FC = () => {
     if (!prompt) return
     const firstAgent = activeProject.agents[0]
     if (firstAgent) {
-      // Clear pluginContext so polling re-detects after init creates files
       useStore.getState().updateProject(activeProject.id, {
         pluginContext: undefined as any,
       })
@@ -52,6 +58,8 @@ const Dashboard: React.FC = () => {
     return status
   }
 
+  const pluginBadge = PLUGIN_BADGES[activeProject.plugin] || PLUGIN_BADGES.raw
+
   return React.createElement('div', {
     style: {
       height: '100%', display: 'flex', flexDirection: 'column' as const, overflow: 'hidden',
@@ -67,6 +75,14 @@ const Dashboard: React.FC = () => {
       React.createElement('h2', {
         style: { margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' },
       }, activeProject.name),
+      // Plugin badge
+      React.createElement('span', {
+        style: {
+          fontSize: '10px', fontWeight: 600, padding: '2px 8px',
+          borderRadius: '10px', border: `1px solid ${pluginBadge.color}44`,
+          color: pluginBadge.color, letterSpacing: '0.03em',
+        },
+      }, pluginBadge.label),
       React.createElement('span', {
         style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' },
       }, '\u00B7'),
@@ -83,7 +99,7 @@ const Dashboard: React.FC = () => {
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-        onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.97)' },
+        onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.98)' },
         onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(1)' },
       }, '+ New agent'),
     ),
@@ -139,35 +155,45 @@ const Dashboard: React.FC = () => {
                 onClick: () => useStore.getState().setActiveAgent(agent.id),
                 style: {
                   display: 'flex', flexDirection: 'column' as const, gap: '10px',
-                  padding: '16px', backgroundColor: 'var(--bg-elevated)',
+                  padding: '12px', backgroundColor: 'var(--bg-elevated)',
                   border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)',
                   borderTop: `3px solid ${borderTopColor}`,
-                  cursor: 'pointer', transition: 'transform 150ms, border-color 150ms',
+                  cursor: 'pointer', transition: 'transform 150ms, border-color 150ms, background 100ms',
                   animation: agent.status === 'waiting' ? 'glowWaiting 2s infinite' : 'none',
                 },
                 onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
                   e.currentTarget.style.borderColor = 'var(--border-strong)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.background = 'var(--bg-hover)'
                 },
                 onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
                   e.currentTarget.style.borderColor = 'var(--border-subtle)'
                   e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.background = 'var(--bg-elevated)'
                 },
               },
                 React.createElement('div', {
                   style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
                 },
                   React.createElement(AgentStatusBadge, { status: agent.status }),
+                  React.createElement('span', {
+                    style: { fontSize: '11px', color: 'var(--text-disabled)' },
+                  }, getTimeSince(agent.lastActivity)),
                 ),
                 React.createElement('div', {
-                  style: { fontSize: 'var(--text-md)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Consolas, monospace' },
+                  style: { fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Consolas, monospace' },
                 }, agent.branch || 'detached'),
                 React.createElement('div', {
                   style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
                 },
                   React.createElement('span', {
-                    style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' },
-                  }, `${getStatusLabel(agent.status)} ${getTimeSince(agent.lastActivity)}`),
+                    style: {
+                      color: agent.status === 'working' ? 'var(--working)'
+                        : agent.status === 'waiting' ? 'var(--waiting)'
+                        : 'var(--text-disabled)',
+                      fontSize: '11px',
+                    },
+                  }, getStatusLabel(agent.status)),
                   React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: '14px' } }, '\u2192'),
                 ),
               )
