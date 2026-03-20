@@ -36,7 +36,7 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
   }, [worktreePath])
 
   const checkToken = () => {
-    window.agentflow.config.load(worktreePath)
+    window.agentflow.settings.readGlobal()
       .then((cfg) => setHasToken(!!(cfg as any).githubToken))
       .catch(() => setHasToken(false))
   }
@@ -58,10 +58,10 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
     setTokenTestResult(testResult)
 
     if (testResult.success) {
-      // Read current config, merge token, save
-      const currentConfig = await window.agentflow.settings.readProject(worktreePath)
-      await window.agentflow.settings.writeProject(worktreePath, {
-        ...currentConfig,
+      // Save token to global settings (~/.agentflow/config.json), not project config
+      const currentGlobal = await window.agentflow.settings.readGlobal()
+      await window.agentflow.settings.writeGlobal({
+        ...currentGlobal,
         githubToken: tokenInput.trim(),
       })
       setHasToken(true)
