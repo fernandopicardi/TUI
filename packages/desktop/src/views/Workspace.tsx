@@ -7,8 +7,9 @@ import PRPanel from '../components/PRPanel'
 import FileTree from '../components/FileTree'
 import MCPPanel from '../components/MCPPanel'
 import WorkspaceNotes from '../components/WorkspaceNotes'
+import GitHistory from '../components/GitHistory'
 
-type Tab = 'terminal' | 'files' | 'diff' | 'pr' | 'notes'
+type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
 interface Props {
   agentId: string
@@ -128,6 +129,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
         React.createElement('button', { onClick: () => setActiveTab('files'), style: tabStyle('files') }, 'Files'),
         React.createElement('button', { onClick: () => setActiveTab('diff'), style: tabStyle('diff') }, 'Diff'),
+        React.createElement('button', { onClick: () => setActiveTab('history'), style: tabStyle('history') }, 'History'),
         React.createElement('button', { onClick: () => setActiveTab('pr'), style: tabStyle('pr') }, 'PR'),
         React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
       ),
@@ -164,6 +166,11 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
       },
         React.createElement(DiffViewer, { worktreePath: agent.worktreePath, visible: activeTab === 'diff' })
+      ),
+      React.createElement('div', {
+        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'history' ? 'flex' : 'none', flexDirection: 'column' as const },
+      },
+        React.createElement(GitHistory, { worktreePath: agent.worktreePath, visible: activeTab === 'history' })
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
