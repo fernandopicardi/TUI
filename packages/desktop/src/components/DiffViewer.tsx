@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { highlightCode, SYNTAX_THEME_CSS } from '../hooks/useSyntaxHighlight'
 
 interface Props {
   worktreePath: string
@@ -173,9 +174,30 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
     )
   }
 
+  // Pre-compute highlighted lines for the selected file
+  const highlightedLines = useMemo(() => {
+    if (!diff || !selectedFile) return { left: [] as string[], right: [] as string[] }
+    const origHtml = highlightCode(diff.original || '', selectedFile)
+    const modHtml = highlightCode(diff.modified || '', selectedFile)
+    return {
+      left: origHtml.split('\n'),
+      right: modHtml.split('\n'),
+    }
+  }, [diff?.original, diff?.modified, selectedFile])
+
   const renderLineColumn = (lines: DiffLine[], side: 'left' | 'right') => {
-    return lines.map((line, idx) =>
-      React.createElement('div', {
+    const hlLines = side === 'left' ? highlightedLines.left : highlightedLines.right
+    let hlIdx = 0
+    return lines.map((line, idx) => {
+      // Map diff line to highlighted line
+      let lineHtml = ''
+      if (line.lineNum !== null) {
+        const hlLineIdx = line.lineNum - 1
+        lineHtml = hlLines[hlLineIdx] ?? ''
+        hlIdx++
+      }
+
+      return React.createElement('div', {
         key: idx,
         style: {
           display: 'flex', minHeight: '20px',
@@ -200,21 +222,31 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
             color: line.type === 'removed' ? '#f85149' : line.type === 'added' ? '#3fb950' : 'transparent',
           },
         }, line.type === 'removed' && side === 'left' ? '\u2212' : line.type === 'added' && side === 'right' ? '+' : ''),
-        // Line content
-        React.createElement('span', {
-          style: {
-            flex: 1, padding: '0 8px', fontSize: 'var(--text-sm)',
-            fontFamily: 'Consolas, monospace', whiteSpace: 'pre' as const,
-            color: line.lineNum === null ? 'transparent' : '#ccc',
-          },
-        }, line.text),
+        // Line content (highlighted)
+        line.lineNum !== null
+          ? React.createElement('span', {
+              style: {
+                flex: 1, padding: '0 8px', fontSize: 'var(--text-sm)',
+                fontFamily: 'Consolas, monospace', whiteSpace: 'pre' as const,
+              },
+              dangerouslySetInnerHTML: { __html: lineHtml },
+            })
+          : React.createElement('span', {
+              style: {
+                flex: 1, padding: '0 8px', fontSize: 'var(--text-sm)',
+                fontFamily: 'Consolas, monospace', whiteSpace: 'pre' as const,
+                color: 'transparent',
+              },
+            }),
       )
-    )
+    })
   }
 
   return React.createElement('div', {
     style: { height: '100%', display: 'flex', flexDirection: 'column' as const },
   },
+    // Syntax theme
+    React.createElement('style', null, SYNTAX_THEME_CSS),
     // File tabs + stats
     React.createElement('div', {
       style: {

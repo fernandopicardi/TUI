@@ -1,6 +1,7 @@
 import * as React from 'react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FileEntry } from '../types'
+import { useHighlightedCode, SYNTAX_THEME_CSS } from '../hooks/useSyntaxHighlight'
 
 interface Props {
   worktreePath: string
@@ -18,6 +19,20 @@ const FILE_ICONS: Record<string, string> = {
   json: '\u25C7', md: '\u25CB', yml: '\u25CB', yaml: '\u25CB',
   css: '\u25C6', html: '\u25C6', svg: '\u25C6',
   default: '\u25AB',
+}
+
+const HighlightedFileContent: React.FC<{ content: string; filename: string }> = ({ content, filename }) => {
+  const highlighted = useHighlightedCode(content, filename)
+  return React.createElement('pre', {
+    style: {
+      margin: 0, padding: '12px', fontSize: 'var(--text-sm)',
+      fontFamily: 'Consolas, "Cascadia Code", monospace',
+      color: 'var(--text-primary)', whiteSpace: 'pre-wrap' as const,
+      lineHeight: '1.5', background: '#0a0a0a',
+      minHeight: '100%',
+    },
+    dangerouslySetInnerHTML: { __html: highlighted },
+  })
 }
 
 const FileTree: React.FC<Props> = ({ worktreePath }) => {
@@ -266,6 +281,8 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
             }, '\u00D7'),
           ),
+          // Syntax theme
+          React.createElement('style', null, SYNTAX_THEME_CSS),
           // File content
           React.createElement('div', {
             style: { flex: 1, overflow: 'auto', padding: 0 },
@@ -274,15 +291,10 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
               ? React.createElement('div', {
                   style: { padding: '16px', color: 'var(--text-secondary)', fontSize: 'var(--text-base)' },
                 }, 'Loading...')
-              : React.createElement('pre', {
-                  style: {
-                    margin: 0, padding: '12px', fontSize: 'var(--text-sm)',
-                    fontFamily: 'Consolas, "Cascadia Code", monospace',
-                    color: 'var(--text-primary)', whiteSpace: 'pre-wrap' as const,
-                    lineHeight: '1.5', background: '#0a0a0a',
-                    minHeight: '100%',
-                  },
-                }, fileContent || ''),
+              : React.createElement(HighlightedFileContent, {
+                  content: fileContent || '',
+                  filename: selectedFile || '',
+                }),
           ),
         )
       : null,

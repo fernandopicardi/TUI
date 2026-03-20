@@ -30,6 +30,13 @@ export interface RunnioStore {
   removeAgent: (projectId: string, agentId: string) => void
   updateAgent: (agentId: string, updates: Partial<AgentSession>) => void
   setActiveAgent: (agentId: string | null) => void
+  setAgentLaunched: (agentId: string, config: AgentSession['launchConfig']) => void
+
+  // Default launch settings
+  defaultModel: string
+  defaultMode: 'normal' | 'plan' | 'auto'
+  setDefaultModel: (model: string) => void
+  setDefaultMode: (mode: 'normal' | 'plan' | 'auto') => void
 
   // UI actions
   openAddProject: () => void
@@ -72,6 +79,8 @@ export const useStore = create<RunnioStore>()(
       isQuickPromptOpen: false,
       toasts: [],
       initPrompt: null,
+      defaultModel: 'claude-sonnet-4-5',
+      defaultMode: 'normal' as 'normal' | 'plan' | 'auto',
 
       addProject: (projectData) => {
         const state = get()
@@ -124,7 +133,7 @@ export const useStore = create<RunnioStore>()(
         set(s => ({
           projects: s.projects.map(p =>
             p.id === projectId
-              ? { ...p, agents: [...p.agents, agent] }
+              ? { ...p, agents: [...p.agents, { ...agent, hasLaunched: agent.hasLaunched ?? false }] }
               : p
           ),
           activeAgentId: agent.id,
@@ -150,6 +159,20 @@ export const useStore = create<RunnioStore>()(
       })),
 
       setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+
+      setAgentLaunched: (agentId, config) => set(state => ({
+        projects: state.projects.map(p => ({
+          ...p,
+          agents: p.agents.map(a =>
+            a.id === agentId
+              ? { ...a, hasLaunched: true, launchConfig: config }
+              : a
+          ),
+        })),
+      })),
+
+      setDefaultModel: (model) => set({ defaultModel: model }),
+      setDefaultMode: (mode) => set({ defaultMode: mode }),
 
       openAddProject: () => set({ isAddProjectModalOpen: true }),
       closeAddProject: () => set({ isAddProjectModalOpen: false }),
@@ -196,6 +219,8 @@ export const useStore = create<RunnioStore>()(
         projects: state.projects,
         activeProjectId: state.activeProjectId,
         activeAgentId: state.activeAgentId,
+        defaultModel: state.defaultModel,
+        defaultMode: state.defaultMode,
       }),
     }
   )

@@ -47,6 +47,8 @@ const terminalRegistry = new Map<string, {
   simulated: boolean
   isClaudeReady: boolean
   pendingPrompt: string | null
+  lastActivityAt: number
+  worktreePath: string
 }>()
 
 // Worktree project watchers — polls worktrees per project
@@ -253,7 +255,23 @@ function registerIpcHandlers() {
   // ── Agent status ──
   ipcMain.handle('agent:get-status', async (_e, worktreePath: string) => {
     try {
-      return await detectAgentStatus({ path: worktreePath, branch: '', head: '', isMain: false })
+      const normalizedPath = normalizePath(worktreePath)
+
+      // Check terminal registry first for real-time status
+      const entry = Array.from(terminalRegistry.entries())
+        .map(([, e]) => e)
+        .find(e => normalizePath(e.worktreePath ?? '') === normalizedPath)
+
+      if (entry) {
+        if (!entry.isAlive) return 'idle'
+        const timeSince = Date.now() - (entry.lastActivityAt ?? 0)
+        if (timeSince < 15_000) return 'working'
+        if (timeSince < 60_000) return 'waiting'
+        return 'idle'
+      }
+
+      // Fallback to file heuristics from @runnio/core
+      return await detectAgentStatus({ path: normalizedPath, branch: '', head: '', isMain: false })
     } catch {
       return 'idle'
     }
@@ -380,7 +398,7 @@ function registerIpcHandlers() {
     }
 
     if (!nodePty) {
-      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null }
+      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
       terminalRegistry.set(id, entry)
 
       const simMsg = `\x1b[36m[runnio]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
@@ -406,10 +424,13 @@ function registerIpcHandlers() {
         useConpty: true,
       })
 
-      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null }
+      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
       terminalRegistry.set(id, entry)
 
       pty.onData((data: string) => {
+        // Track activity for status detection
+        entry.lastActivityAt = Date.now()
+
         // Keep last 1000 chunks for replay on reconnect
         entry.buffer.push(data)
         if (entry.buffer.length > 1000) entry.buffer.shift()

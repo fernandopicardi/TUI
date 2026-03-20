@@ -21,8 +21,8 @@ Owns: src/components/GitHistory.tsx (NEW), src/utils/gitGraph.ts (NEW), src/view
 Do NOT touch: src/store/index.ts, src/components/* (existing files)
 
 ## Agent 4 — Launch Panel + Syntax Highlighting
-Branch: agent-4/launch-syntax
-Status: Waiting for Agent 1 to merge
+Branch: runnio-a4-launch-syntax
+Status: Complete
 Owns: src/components/AgentLaunchPanel.tsx (NEW), src/hooks/useSyntaxHighlight.ts (NEW), src/views/Workspace.tsx (ADD launch panel only), src/store/index.ts (ADD hasLaunched + launchConfig fields only)
 Do NOT touch: electron/main.ts core handlers, src/utils/gitGraph.ts
 
