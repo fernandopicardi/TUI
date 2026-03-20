@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('git:list-worktrees', rootPath),
     createWorktree: (rootPath: string, branch: string) =>
       ipcRenderer.invoke('git:create-worktree', rootPath, branch),
-    removeWorktree: (rootPath: string, worktreePath: string) =>
-      ipcRenderer.invoke('git:remove-worktree', rootPath, worktreePath),
+    removeWorktree: (rootPath: string, worktreePath: string, deleteBranch?: boolean) =>
+      ipcRenderer.invoke('git:remove-worktree', rootPath, worktreePath, deleteBranch),
     watchWorktrees: (rootPath: string, interval: number) =>
       ipcRenderer.invoke('git:watch-worktrees', rootPath, interval),
     onWorktreesChanged: (cb: (worktrees: unknown[]) => void) => {
@@ -86,6 +86,8 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('github:get-diff', worktreePath),
     createPR: (data: { worktreePath: string; title: string; description: string; baseBranch: string; branch: string }) =>
       ipcRenderer.invoke('github:create-pr', data),
+    listIssues: (rootPath: string) =>
+      ipcRenderer.invoke('github:list-issues', rootPath),
   },
   mcp: {
     getConfig: (rootPath: string) =>

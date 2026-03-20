@@ -14,6 +14,7 @@ import CreateAgentModal from './components/CreateAgentModal'
 import CommandPalette from './components/CommandPalette'
 import QuickPrompt from './components/QuickPrompt'
 import SettingsModal from './components/SettingsModal'
+import DeleteAgentModal from './components/DeleteAgentModal'
 import Welcome from './views/Welcome'
 import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
@@ -43,6 +44,7 @@ const App: React.FC = () => {
   const isCommandPaletteOpen = useStore(s => s.isCommandPaletteOpen)
   const isQuickPromptOpen = useStore(s => s.isQuickPromptOpen)
   const isSettingsOpen = useStore(s => s.isSettingsOpen)
+  const isDeleteAgentModalOpen = useStore(s => s.isDeleteAgentModalOpen)
   const [preloadOk, setPreloadOk] = React.useState(false)
 
   // Poll agent statuses across all projects
@@ -74,6 +76,7 @@ const App: React.FC = () => {
         s.closeCommandPalette()
         s.closeQuickPrompt()
         s.closeSettings()
+        s.closeDeleteAgent()
         return
       }
     }
@@ -170,6 +173,7 @@ const App: React.FC = () => {
     isCommandPaletteOpen ? React.createElement(CommandPalette) : null,
     isQuickPromptOpen ? React.createElement(QuickPrompt) : null,
     isSettingsOpen ? React.createElement(SettingsModal) : null,
+    isDeleteAgentModalOpen ? React.createElement(DeleteAgentModal) : null,
   )
 }
 

@@ -10,7 +10,7 @@ Do NOT touch: src/components/GitHistory.tsx, src/utils/gitGraph.ts, src/componen
 
 ## Agent 2 — UI/UX Polish + Tasks Tab
 Branch: agent-2/ui-ux-tasks
-Status: Waiting for Agent 1 to merge
+Status: Complete (rebased onto main)
 Owns: src/components/* (existing files), src/views/Welcome.tsx, src/views/Dashboard.tsx, src/components/TasksPanel.tsx (NEW)
 Do NOT touch: electron/main.ts, src/store/index.ts, src/utils/gitGraph.ts, src/views/Workspace.tsx
 
