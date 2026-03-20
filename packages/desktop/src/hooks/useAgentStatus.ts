@@ -13,7 +13,7 @@ export function useAgentStatusWatcher(refreshInterval = 2000) {
     const poll = async () => {
       for (const agent of allAgents) {
         try {
-          const status = await window.regent.agents.getStatus(agent.worktreePath)
+          const status = await window.runnio.agents.getStatus(agent.worktreePath)
           useStore.getState().updateAgent(agent.id, { status, lastActivity: Date.now() })
         } catch {
           // Ignore status poll errors

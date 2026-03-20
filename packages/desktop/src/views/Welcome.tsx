@@ -41,7 +41,7 @@ const Welcome: React.FC = () => {
       }, '\u25C6'),
       React.createElement('h1', {
         style: { fontSize: '22px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' },
-      }, 'Regent'),
+      }, 'Runnio'),
       React.createElement('p', {
         style: { fontSize: '15px', color: 'var(--text-secondary)', margin: 0, maxWidth: '360px', lineHeight: '1.5' },
       }, 'Orchestrate multiple Claude Code agents across projects. Parallel. Persistent.')

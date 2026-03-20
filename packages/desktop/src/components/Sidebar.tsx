@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
                   e.stopPropagation()
                   if (confirm(`Remove project "${project.name}"?`)) {
                     project.agents.forEach(a => {
-                      window.regent?.terminal?.close(a.terminalId)
+                      window.runnio?.terminal?.close(a.terminalId)
                     })
                     useStore.getState().removeProject(project.id)
                   }
@@ -136,7 +136,7 @@ const Sidebar: React.FC = () => {
               isExternal
                 ? React.createElement('span', {
                     style: { color: 'var(--text-tertiary)', fontSize: '9px', flexShrink: 0 },
-                    title: 'Created outside Regent',
+                    title: 'Created outside Runnio',
                   }, '\u2B21')
                 : null,
               React.createElement('span', {

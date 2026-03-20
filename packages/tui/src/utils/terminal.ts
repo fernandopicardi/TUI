@@ -1,5 +1,5 @@
 import { execFile } from 'child_process'
-import { normalizePath } from '@regent/core'
+import { normalizePath } from '@runnio/core'
 
 export interface OpenWorkspaceResult {
   success: boolean

@@ -1,13 +1,13 @@
 {
-  "name": "regent",
+  "name": "runnio",
   "private": true,
   "description": "Orchestrate multiple Claude Code agents in parallel with git worktrees",
   "keywords": ["cli", "tui", "claude", "agent", "worktree", "electron"],
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "pnpm -r build",
-    "dev:tui": "pnpm --filter @regent/tui dev",
-    "dev:desktop": "pnpm --filter @regent/desktop dev",
+    "dev:tui": "pnpm --filter @runnio/tui dev",
+    "dev:desktop": "pnpm --filter @runnio/desktop dev",
     "clean": "pnpm -r clean"
   },
   "pnpm": {

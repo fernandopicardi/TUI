@@ -1,8 +1,8 @@
-import { RegentPlugin, PluginContext } from '../../types/plugin'
+import { RunnioPlugin, PluginContext } from '../../types/plugin'
 import { fileExists, readFileSafe, splitLines, joinPath } from '../../git/utils'
 import { listWorktrees } from '../../git/worktrees'
 
-const genericPlugin: RegentPlugin = {
+const genericPlugin: RunnioPlugin = {
   name: 'generic',
   priority: 10,
   async detect(rootPath: string): Promise<boolean> {

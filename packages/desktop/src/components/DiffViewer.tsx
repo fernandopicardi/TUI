@@ -98,9 +98,9 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
   const syncingScroll = useRef(false)
 
   const fetchDiff = useCallback(() => {
-    if (!window.regent?.github) return
+    if (!window.runnio?.github) return
     setLoading(true)
-    window.regent.github.getDiff(worktreePath)
+    window.runnio.github.getDiff(worktreePath)
       .then((result) => {
         setData(prev => {
           const newData = result || { files: [], diffs: {} }

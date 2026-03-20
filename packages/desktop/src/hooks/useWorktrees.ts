@@ -6,9 +6,9 @@ import { useCallback } from 'react'
  */
 export function useWorktreeLoader(rootPath: string | null) {
   const refresh = useCallback(async () => {
-    if (!rootPath || !window.regent?.git) return []
+    if (!rootPath || !window.runnio?.git) return []
     try {
-      return await window.regent.git.listWorktrees(rootPath)
+      return await window.runnio.git.listWorktrees(rootPath)
     } catch {
       return []
     }

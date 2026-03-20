@@ -1,5 +1,5 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
+
 
 import { app, BrowserWindow, Menu, ipcMain, dialog, Notification } from 'electron'
 import * as path from 'path'
@@ -16,14 +16,14 @@ import {
   detectAgentStatus,
   getRepoRoot,
   normalizePath,
-} from '@regent/core'
+} from '@runnio/core'
 import { simpleGit } from 'simple-git'
 
 process.on('uncaughtException', (err) => {
-  console.error('[regent] Uncaught exception:', err)
+  console.error('[runnio] Uncaught exception:', err)
 })
 process.on('unhandledRejection', (err) => {
-  console.error('[regent] Unhandled rejection:', err)
+  console.error('[runnio] Unhandled rejection:', err)
 })
 
 let mainWindow: BrowserWindow | null = null
@@ -101,41 +101,80 @@ function registerIpcHandlers() {
   // ── Dialog ──
   ipcMain.handle('dialog:open-directory', async () => {
     try {
-      if (!mainWindow) return null
+      if (!mainWindow) return { path: null, error: null }
       const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory'],
         title: 'Select project',
       })
-      if (result.canceled || result.filePaths.length === 0) return null
+      if (result.canceled || result.filePaths.length === 0) return { path: null, error: null }
       const dir = result.filePaths[0]
       const root = await getRepoRoot(dir)
-      if (!root) return null
-      return root
-    } catch (err) {
-      console.error('[regent] open-directory error:', err)
-      return null
+      if (!root) {
+        return { path: null, error: 'This folder is not a git repository. Initialize git first or choose a different folder.' }
+      }
+      return { path: root, error: null }
+    } catch (err: any) {
+      console.error('[runnio] open-directory error:', err)
+      return { path: null, error: err.message ?? 'Failed to open directory.' }
     }
   })
 
   // ── Git ──
   ipcMain.handle('git:list-worktrees', async (_e, rootPath: string) => {
     try {
-      const result = await listWorktrees(normalizePath(rootPath))
-      return JSON.parse(JSON.stringify(result))
-    } catch (err) {
-      console.error('[regent] list-worktrees error:', err)
-      return []
+      const normalized = normalizePath(rootPath)
+
+      if (!fs.existsSync(normalized)) {
+        return { success: false, error: 'directory_not_found', message: 'Directory does not exist.' }
+      }
+
+      const gitDir = path.join(normalized, '.git')
+      if (!fs.existsSync(gitDir)) {
+        return {
+          success: false,
+          error: 'not_git_repo',
+          message: 'This folder is not a git repository. Initialize git first or choose a different folder.'
+        }
+      }
+
+      const worktrees = await listWorktrees(normalized)
+      return { success: true, worktrees: JSON.parse(JSON.stringify(worktrees)) }
+    } catch (err: any) {
+      console.error('[runnio] list-worktrees error:', err)
+      return { success: false, error: 'git_error', message: err.message ?? 'Failed to read git repository.' }
     }
   })
 
-  ipcMain.handle('git:create-worktree', async (_e, rootPath: string, branch: string) => {
+  ipcMain.handle('git:create-worktree', async (_e, rootPath: string, branchName: string) => {
     try {
-      const result = await createWorktree(normalizePath(rootPath), branch)
-      const data = JSON.parse(JSON.stringify(result))
-      return { success: true, path: data.path, error: undefined }
+      const normalized = normalizePath(rootPath)
+      const repoName = path.basename(normalized)
+      const safeBranch = branchName.replace(/\//g, '-').replace(/[^a-zA-Z0-9-_]/g, '')
+      const worktreePath = path.join(path.dirname(normalized), `${repoName}-${safeBranch}`)
+
+      const git = simpleGit(normalized)
+      const branches = await git.branch()
+      const branchExists = Object.keys(branches.branches).includes(branchName)
+
+      if (branchExists) {
+        await git.raw(['worktree', 'add', worktreePath, branchName])
+      } else {
+        await git.raw(['worktree', 'add', '-b', branchName, worktreePath])
+      }
+
+      if (!fs.existsSync(worktreePath)) {
+        return { success: false, error: 'Worktree directory was not created.' }
+      }
+
+      const files = fs.readdirSync(worktreePath)
+      if (files.length === 0) {
+        return { success: false, error: 'Worktree was created but is empty. Check git repository state.' }
+      }
+
+      return { success: true, path: worktreePath }
     } catch (err: any) {
-      console.error('[regent] create-worktree error:', err)
-      return { success: false, path: undefined, error: err.message || String(err) }
+      console.error('[runnio] create-worktree error:', err)
+      return { success: false, error: err.message || String(err) }
     }
   })
 
@@ -143,7 +182,7 @@ function registerIpcHandlers() {
     try {
       await removeWorktree(normalizePath(rootPath), normalizePath(wtPath))
     } catch (err) {
-      console.error('[regent] remove-worktree error:', err)
+      console.error('[runnio] remove-worktree error:', err)
       throw err
     }
   })
@@ -152,7 +191,7 @@ function registerIpcHandlers() {
     try {
       return await getCurrentBranch(normalizePath(rootPath))
     } catch (err) {
-      console.error('[regent] get-current-branch error:', err)
+      console.error('[runnio] get-current-branch error:', err)
       return 'unknown'
     }
   })
@@ -171,7 +210,7 @@ function registerIpcHandlers() {
       worktreeWatchers.set(normalized, cleanup)
       return true
     } catch (err) {
-      console.error('[regent] watch-worktrees error:', err)
+      console.error('[runnio] watch-worktrees error:', err)
       return false
     }
   })
@@ -228,7 +267,7 @@ function registerIpcHandlers() {
       const context = await loadPluginSafe(plugin, normalizePath(rootPath))
       return JSON.parse(JSON.stringify({ pluginName: plugin.name, context }))
     } catch (err) {
-      console.error('[regent] plugin-load error:', err)
+      console.error('[runnio] plugin-load error:', err)
       return { pluginName: 'raw', context: null }
     }
   })
@@ -275,7 +314,7 @@ function registerIpcHandlers() {
     branch: string
   }) => {
     try {
-      // Read token from global settings (~/.regent/config.json), NOT project config
+      // Read token from global settings (~/.runnio/config.json), NOT project config
       let token = process.env.GITHUB_TOKEN
       try {
         const raw = await fs.promises.readFile(globalConfigPath(), 'utf-8')
@@ -326,7 +365,7 @@ function registerIpcHandlers() {
   try {
     nodePty = require('node-pty')
   } catch {
-    console.warn('[regent] node-pty not available — terminal in simulated mode')
+    console.warn('[runnio] node-pty not available — terminal in simulated mode')
   }
 
   ipcMain.handle('terminal:create', async (event, id: string, worktreePath: string, command: string) => {
@@ -344,8 +383,8 @@ function registerIpcHandlers() {
       const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null }
       terminalRegistry.set(id, entry)
 
-      const simMsg = `\x1b[36m[regent]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
-      const dirMsg = `\x1b[36m[regent]\x1b[0m Directory: ${worktreePath}\r\n`
+      const simMsg = `\x1b[36m[runnio]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
+      const dirMsg = `\x1b[36m[runnio]\x1b[0m Directory: ${worktreePath}\r\n`
       entry.buffer.push(simMsg, dirMsg)
 
       BrowserWindow.getAllWindows().forEach(win => {
@@ -387,7 +426,7 @@ function registerIpcHandlers() {
             BrowserWindow.getAllWindows().forEach(win => {
               if (!win.isDestroyed()) {
                 win.webContents.send('terminal:output', id,
-                  '\x1b[33m[regent]\x1b[0m Claude Code ready\r\n')
+                  '\x1b[33m[runnio]\x1b[0m Claude Code ready\r\n')
               }
             })
 
@@ -400,7 +439,7 @@ function registerIpcHandlers() {
                   BrowserWindow.getAllWindows().forEach(win => {
                     if (!win.isDestroyed()) {
                       win.webContents.send('terminal:output', id,
-                        '\x1b[32m[regent]\x1b[0m prompt injected \u2713\r\n')
+                        '\x1b[32m[runnio]\x1b[0m prompt injected \u2713\r\n')
                     }
                   })
                 }
@@ -440,7 +479,7 @@ function registerIpcHandlers() {
       BrowserWindow.getAllWindows().forEach(win => {
         if (!win.isDestroyed()) {
           win.webContents.send('terminal:output', terminalId,
-            '\x1b[32m[regent]\x1b[0m prompt injected \u2713\r\n')
+            '\x1b[32m[runnio]\x1b[0m prompt injected \u2713\r\n')
         }
       })
       return { success: true, immediate: true }
@@ -451,7 +490,7 @@ function registerIpcHandlers() {
     BrowserWindow.getAllWindows().forEach(win => {
       if (!win.isDestroyed()) {
         win.webContents.send('terminal:output', terminalId,
-          '\x1b[33m[regent]\x1b[0m waiting for Claude Code...\r\n')
+          '\x1b[33m[runnio]\x1b[0m waiting for Claude Code...\r\n')
       }
     })
     return { success: true, queued: true }
@@ -516,7 +555,7 @@ function registerIpcHandlers() {
       await git.clone(url, fullPath)
       return { success: true, path: fullPath }
     } catch (err: any) {
-      console.error('[regent] clone error:', err)
+      console.error('[runnio] clone error:', err)
       return { success: false, error: err.message }
     }
   })
@@ -597,7 +636,7 @@ function registerIpcHandlers() {
   // ── Settings (Subtask 6) ──
   const globalConfigPath = () => {
     const home = process.env.USERPROFILE || process.env.HOME || ''
-    return path.join(home, '.regent', 'config.json')
+    return path.join(home, '.runnio', 'config.json')
   }
 
   ipcMain.handle('settings:read-global', async () => {
@@ -622,7 +661,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('settings:read-project', async (_e, rootPath: string) => {
     try {
-      const p = path.join(normalizePath(rootPath), 'regent.config.json')
+      const p = path.join(normalizePath(rootPath), 'runnio.config.json')
       const raw = await fs.promises.readFile(p, 'utf-8')
       return JSON.parse(raw)
     } catch {
@@ -632,7 +671,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('settings:write-project', async (_e, rootPath: string, data: Record<string, any>) => {
     try {
-      const p = path.join(normalizePath(rootPath), 'regent.config.json')
+      const p = path.join(normalizePath(rootPath), 'runnio.config.json')
       await fs.promises.writeFile(p, JSON.stringify(data, null, 2))
       return { success: true }
     } catch {
@@ -715,7 +754,7 @@ function registerIpcHandlers() {
         error: null,
       }))
     } catch (err: any) {
-      console.error('[regent] git:log error:', err)
+      console.error('[runnio] git:log error:', err)
       return { commits: [], branches: [], currentBranch: 'main', error: err.message }
     }
   })
@@ -858,7 +897,7 @@ function registerIpcHandlers() {
       if (!Notification.isSupported()) return
       new Notification({ title, body, silent: type === 'info' }).show()
     } catch (err) {
-      console.error('[regent] notification error:', err)
+      console.error('[runnio] notification error:', err)
     }
   })
 

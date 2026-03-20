@@ -1,5 +1,4 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 // ── Domain types ──
 
@@ -93,9 +92,9 @@ export interface MCPServerEntry {
   scope: 'global' | 'project'
 }
 
-export interface RegentAPI {
+export interface RunnioAPI {
   dialog: {
-    openDirectory: () => Promise<string | null>
+    openDirectory: () => Promise<{ path: string | null; error: string | null } | string | null>
   }
   git: {
     listWorktrees: (rootPath: string) => Promise<WorktreeData[]>
@@ -162,6 +161,6 @@ export interface RegentAPI {
 
 declare global {
   interface Window {
-    regent: RegentAPI
+    runnio: RunnioAPI
   }
 }

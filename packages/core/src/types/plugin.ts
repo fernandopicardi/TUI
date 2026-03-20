@@ -1,4 +1,4 @@
-export interface RegentPlugin {
+export interface RunnioPlugin {
   name: string
   priority: number
   detect(rootPath: string): Promise<boolean>

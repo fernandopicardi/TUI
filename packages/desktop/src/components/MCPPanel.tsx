@@ -20,8 +20,8 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
   const [addError, setAddError] = useState<string | null>(null)
 
   const loadServers = useCallback(() => {
-    if (!window.regent?.mcp) return
-    window.regent.mcp.getConfig(worktreePath)
+    if (!window.runnio?.mcp) return
+    window.runnio.mcp.getConfig(worktreePath)
       .then(setServers)
       .catch(() => {})
   }, [worktreePath])
@@ -32,7 +32,7 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
 
   const handleRemove = async (name: string, scope: 'global' | 'project') => {
     if (!confirm(`Remove MCP server "${name}"?`)) return
-    const result = await window.regent.mcp.removeServer(worktreePath, name, scope)
+    const result = await window.runnio.mcp.removeServer(worktreePath, name, scope)
     if (result.success) loadServers()
   }
 
@@ -44,7 +44,7 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
       command: newCommand.trim(),
       args: newArgs.trim() ? newArgs.trim().split(/\s+/) : [],
     }
-    const result = await window.regent.mcp.addServer(worktreePath, server, newScope)
+    const result = await window.runnio.mcp.addServer(worktreePath, server, newScope)
     if (result.success) {
       setShowAddModal(false)
       setNewName('')

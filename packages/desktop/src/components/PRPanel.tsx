@@ -27,8 +27,8 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
   const [tokenTestResult, setTokenTestResult] = useState<{ success: boolean; login?: string } | null>(null)
 
   useEffect(() => {
-    if (!window.regent?.github) return
-    window.regent.github.getDiff(worktreePath)
+    if (!window.runnio?.github) return
+    window.runnio.github.getDiff(worktreePath)
       .then((result) => setFiles(result?.files || []))
       .catch(() => {})
 
@@ -37,11 +37,11 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
 
   const checkToken = async () => {
     try {
-      const cfg = await window.regent.settings.readGlobal()
+      const cfg = await window.runnio.settings.readGlobal()
       const token = (cfg as any).githubToken
       if (!token) { setHasToken(false); return }
       // Validate token actually works
-      const testResult = await window.regent.settings.testGithub(token)
+      const testResult = await window.runnio.settings.testGithub(token)
       setHasToken(testResult.success)
     } catch {
       setHasToken(false)
@@ -61,13 +61,13 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
     setTokenTestResult(null)
 
     // Test the token first
-    const testResult = await window.regent.settings.testGithub(tokenInput.trim())
+    const testResult = await window.runnio.settings.testGithub(tokenInput.trim())
     setTokenTestResult(testResult)
 
     if (testResult.success) {
-      // Save token to global settings (~/.regent/config.json), not project config
-      const currentGlobal = await window.regent.settings.readGlobal()
-      await window.regent.settings.writeGlobal({
+      // Save token to global settings (~/.runnio/config.json), not project config
+      const currentGlobal = await window.runnio.settings.readGlobal()
+      await window.runnio.settings.writeGlobal({
         ...currentGlobal,
         githubToken: tokenInput.trim(),
       })
@@ -81,7 +81,7 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await window.regent.github.createPR({
+      const result = await window.runnio.github.createPR({
         worktreePath, title, description, baseBranch, branch,
       })
       if (result.success) {
@@ -140,7 +140,7 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
         }, 'Connect GitHub'),
         React.createElement('div', {
           style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: '16px', lineHeight: '1.5' },
-        }, 'Paste your personal access token to create pull requests directly from Regent.'),
+        }, 'Paste your personal access token to create pull requests directly from Runnio.'),
 
         // Token input
         React.createElement('div', {
@@ -182,7 +182,7 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
 
         React.createElement('div', {
           style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)', lineHeight: '1.5' },
-        }, 'Required scopes: repo. Token is saved to your global Regent config.'),
+        }, 'Required scopes: repo. Token is saved to your global Runnio config.'),
       ),
     )
   }

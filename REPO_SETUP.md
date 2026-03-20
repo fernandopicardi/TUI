@@ -11,11 +11,11 @@
 ## Rename repository (recommended)
 
 1. Go to https://github.com/fernandopicardi/TUI/settings
-2. Under "Repository name", change "TUI" to "regent"
+2. Under "Repository name", change "TUI" to "runnio"
 3. Click "Rename"
 4. Update your local remote:
    ```bash
-   git remote set-url origin https://github.com/fernandopicardi/regent.git
+   git remote set-url origin https://github.com/fernandopicardi/runnio.git
    ```
 
 ## Add .gitignore entries

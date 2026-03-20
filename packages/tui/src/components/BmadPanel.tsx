@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Text, Box } from 'ink'
-import { PluginContext, BmadData } from '@regent/core'
+import { PluginContext, BmadData } from '@runnio/core'
 
 const BmadPanel: React.FC<{ context: PluginContext }> = ({ context }) => {
   const data = context.data as unknown as BmadData

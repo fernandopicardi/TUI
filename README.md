@@ -1,10 +1,10 @@
-# Regent
+# Runnio
 
 Orchestrate multiple Claude Code agents across projects. Parallel. Persistent. Powerful.
 
-## What is Regent?
+## What is Runnio?
 
-Regent is a desktop application for Windows (and macOS) that lets you run multiple
+Runnio is a desktop application for Windows (and macOS) that lets you run multiple
 Claude Code agents simultaneously across different Git projects — each in an isolated
 worktree, with persistent terminal sessions, real-time status tracking, and full
 Git history visualization.
@@ -21,8 +21,8 @@ Git history visualization.
 ## Installation
 
 Download the latest release for your platform:
-- Windows: `Regent-Setup-x.x.x.exe` or `Regent-x.x.x.exe` (portable)
-- macOS: `Regent-x.x.x.dmg` (coming soon)
+- Windows: `Runnio-Setup-x.x.x.exe` or `Runnio-x.x.x.exe` (portable)
+- macOS: `Runnio-x.x.x.dmg` (coming soon)
 
 ## Requirements
 
@@ -36,4 +36,4 @@ See STATUS.md for architecture details and development workflow.
 
 ## License
 
-Copyright (c) 2026 Regent. All rights reserved. Proprietary software.
+Copyright (c) 2026 Runnio. All rights reserved. Proprietary software.

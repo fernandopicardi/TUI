@@ -1,4 +1,4 @@
-# Regent
+# Runnio
 
 ## What it is
 Multi-project Claude Code agent orchestrator for Windows, using Git worktrees for branch isolation and persistent terminals via node-pty.
@@ -11,7 +11,7 @@ packages/tui      — CLI with Ink 4.x (React terminal). ESM, type: module.
 packages/desktop  — Electron 28 app (React 18 + Zustand + xterm.js + node-pty + esbuild).
 ```
 
-### @regent/core — main exports
+### @runnio/core — main exports
 - **Git:** `listWorktrees`, `createWorktree`, `removeWorktree`, `watchWorktrees`, `getCurrentBranch`
 - **Utils:** `normalizePath`, `joinPath`, `resolvePath`, `getRepoRoot`, `getRepoName`, `pathExists`, `fileExists`, `readFileSafe`, `withTimeout`
 - **Agents:** `detectAgentStatus`, `getRunningNodeProcesses`
@@ -19,7 +19,7 @@ packages/desktop  — Electron 28 app (React 18 + Zustand + xterm.js + node-pty 
 - **Plugins:** `resolvePlugin`, `loadPluginSafe`, `registerPlugin`
 - **Readers:** `readClients` (Agency OS), `readBmadData` (BMAD)
 
-### @regent/desktop — IPC channels
+### @runnio/desktop — IPC channels
 - `dialog:open-directory` — folder picker with Git repo validation
 - `git:*` — list-worktrees, create-worktree, remove-worktree, get-current-branch, watch-worktrees, watch-project-worktrees, clone
 - `agent:get-status` — detects working/waiting/idle/done by file mtime
@@ -27,7 +27,7 @@ packages/desktop  — Electron 28 app (React 18 + Zustand + xterm.js + node-pty 
 - `terminal:*` — create (with buffer replay), input, resize, close, get-buffer, is-alive, inject-when-ready
 - `github:*` — get-diff (simple-git status + show), create-pr (GitHub REST API with token)
 - `mcp:*` — get-config (global + project), add-server, remove-server
-- `settings:*` — read/write global (~/.regent/config.json) and project (regent.config.json)
+- `settings:*` — read/write global (~/.runnio/config.json) and project (runnio.config.json)
 - `files:*` — list (recursive tree with git status), read (with binary/512KB protection)
 
 ## How to build
@@ -35,7 +35,7 @@ packages/desktop  — Electron 28 app (React 18 + Zustand + xterm.js + node-pty 
 pnpm install                          # Install deps for all workspaces
 pnpm build                            # Build all: core (tsc) → desktop (esbuild 3-target)
 ```
-**Order matters:** core must compile first (tui and desktop depend on `@regent/core`).
+**Order matters:** core must compile first (tui and desktop depend on `@runnio/core`).
 
 ## How to run in development
 ```bash
@@ -48,7 +48,7 @@ Desktop uses `node scripts/build-renderer.mjs` which runs esbuild with 3 targets
 - **Terminal registry in main process** — ptys live in main, not renderer. 1000-chunk buffer for replay on reconnect. Terminals only die on explicit `terminal:close`, never on component unmount.
 - **ALL agents mounted** — all Workspace components stay mounted (display:none/flex) to preserve xterm state. No unmount/remount.
 - **Zustand with persist** — localStorage saves projects, activeProjectId, activeAgentId. Hydration guard in App.tsx.
-- **Plugin system with priority** — agency-os(100) > bmad(90) > generic(10) > raw(0). Each detect() has 2s timeout. Config override via regent.config.json.
+- **Plugin system with priority** — agency-os(100) > bmad(90) > generic(10) > raw(0). Each detect() has 2s timeout. Config override via runnio.config.json.
 - **Claude Code readiness detection** — main process listens to pty output for signals ("Welcome to Claude Code", "claude>", etc). When ready, injects pending prompt with 500ms delay.
 - **External worktree sync** — polls every 3s comparing path snapshots. Worktrees created outside the app are detected and added as source: 'external'.
 - **IPC serialization** — all objects pass through `JSON.parse(JSON.stringify())` before crossing the bridge. Dates and functions don't survive.
@@ -96,12 +96,12 @@ Detection by priority with fallback:
 3. **generic** (10) — detects `CLAUDE.md` at root
 4. **raw** (0) — always matches (universal fallback)
 
-Manual override: `plugin` field in `regent.config.json`.
+Manual override: `plugin` field in `runnio.config.json`.
 
-To add a plugin: implement `RegentPlugin` (name, priority, detect, load) and call `registerPlugin()`.
+To add a plugin: implement `RunnioPlugin` (name, priority, detect, load) and call `registerPlugin()`.
 
 ## What NOT to do
-- Do NOT use the name "agentflow" for new code — the product is **Regent**
+- Do NOT use the name "agentflow" or "regent" for new code — the product is **Runnio**
 - Do NOT make the repository public — it is proprietary
 - Do NOT use JSX syntax — this project uses `React.createElement()` calls exclusively
 - Do NOT hardcode paths with forward slashes — always use `path.join()` or `normalizePath()`
@@ -117,7 +117,7 @@ To add a plugin: implement `RegentPlugin` (name, priority, detect, load) and cal
 - **CSS variables** — colors defined in `index.html` (:root), referenced via `var(--name)`
 - **TypeScript strict** — no implicit any, paths via `normalizePath()` from core
 - **IPC naming** — `domain:action` (e.g. `git:list-worktrees`, `terminal:create`)
-- **Error handling** — try/catch in every IPC handler, console.error with `[regent]` prefix
+- **Error handling** — try/catch in every IPC handler, console.error with `[runnio]` prefix
 - **Store access** — `useStore(s => s.field)` in components, `useStore.getState()` in event handlers
 
 ## Important caveats

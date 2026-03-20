@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import * as chokidar from 'chokidar'
 import * as path from 'path'
-import { Worktree, AgentStatus, pathExists } from '@regent/core'
+import { Worktree, AgentStatus, pathExists } from '@runnio/core'
 
 export function useAgentStatus(worktrees: Worktree[], refreshInterval = 2000) {
   const [statuses, setStatuses] = useState<Record<string, AgentStatus>>({})

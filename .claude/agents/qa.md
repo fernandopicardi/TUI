@@ -1,4 +1,4 @@
-# QA Agent — Regent
+# QA Agent — Runnio
 
 ## Papel
 Verificação de qualidade, smoke tests, identificação de regressões.

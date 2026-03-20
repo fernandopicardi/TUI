@@ -37,7 +37,7 @@ const CreateAgentModal: React.FC = () => {
     let worktreePath = activeProject.rootPath
 
     if (createWorktree) {
-      const result = await window.regent.git.createWorktree(
+      const result = await window.runnio.git.createWorktree(
         activeProject.rootPath,
         branchName
       )

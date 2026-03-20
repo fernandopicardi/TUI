@@ -1,15 +1,15 @@
-# Regent — Project Status
+# Runnio — Project Status
 
 > Last updated: 2026-03-20
-> Codebase name: Regent (renamed from agentflow on 2026-03-20)
+> Codebase name: Runnio (renamed from agentflow/regent on 2026-03-20)
 
 ## Product Vision
 
-Regent is a desktop app for orchestrating multiple Claude Code agents in parallel across multiple Git projects using worktrees. Each agent runs in its own persistent terminal (node-pty) with Claude Code readiness detection for automatic prompt injection. The app provides a unified dashboard for monitoring, prompting, and managing all agents simultaneously.
+Runnio is a desktop app for orchestrating multiple Claude Code agents in parallel across multiple Git projects using worktrees. Each agent runs in its own persistent terminal (node-pty) with Claude Code readiness detection for automatic prompt injection. The app provides a unified dashboard for monitoring, prompting, and managing all agents simultaneously.
 
 **Target audience:** Solo developers and small teams using Claude Code for parallel feature development.
 
-**Differentiator:** Terminal-first approach — Regent orchestrates raw Claude Code terminals, inheriting 100% of Claude Code capabilities automatically. No abstraction layer, no custom AI interface. A lightweight pre-launch config panel (model, mode, initial prompt) is planned as a complement, not a replacement.
+**Differentiator:** Terminal-first approach — Runnio orchestrates raw Claude Code terminals, inheriting 100% of Claude Code capabilities automatically. No abstraction layer, no custom AI interface. A lightweight pre-launch config panel (model, mode, initial prompt) is planned as a complement, not a replacement.
 
 ## Current Version
 
@@ -28,7 +28,7 @@ Regent is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Multi-project store | Done | Zustand + persist to localStorage, hydration guard |
 | Terminal persistence | Done | All Workspaces always mounted (display:none). PTY registry in main process with 1000-chunk buffer replay |
 | Claude readiness detection | Done | 7 output signals matched, prompt queued via injectWhenReady until ready |
-| Agent status polling | Done | Every 2s via @regent/core detectAgentStatus |
+| Agent status polling | Done | Every 2s via @runnio/core detectAgentStatus |
 | Worktree sync (external) | Done | Polls every 3s per project, auto-adds/removes agents for worktrees created outside app |
 | Broadcast prompts | Done | QuickPrompt with active/project/all target selector, uses injectWhenReady per agent |
 | Chunked terminal paste | Done | Splits large pastes into 512-char chunks for Windows ConPTY |
@@ -122,7 +122,7 @@ Renderer (React 18 + Zustand)
 
 ## Pending Work — Next Session Priorities
 
-1. ~~**Rename to Regent**~~ — Done (2026-03-20)
+1. ~~**Rename to Runnio**~~ — Done (2026-03-20)
 2. **Feature flags system** — `src/features.ts` with plan-based flags, UpgradeGate component, all defaulting to free tier
 3. **Pre-terminal config panel** — Model selection, permissions mode, initial prompt before launching agent
 4. **Mac build** — electron-builder macOS target, platform shell detection, path handling
@@ -131,7 +131,7 @@ Renderer (React 18 + Zustand)
 ## Roadmap
 
 ### Block 1 — Foundation & Identity (done)
-- ~~Rename entire codebase from agentflow to Regent~~ Done
+- ~~Rename entire codebase from agentflow/regent to Runnio~~ Done
 - ~~Add proprietary LICENSE file~~ Done
 - ~~Add copyright headers to main files~~ Done
 - ~~Update README~~ Done
@@ -203,17 +203,17 @@ Renderer (React 18 + Zustand)
 
 ## Naming
 
-The product has been renamed from **agentflow** to **Regent** (2026-03-20).
+The product has been renamed from **agentflow/regent** to **Runnio** (2026-03-20).
 
 Completed:
-- `package.json` (all 3 packages: @regent/core, @regent/tui, @regent/desktop)
-- `electron-builder.yml` (appId: com.regent.desktop, productName: Regent)
-- Zustand store key → `regent-store`
-- Global config path → `~/.regent/config.json`
-- All UI strings → "Regent"
-- Window title → "Regent"
-- localStorage keys → `regent:*`
-- Config file → `regent.config.json`
+- `package.json` (all 3 packages: @runnio/core, @runnio/tui, @runnio/desktop)
+- `electron-builder.yml` (appId: com.runnio.desktop, productName: Runnio)
+- Zustand store key → `runnio-store`
+- Global config path → `~/.runnio/config.json`
+- All UI strings → "Runnio"
+- Window title → "Runnio"
+- localStorage keys → `runnio:*`
+- Config file → `runnio.config.json`
 - BMAD structure files
 - CLAUDE.md, CONTEXT.md, STATUS.md, README.md
 - Copyright headers on main files
@@ -224,32 +224,44 @@ Remaining (manual):
 
 ## Development Workflow
 
-All commands run from `packages/desktop/`:
+All commands run from monorepo root:
 
 ```bash
-cd packages/desktop
+# Install deps (required after clone or folder rename)
+pnpm install
 
-# 1. Build renderer + main + preload (required before first run)
-node scripts/build-renderer.mjs
+# Build all packages (core → desktop)
+pnpm build
 
-# 2. Run in dev mode
-npx electron .
+# Run in dev mode (all features unlocked via RUNNIO_DEV=true)
+pnpm dev:desktop
 
-# 3. After code changes:
-node scripts/build-renderer.mjs    # recompile
+# After code changes:
+pnpm dev:desktop    # rebuilds renderer + starts Electron
 # Ctrl+R reloads RENDERER only
-# Main process changes require full restart (quit + npx electron .)
+# Main process changes require full restart
 
-# 4. Build installer + portable (releases only)
+# Build installer + portable (releases only)
 # Close the running app first — .exe locks files
-npx electron-builder --win
+cd packages/desktop && npx electron-builder --win
 ```
 
+### Running in development mode (all features unlocked)
+`pnpm dev:desktop` sets `RUNNIO_DEV=true` automatically, which bypasses all feature gates (enterprise plan). A yellow "DEV" badge appears in the TitleBar.
+
+To run manually:
+```bash
+cd packages/desktop
+cross-env RUNNIO_DEV=true node scripts/build-renderer.mjs && cross-env RUNNIO_DEV=true electron .
+```
+
+Running without `RUNNIO_DEV=true` (e.g. `electron .` directly) uses the free plan with feature gates active.
+
 ### Self-development workflow
-1. Run via `npx electron .` — never use the .exe during development
+1. Run via `pnpm dev:desktop` — never use the .exe during development
 2. Add the repo as a project inside the app
 3. Create agents for feature branches
-4. Code changes → `node scripts/build-renderer.mjs` → Ctrl+R
+4. Code changes → `pnpm dev:desktop` → Ctrl+R
 5. When stable, close app, run `npx electron-builder --win`
 
 ## Strategic Context
@@ -258,7 +270,7 @@ npx electron-builder --win
 - **Not open source** — Proprietary commercial product
 - **GitHub private repo** — Source code not publicly available
 - **Windows + Mac simultaneous at launch** — Linux deferred to post-launch
-- **Terminal-first approach** — Regent orchestrates terminals, not AI calls directly. No pre-terminal AI interface (like Conductor). Raw terminal inherits 100% of Claude Code capabilities. A lightweight config panel (model, mode, initial prompt) is planned as complement, not replacement.
+- **Terminal-first approach** — Runnio orchestrates terminals, not AI calls directly. No pre-terminal AI interface (like Conductor). Raw terminal inherits 100% of Claude Code capabilities. A lightweight config panel (model, mode, initial prompt) is planned as complement, not replacement.
 - **Hybrid architecture for teams** — Local Electron app + cloud sync only for team features. Solo users never need internet (except GitHub API).
 - **Multi-AI support** — Codex CLI, Gemini CLI, OpenCode adapters on roadmap as Business/Enterprise feature, not current priority
 - **Business model** — Free Solo / Business ($19/mo + $12/seat) / Enterprise (negotiated)

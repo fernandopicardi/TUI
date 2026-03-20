@@ -23,7 +23,7 @@ const InitBanner: React.FC<Props> = ({ onSelect }) => {
     },
       React.createElement('div', {
         style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500, marginBottom: '6px' },
-      }, '\u25C6 This project has no Regent structure yet'),
+      }, '\u25C6 This project has no Runnio structure yet'),
       React.createElement('div', {
         style: { color: 'var(--text-secondary)', fontSize: 'var(--text-base)', lineHeight: '1.5' },
       }, 'Pick a template below to start a Claude Code session that will analyze the project and set up the right structure automatically.')

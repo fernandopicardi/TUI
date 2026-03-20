@@ -8,7 +8,7 @@ interface Props {
 
 const WorkspaceNotes: React.FC<Props> = ({ branch, rootPath }) => {
   const repoName = rootPath.split(/[\\/]/).pop() || 'unknown'
-  const storageKey = `regent:notes-${branch}-${repoName}`
+  const storageKey = `runnio:notes-${branch}-${repoName}`
   const [text, setText] = useState('')
   const [savedAt, setSavedAt] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())

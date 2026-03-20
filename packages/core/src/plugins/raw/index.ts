@@ -1,8 +1,8 @@
-import { RegentPlugin, PluginContext } from '../../types/plugin'
+import { RunnioPlugin, PluginContext } from '../../types/plugin'
 import { getRepoName } from '../../git/utils'
 import { getCurrentBranch, listWorktrees } from '../../git/worktrees'
 
-const rawPlugin: RegentPlugin = {
+const rawPlugin: RunnioPlugin = {
   name: 'raw',
   priority: 0,
   async detect(): Promise<boolean> {

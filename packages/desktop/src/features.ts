@@ -1,5 +1,4 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 export type Plan = 'free' | 'pro' | 'business' | 'enterprise'
 
@@ -146,8 +145,14 @@ export const PLAN_FLAGS: Record<Plan, FeatureFlags> = {
   },
 }
 
-// Current active plan — hardcoded to 'free' until billing is connected
-export const CURRENT_PLAN: Plan = 'free'
+// Development mode: set RUNNIO_DEV=true to bypass all feature gates
+// In production, all users start on free plan until billing is connected
+// Note: process.env.RUNNIO_DEV is replaced at build time by esbuild define
+declare const __RUNNIO_DEV__: string
+export const CURRENT_PLAN: Plan =
+  (typeof __RUNNIO_DEV__ !== 'undefined' && __RUNNIO_DEV__ === 'true')
+    ? 'enterprise'
+    : 'free'
 
 export function getFlags(): FeatureFlags {
   return PLAN_FLAGS[CURRENT_PLAN]

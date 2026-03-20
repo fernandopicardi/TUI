@@ -1,4 +1,4 @@
-# Architect Agent — Regent
+# Architect Agent — Runnio
 
 ## Papel
 Responsável por decisões de arquitetura cross-package, interfaces entre

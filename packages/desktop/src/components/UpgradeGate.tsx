@@ -1,5 +1,4 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 import * as React from 'react'
 import { hasFeature } from '../features'
@@ -20,7 +19,7 @@ const UPGRADE_MESSAGES: Partial<Record<keyof FeatureFlags, { title: string; desc
   },
   prFlow: {
     title: 'Pull Request Flow',
-    description: 'Create and manage pull requests directly from Regent with full GitHub API integration.',
+    description: 'Create and manage pull requests directly from Runnio with full GitHub API integration.',
     requiredPlan: 'pro',
   },
   broadcastPrompts: {

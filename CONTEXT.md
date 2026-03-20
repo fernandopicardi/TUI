@@ -1,10 +1,10 @@
-# Regent — Session Context
+# Runnio — Session Context
 
 Read this file before doing any work on the project.
 
-## What is Regent
+## What is Runnio
 
-Regent is a Windows Electron desktop app that orchestrates multiple Claude Code agents in parallel across Git projects using worktrees. Each agent runs in a persistent terminal (node-pty) with Claude Code readiness detection for automatic prompt injection. The terminal-first approach means Regent orchestrates raw Claude Code — no abstraction layer, 100% capability inheritance.
+Runnio is a Windows Electron desktop app that orchestrates multiple Claude Code agents in parallel across Git projects using worktrees. Each agent runs in a persistent terminal (node-pty) with Claude Code readiness detection for automatic prompt injection. The terminal-first approach means Runnio orchestrates raw Claude Code — no abstraction layer, 100% capability inheritance.
 
 ## Current state in one line
 
@@ -12,7 +12,7 @@ Fully functional Windows MVP with 6 workspace tabs (Terminal, Files, Diff, Histo
 
 ## What NOT to do
 
-- Do NOT use the name "agentflow" for new code — the product is **Regent**
+- Do NOT use the name "agentflow" or "regent" for new code — the product is **Runnio**
 - Do NOT make the repository public — it is proprietary
 - Do NOT use JSX syntax — this project uses `React.createElement()` calls exclusively
 - Do NOT hardcode paths with forward slashes — always use `path.join()` or `normalizePath()`
@@ -32,7 +32,7 @@ Pre-terminal config panel (model selection, permissions mode, initial prompt bef
 |------|---------|
 | `packages/desktop/STATUS.md` | Complete project status, roadmap, architecture, business model |
 | `CONTEXT.md` | This file — session quick-start |
-| `packages/desktop/src/types.ts` | All TypeScript types and the RegentAPI interface |
+| `packages/desktop/src/types.ts` | All TypeScript types and the RunnioAPI interface |
 | `packages/desktop/src/store/index.ts` | Zustand store — state fields, actions, computed helpers |
 | `packages/desktop/electron/main.ts` | IPC handlers, terminal registry, git operations |
 | `packages/desktop/electron/preload.ts` | Context bridge — methods exposed to renderer |
@@ -70,7 +70,7 @@ Renderer (React 18 + Zustand)
 - **Prompt injection:** `terminal:inject-when-ready` queues prompt until Claude Code outputs a readiness signal (7 patterns), then writes to PTY with 500ms delay.
 - **IPC safety:** All IPC returns wrapped in `JSON.parse(JSON.stringify())`. All paths through `normalizePath()`.
 - **CSS:** Design tokens via CSS variables in `:root`. No external framework.
-- **State:** Zustand persists `projects`, `activeProjectId`, `activeAgentId` to localStorage key `regent-store`.
+- **State:** Zustand persists `projects`, `activeProjectId`, `activeAgentId` to localStorage key `runnio-store`.
 - **React:** All `React.createElement()` — no JSX. esbuild bundles as IIFE for browser target.
 - **Feature flags:** Plan-based gating via `features.ts`. `UpgradeGate` component wraps premium features.
 

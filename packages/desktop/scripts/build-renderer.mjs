@@ -36,6 +36,7 @@ await esbuild.build({
   format: 'iife',
   define: {
     'process.env.NODE_ENV': '"production"',
+    '__RUNNIO_DEV__': JSON.stringify(process.env.RUNNIO_DEV ?? 'false'),
   },
   sourcemap: true,
 })

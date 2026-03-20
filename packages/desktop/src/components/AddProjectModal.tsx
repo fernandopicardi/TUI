@@ -10,7 +10,7 @@ const AddProjectModal: React.FC = () => {
   const [step, setStep] = useState<'choose' | 'clone' | 'cloning'>('choose')
   const [url, setUrl] = useState('')
   const [targetPath, setTargetPath] = useState(() => {
-    try { return localStorage.getItem('regent:clone-dir') || '' } catch { return '' }
+    try { return localStorage.getItem('runnio:clone-dir') || '' } catch { return '' }
   })
   const [folderName, setFolderName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +36,7 @@ const AddProjectModal: React.FC = () => {
     let plugin = 'raw'
     let pluginContext: any = null
     try {
-      const result = await window.regent.plugins.load(rootPath)
+      const result = await window.runnio.plugins.load(rootPath)
       plugin = result.pluginName
       pluginContext = result.context
     } catch {}
@@ -62,9 +62,17 @@ const AddProjectModal: React.FC = () => {
   }, [onClose])
 
   const handleOpenLocal = useCallback(async () => {
-    if (!window.regent?.dialog) return
-    const selectedPath = await window.regent.dialog.openDirectory()
+    if (!window.runnio?.dialog) return
+    const result = await window.runnio.dialog.openDirectory()
+    // Support both old format (string | null) and new format ({ path, error })
+    const selectedPath = typeof result === 'string' ? result : result?.path
+    const errorMsg = typeof result === 'object' && result?.error ? result.error : null
+    if (errorMsg) {
+      setError(errorMsg)
+      return
+    }
     if (!selectedPath) return
+    setError(null)
     await addProjectFromPath(selectedPath)
   }, [addProjectFromPath])
 
@@ -78,10 +86,11 @@ const AddProjectModal: React.FC = () => {
   }
 
   const handlePickDir = async () => {
-    const dir = await window.regent.dialog.openDirectory()
+    const result = await window.runnio.dialog.openDirectory()
+    const dir = typeof result === 'string' ? result : result?.path
     if (dir) {
       setTargetPath(dir)
-      try { localStorage.setItem('regent:clone-dir', dir) } catch {}
+      try { localStorage.setItem('runnio:clone-dir', dir) } catch {}
     }
   }
 
@@ -91,10 +100,10 @@ const AddProjectModal: React.FC = () => {
     setStep('cloning')
     setError(null)
 
-    const result = await window.regent.git.clone(url.trim(), targetPath.trim(), folderName.trim())
+    const result = await window.runnio.git.clone(url.trim(), targetPath.trim(), folderName.trim())
 
     if (result.success && result.path) {
-      window.regent.notify('Clone complete', `${folderName} cloned successfully`, 'success')
+      window.runnio.notify('Clone complete', `${folderName} cloned successfully`, 'success')
       await addProjectFromPath(result.path)
     } else {
       setError(result.error || 'Clone failed')
@@ -132,6 +141,11 @@ const AddProjectModal: React.FC = () => {
       React.createElement('h3', {
         style: { margin: 0, color: '#ededed', fontSize: '16px', fontWeight: 600 },
       }, step === 'cloning' ? 'Cloning repository...' : step === 'clone' ? 'Clone repository' : 'Add project'),
+
+      // Error message (shown in any step)
+      error && step === 'choose'
+        ? React.createElement('p', { style: { color: '#ef4444', fontSize: '12px', margin: 0 } }, error)
+        : null,
 
       // Step: Choose
       step === 'choose'

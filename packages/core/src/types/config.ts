@@ -1,4 +1,4 @@
-export interface RegentConfig {
+export interface RunnioConfig {
   plugin?: string
   agencyPath?: string
   refreshInterval?: number
@@ -8,7 +8,7 @@ export interface RegentConfig {
   openCommand?: string
 }
 
-export const DEFAULT_CONFIG: RegentConfig = {
+export const DEFAULT_CONFIG: RunnioConfig = {
   refreshInterval: 3000,
   terminal: 'auto',
   maxVisibleWorkspaces: 8,

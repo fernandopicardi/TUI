@@ -1,4 +1,4 @@
-# Regent — Status BMAD
+# Runnio — Status BMAD
 
 ## Fase atual
 MVP v0.1.1 — estabilização e features core

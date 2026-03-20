@@ -45,8 +45,8 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   }, [allAgents])
 
   const fetchLog = useCallback(() => {
-    if (!window.regent?.git?.log) return
-    window.regent.git.log(worktreePath, { maxCount: 500 })
+    if (!window.runnio?.git?.log) return
+    window.runnio.git.log(worktreePath, { maxCount: 500 })
       .then(result => {
         if (result.error) { setError(result.error); return }
         const withLanes = assignLanes(result.commits)
@@ -59,7 +59,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
         const emails = new Set(result.commits.map(c => c.authorEmail))
         emails.forEach(email => {
           if (!avatarCache[email]) {
-            window.regent.git.getAvatar(email).then(r => {
+            window.runnio.git.getAvatar(email).then(r => {
               if (r.url) setAvatarCache(prev => ({ ...prev, [email]: r.url! }))
             })
           }
@@ -87,7 +87,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   useEffect(() => {
     if (!selectedCommit) { setCommitFiles([]); return }
     setCommitFilesLoading(true)
-    window.regent.git.commitFiles(worktreePath, selectedCommit.hash)
+    window.runnio.git.commitFiles(worktreePath, selectedCommit.hash)
       .then(setCommitFiles)
       .catch(() => setCommitFiles([]))
       .finally(() => setCommitFilesLoading(false))
@@ -112,7 +112,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   const handleCheckout = async () => {
     if (!selectedCommit) return
     if (!confirm(`Checkout commit ${selectedCommit.hashShort}? This will change your working directory.`)) return
-    const result = await window.regent.git.checkout(worktreePath, selectedCommit.hash)
+    const result = await window.runnio.git.checkout(worktreePath, selectedCommit.hash)
     if (result.success) {
       useStore.getState().showToast(`Checked out ${selectedCommit.hashShort}`, 'success')
       fetchLog()

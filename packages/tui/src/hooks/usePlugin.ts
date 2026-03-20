@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import {
-  RegentPlugin,
+  RunnioPlugin,
   PluginContext,
   resolvePlugin,
   loadPluginSafe,
   rawPlugin,
-} from '@regent/core'
+} from '@runnio/core'
 
 export function usePlugin(rootPath: string) {
-  const [plugin, setPlugin] = useState<RegentPlugin | null>(null)
+  const [plugin, setPlugin] = useState<RunnioPlugin | null>(null)
   const [context, setContext] = useState<PluginContext | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [warning, setWarning] = useState<string | null>(null)

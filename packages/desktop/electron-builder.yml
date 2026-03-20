@@ -1,6 +1,6 @@
-appId: com.regent.desktop
-productName: Regent
-copyright: Copyright © 2026 Regent. All rights reserved.
+appId: com.runnio.desktop
+productName: Runnio
+copyright: Copyright © 2026 Runnio. All rights reserved.
 
 win:
   target:
@@ -16,7 +16,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Regent
+  shortcutName: Runnio
   installerIcon: assets/icon.ico
   uninstallerIcon: assets/icon.ico
 

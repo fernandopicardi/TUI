@@ -1,4 +1,4 @@
-# Developer Agent — Regent
+# Developer Agent — Runnio
 
 ## Papel
 Implementação de features, correção de bugs, integração entre componentes.

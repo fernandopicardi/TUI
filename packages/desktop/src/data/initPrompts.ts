@@ -1,5 +1,5 @@
 export const INIT_PROMPTS: Record<string, string> = {
-  auto: `Analyze this project and identify which Regent structure makes the most sense to configure.
+  auto: `Analyze this project and identify which Runnio structure makes the most sense to configure.
 
 Available options:
 - Agency OS: for agencies with multiple clients, CRO loops, hypotheses, and A/B tests
@@ -18,7 +18,7 @@ Create the following folders and files:
 - agency/clients/example/active-tests.md (active tests template)
 - agency/clients/example/winners.md (winners template)
 - agency/portfolio-wins.md (cross-client library)
-- regent.config.json with plugin: "agency-os"
+- runnio.config.json with plugin: "agency-os"
 - CLAUDE.md with agency context
 
 Before creating, ask me: agency name, and whether I have a first client to add.`,
@@ -29,15 +29,15 @@ Analyze the current project (stack, existing files, package.json if any) and con
 - CLAUDE.md with project context and agent instructions
 - .bmad/ with agent configuration
 - Story and sprint structure appropriate for the project
-- regent.config.json with plugin: "bmad"
+- runnio.config.json with plugin: "bmad"
 
 Before creating, ask me: project name, type (web app / API / mobile / other) and main stack.`,
 
-  generic: `Configure generic Regent structure in this project.
+  generic: `Configure generic Runnio structure in this project.
 
 Create:
 - CLAUDE.md with: project description, stack, code conventions, important commands, context for agents
-- regent.config.json with basic configuration
+- runnio.config.json with basic configuration
 
 Before creating, analyze existing files to auto-populate CLAUDE.md with real project information.`,
 }

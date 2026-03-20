@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
 
+declare const __RUNNIO_DEV__: string
+
 const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
   return React.createElement('div', {
     style: {
@@ -24,12 +26,25 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       }, '\u25C6'),
       React.createElement('span', {
         style: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 },
-      }, 'Regent'),
+      }, 'Runnio'),
       projectName
         ? React.createElement(React.Fragment, null,
             React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: '12px' } }, '/'),
             React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-secondary)' } }, projectName)
           )
+        : null,
+      (typeof __RUNNIO_DEV__ !== 'undefined' && __RUNNIO_DEV__ === 'true')
+        ? React.createElement('div', {
+            style: {
+              padding: '2px 8px',
+              background: '#eab30820',
+              border: '1px solid #eab30840',
+              borderRadius: '4px',
+              fontSize: '10px',
+              color: '#eab308',
+              letterSpacing: '0.05em',
+            },
+          }, 'DEV')
         : null,
     ),
 
@@ -88,7 +103,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       ].map((btn) =>
         React.createElement('button', {
           key: btn.action,
-          onClick: () => (window.regent?.window as any)?.[btn.action]?.(),
+          onClick: () => (window.runnio?.window as any)?.[btn.action]?.(),
           style: {
             width: '13px', height: '13px', borderRadius: '50%',
             background: `${btn.color}33`, border: `1px solid ${btn.color}66`,

@@ -1,5 +1,4 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 import * as React from 'react'
 import { useEffect } from 'react'
@@ -53,8 +52,8 @@ const App: React.FC = () => {
   useWorktreeSync()
 
   useEffect(() => {
-    if (window.regent) setPreloadOk(true)
-    else console.error('[regent] PRELOAD FAILED')
+    if (window.runnio) setPreloadOk(true)
+    else console.error('[runnio] PRELOAD FAILED')
   }, [])
 
   // Global keyboard shortcuts

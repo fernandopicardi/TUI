@@ -30,9 +30,9 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
   const [filter, setFilter] = useState<'all' | 'changed'>('all')
 
   const loadTree = useCallback(() => {
-    if (!window.regent?.files) return
+    if (!window.runnio?.files) return
     setLoading(true)
-    window.regent.files.list(worktreePath)
+    window.runnio.files.list(worktreePath)
       .then(setTree)
       .catch(() => setTree([]))
       .finally(() => setLoading(false))
@@ -55,7 +55,7 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
     setFileContent(null)
     try {
       const fullPath = worktreePath.replace(/\\/g, '/') + '/' + entry.path
-      const result = await window.regent.files.read(fullPath)
+      const result = await window.runnio.files.read(fullPath)
       if (result.success) {
         setFileContent(result.content || '')
       } else {

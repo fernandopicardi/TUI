@@ -4,7 +4,7 @@ import { useStore } from '../store/index'
 import { PROMPT_TEMPLATES } from '../data/promptTemplates'
 import { hasFeature } from '../features'
 
-const HISTORY_KEY = 'regent:prompt-history'
+const HISTORY_KEY = 'runnio:prompt-history'
 const MAX_HISTORY = 20
 
 type BroadcastMode = 'active' | 'project' | 'all'
@@ -65,7 +65,7 @@ const QuickPrompt: React.FC = () => {
 
     for (const agent of targets) {
       if (agent) {
-        await window.regent.terminal.injectWhenReady(agent.terminalId, prompt)
+        await window.runnio.terminal.injectWhenReady(agent.terminalId, prompt)
       }
     }
 

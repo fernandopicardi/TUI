@@ -1,12 +1,11 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Project, AgentSession, Toast } from '../types'
 import { canAddProject, canAddAgent, PLAN_FLAGS } from '../features'
 
-export interface RegentStore {
+export interface RunnioStore {
   // State
   projects: Project[]
   activeProjectId: string | null
@@ -59,7 +58,7 @@ export interface RegentStore {
   getProjectById: (id: string) => Project | null
 }
 
-export const useStore = create<RegentStore>()(
+export const useStore = create<RunnioStore>()(
   persist(
     (set, get) => ({
       projects: [],
@@ -191,7 +190,7 @@ export const useStore = create<RegentStore>()(
       getProjectById: (id) => get().projects.find(p => p.id === id) ?? null,
     }),
     {
-      name: 'regent-store',
+      name: 'runnio-store',
       // Persist projects, active selections, and agent states
       partialize: (state) => ({
         projects: state.projects,

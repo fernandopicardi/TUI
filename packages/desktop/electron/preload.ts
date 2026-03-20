@@ -1,9 +1,8 @@
-// Copyright (c) 2026 Regent. All rights reserved.
-// Proprietary and confidential. Unauthorized use prohibited.
+// Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 import { contextBridge, ipcRenderer } from 'electron'
 
-contextBridge.exposeInMainWorld('regent', {
+contextBridge.exposeInMainWorld('runnio', {
   dialog: {
     openDirectory: () => ipcRenderer.invoke('dialog:open-directory'),
   },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Worktree, watchWorktrees } from '@regent/core'
+import { Worktree, watchWorktrees } from '@runnio/core'
 
 export function useWorktrees(rootPath: string, refreshInterval = 3000) {
   const [worktrees, setWorktrees] = useState<Worktree[]>([])

@@ -28,21 +28,21 @@ const SettingsModal: React.FC = () => {
 
   // Load settings on mount
   useEffect(() => {
-    window.regent.settings.readGlobal().then((data) => {
+    window.runnio.settings.readGlobal().then((data) => {
       if (data.openCommand) setOpenCommand(data.openCommand)
       if (data.refreshInterval) setRefreshInterval(data.refreshInterval)
       if (data.githubToken) setGithubToken(data.githubToken)
     })
 
     if (activeProject) {
-      window.regent.settings.readProject(activeProject.rootPath).then((data) => {
+      window.runnio.settings.readProject(activeProject.rootPath).then((data) => {
         setProjectConfig(JSON.stringify(data, null, 2))
       })
     }
   }, [activeProject?.rootPath])
 
   const handleSaveGeneral = async () => {
-    await window.regent.settings.writeGlobal({
+    await window.runnio.settings.writeGlobal({
       openCommand,
       refreshInterval,
       githubToken: githubToken || undefined,
@@ -54,7 +54,7 @@ const SettingsModal: React.FC = () => {
     if (!githubToken.trim()) return
     setTesting(true)
     setTestResult(null)
-    const result = await window.regent.settings.testGithub(githubToken)
+    const result = await window.runnio.settings.testGithub(githubToken)
     setTestResult(result)
     setTesting(false)
   }
@@ -64,7 +64,7 @@ const SettingsModal: React.FC = () => {
     setConfigSaving(true)
     try {
       const parsed = JSON.parse(projectConfig)
-      await window.regent.settings.writeProject(activeProject.rootPath, parsed)
+      await window.runnio.settings.writeProject(activeProject.rootPath, parsed)
       useStore.getState().showToast('Project config saved', 'success')
     } catch {
       useStore.getState().showToast('Invalid JSON', 'warning')
@@ -258,7 +258,7 @@ const SettingsModal: React.FC = () => {
             },
               React.createElement('div', {
                 style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' },
-              }, `regent.config.json \u2014 ${activeProject.name}`),
+              }, `runnio.config.json \u2014 ${activeProject.name}`),
               React.createElement('textarea', {
                 value: projectConfig,
                 onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setProjectConfig(e.target.value),

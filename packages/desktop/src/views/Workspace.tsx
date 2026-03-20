@@ -52,9 +52,9 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     if (!agent || !project) return
     if (!confirm(`Delete agent "${agent.branch}"?`)) return
     try {
-      window.regent?.terminal?.close(agent.terminalId)
+      window.runnio?.terminal?.close(agent.terminalId)
       if (agent.worktreePath !== project.rootPath) {
-        await window.regent.git.removeWorktree(project.rootPath, agent.worktreePath)
+        await window.runnio.git.removeWorktree(project.rootPath, agent.worktreePath)
       }
       useStore.getState().removeAgent(project.id, agent.id)
     } catch (err: unknown) {
