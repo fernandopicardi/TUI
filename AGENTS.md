@@ -15,8 +15,8 @@ Owns: src/components/* (existing files), src/views/Welcome.tsx, src/views/Dashbo
 Do NOT touch: electron/main.ts, src/store/index.ts, src/utils/gitGraph.ts, src/views/Workspace.tsx
 
 ## Agent 3 — Git History Tab
-Branch: agent-3/git-history
-Status: Waiting for Agent 1 to merge
+Branch: runnio-a3-git-history
+Status: Complete
 Owns: src/components/GitHistory.tsx (NEW), src/utils/gitGraph.ts (NEW), src/views/Workspace.tsx (ADD history tab only), electron/main.ts (ADD git:log, git:get-avatar, git:commit-files, git:checkout handlers only), electron/preload.ts (ADD new methods only)
 Do NOT touch: src/store/index.ts, src/components/* (existing files)
 
