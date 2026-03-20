@@ -34,32 +34,33 @@
       --radius-xl: 12px;
 
       /* Text colors */
-      --text-primary: #ededed;
-      --text-secondary: #888;
-      --text-tertiary: #555;
-      --text-disabled: #333;
+      --text-primary: #f0f0f0;
+      --text-secondary: #a8a8a8;
+      --text-tertiary: #6b6b6b;
+      --text-disabled: #3a3a3a;
 
       /* Surface colors */
-      --bg-app: #080808;
-      --bg-surface: #0d0d0d;
-      --bg-elevated: #111;
-      --bg-hover: #161616;
-      --bg-selected: #0d0d1a;
+      --bg-app: #0a0a0a;
+      --bg-surface: #0f0f0f;
+      --bg-elevated: #161616;
+      --bg-hover: #1e1e1e;
+      --bg-selected: #0d0d1f;
 
       /* Borders */
       --border-subtle: #1a1a1a;
-      --border-default: #1f1f1f;
-      --border-strong: #2a2a2a;
+      --border-default: #2a2a2a;
+      --border-strong: #3a3a3a;
 
       /* Accent */
-      --accent: #5b6af0;
-      --accent-hover: #6b7af5;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
 
       /* Semantic */
-      --working: #22c55e;
-      --waiting: #eab308;
-      --done: #5b6af0;
-      --error: #ef4444;
+      --working: #4ade80;
+      --waiting: #fbbf24;
+      --done: #818cf8;
+      --idle: #6b6b6b;
+      --error: #f87171;
     }
 
     * {
@@ -142,18 +143,18 @@
     }
 
     @keyframes glowWaiting {
-      0%, 100% { box-shadow: 0 0 0 rgba(234,179,8,0); }
-      50% { box-shadow: 0 0 8px rgba(234,179,8,0.15); }
+      0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); }
+      50% { box-shadow: 0 0 8px rgba(251,191,36,0.15); }
     }
 
     @keyframes pulsingBorder {
-      0%, 100% { border-color: var(--waiting); box-shadow: 0 0 0 rgba(234,179,8,0); }
-      50% { border-color: #eab30888; box-shadow: 0 0 10px rgba(234,179,8,0.2); }
+      0%, 100% { border-color: var(--waiting); box-shadow: 0 0 0 rgba(251,191,36,0); }
+      50% { border-color: #fbbf2488; box-shadow: 0 0 10px rgba(251,191,36,0.2); }
     }
 
     @keyframes broadcastPulse {
-      0%, 100% { border-color: #5b6af044; }
-      50% { border-color: #5b6af0; }
+      0%, 100% { border-color: #6366f144; }
+      50% { border-color: #6366f1; }
     }
 
     kbd {

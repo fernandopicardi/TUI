@@ -115,8 +115,8 @@ const AddProjectModal: React.FC = () => {
   const canClone = url.trim() && targetPath.trim() && folderName.trim() && !cloning
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 12px', background: '#0a0a0a',
-    border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
+    width: '100%', padding: '8px 12px', background: 'var(--bg-app)',
+    border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
     fontSize: 'var(--text-base)', outline: 'none', boxSizing: 'border-box',
     fontFamily: 'Consolas, monospace',
   }
@@ -131,7 +131,7 @@ const AddProjectModal: React.FC = () => {
   },
     React.createElement('div', {
       style: {
-        backgroundColor: '#111', border: '1px solid #1f1f1f', borderRadius: '12px',
+        backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: '12px',
         padding: '24px', width: step === 'choose' ? '440px' : '480px',
         display: 'flex', flexDirection: 'column' as const, gap: '16px',
         animation: 'fadeIn 0.15s ease-out',
@@ -139,12 +139,12 @@ const AddProjectModal: React.FC = () => {
       onClick: (e: React.MouseEvent) => e.stopPropagation(),
     },
       React.createElement('h3', {
-        style: { margin: 0, color: '#ededed', fontSize: '16px', fontWeight: 600 },
+        style: { margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 },
       }, step === 'cloning' ? 'Cloning repository...' : step === 'clone' ? 'Clone repository' : 'Add project'),
 
       // Error message (shown in any step)
       error && step === 'choose'
-        ? React.createElement('p', { style: { color: '#ef4444', fontSize: '12px', margin: 0 } }, error)
+        ? React.createElement('p', { style: { color: 'var(--error)', fontSize: '12px', margin: 0 } }, error)
         : null,
 
       // Step: Choose
@@ -153,42 +153,42 @@ const AddProjectModal: React.FC = () => {
             React.createElement('button', {
               onClick: handleOpenLocal,
               style: {
-                flex: 1, padding: '24px 16px', background: '#111', border: '1px solid #1f1f1f',
+                flex: 1, padding: '24px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
                 borderRadius: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column' as const,
                 alignItems: 'center', gap: '12px', transition: 'all 0.15s',
               },
               onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-                (e.currentTarget).style.borderColor = '#5b6af0';
-                (e.currentTarget).style.background = '#0d0d1a'
+                (e.currentTarget).style.borderColor = 'var(--accent)';
+                (e.currentTarget).style.background = 'var(--bg-selected)'
               },
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-                (e.currentTarget).style.borderColor = '#1f1f1f';
-                (e.currentTarget).style.background = '#111'
+                (e.currentTarget).style.borderColor = 'var(--border-default)';
+                (e.currentTarget).style.background = 'var(--bg-elevated)'
               },
             },
               React.createElement('span', { style: { fontSize: '24px' } }, '\uD83D\uDCC1'),
-              React.createElement('span', { style: { color: '#ededed', fontSize: '13px', fontWeight: 500 } }, 'Local folder'),
-              React.createElement('span', { style: { color: '#666', fontSize: '11px' } }, 'Already cloned')
+              React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500 } }, 'Local folder'),
+              React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: '11px' } }, 'Already cloned')
             ),
             React.createElement('button', {
               onClick: () => setStep('clone'),
               style: {
-                flex: 1, padding: '24px 16px', background: '#111', border: '1px solid #1f1f1f',
+                flex: 1, padding: '24px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
                 borderRadius: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column' as const,
                 alignItems: 'center', gap: '12px', transition: 'all 0.15s',
               },
               onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-                (e.currentTarget).style.borderColor = '#5b6af0';
-                (e.currentTarget).style.background = '#0d0d1a'
+                (e.currentTarget).style.borderColor = 'var(--accent)';
+                (e.currentTarget).style.background = 'var(--bg-selected)'
               },
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-                (e.currentTarget).style.borderColor = '#1f1f1f';
-                (e.currentTarget).style.background = '#111'
+                (e.currentTarget).style.borderColor = 'var(--border-default)';
+                (e.currentTarget).style.background = 'var(--bg-elevated)'
               },
             },
               React.createElement('span', { style: { fontSize: '24px' } }, '\u2B07'),
-              React.createElement('span', { style: { color: '#ededed', fontSize: '13px', fontWeight: 500 } }, 'Clone repo'),
-              React.createElement('span', { style: { color: '#666', fontSize: '11px' } }, 'Download from GitHub')
+              React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500 } }, 'Clone repo'),
+              React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: '11px' } }, 'Download from GitHub')
             )
           )
         : null,
@@ -197,7 +197,7 @@ const AddProjectModal: React.FC = () => {
       step === 'clone'
         ? React.createElement(React.Fragment, null,
             React.createElement('div', null,
-              React.createElement('label', { style: { color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Repository URL'),
+              React.createElement('label', { style: { color: 'var(--text-secondary)', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Repository URL'),
               React.createElement('input', {
                 style: inputStyle, value: url, autoFocus: true,
                 placeholder: 'https://github.com/user/repo.git',
@@ -206,7 +206,7 @@ const AddProjectModal: React.FC = () => {
               })
             ),
             React.createElement('div', null,
-              React.createElement('label', { style: { color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Clone to'),
+              React.createElement('label', { style: { color: 'var(--text-secondary)', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Clone to'),
               React.createElement('div', { style: { display: 'flex', gap: '8px' } },
                 React.createElement('input', {
                   style: { ...inputStyle, flex: 1 }, value: targetPath, readOnly: true,
@@ -214,12 +214,12 @@ const AddProjectModal: React.FC = () => {
                 }),
                 React.createElement('button', {
                   onClick: handlePickDir,
-                  style: { padding: '8px 12px', background: '#1f1f1f', border: '1px solid #333', borderRadius: '6px', color: '#ededed', cursor: 'pointer', fontSize: '14px' },
+                  style: { padding: '8px 12px', background: 'var(--bg-hover)', border: '1px solid var(--border-default)', borderRadius: '6px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '14px' },
                 }, '\uD83D\uDCC1')
               )
             ),
             React.createElement('div', null,
-              React.createElement('label', { style: { color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Folder name'),
+              React.createElement('label', { style: { color: 'var(--text-secondary)', fontSize: '12px', display: 'block', marginBottom: '6px' } }, 'Folder name'),
               React.createElement('input', {
                 style: inputStyle, value: folderName,
                 placeholder: 'auto-detected from URL...',
@@ -227,16 +227,16 @@ const AddProjectModal: React.FC = () => {
                 onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleClone() },
               })
             ),
-            error ? React.createElement('p', { style: { color: '#ef4444', fontSize: '12px', margin: 0 } }, error) : null,
+            error ? React.createElement('p', { style: { color: 'var(--error)', fontSize: '12px', margin: 0 } }, error) : null,
             React.createElement('div', { style: { display: 'flex', gap: '8px', justifyContent: 'flex-end' } },
               React.createElement('button', {
                 onClick: () => setStep('choose'),
-                style: { padding: '8px 16px', background: 'transparent', border: '1px solid #333', borderRadius: '6px', color: '#888', cursor: 'pointer', fontSize: '13px' },
+                style: { padding: '8px 16px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
               }, '\u2190 Back'),
               React.createElement('button', {
                 onClick: handleClone, disabled: !canClone,
                 style: {
-                  padding: '8px 16px', background: '#5b6af0', border: 'none', borderRadius: '6px',
+                  padding: '8px 16px', background: 'var(--accent)', border: 'none', borderRadius: '6px',
                   color: '#fff', cursor: canClone ? 'pointer' : 'not-allowed', fontSize: '13px',
                   opacity: canClone ? 1 : 0.5,
                 },
@@ -248,19 +248,19 @@ const AddProjectModal: React.FC = () => {
       // Step: Cloning
       step === 'cloning'
         ? React.createElement('div', { style: { textAlign: 'center' as const, padding: '20px 0' } },
-            React.createElement('div', { style: { color: '#888', fontSize: '13px', marginBottom: '12px' } },
+            React.createElement('div', { style: { color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' } },
               extractRepoName(url) || url),
             React.createElement('div', {
-              style: { height: '4px', background: '#1f1f1f', borderRadius: '2px', overflow: 'hidden' },
+              style: { height: '4px', background: 'var(--border-default)', borderRadius: '2px', overflow: 'hidden' },
             },
               React.createElement('div', {
                 style: {
-                  height: '100%', background: '#5b6af0', borderRadius: '2px',
+                  height: '100%', background: 'var(--accent)', borderRadius: '2px',
                   animation: 'cloneProgress 2s ease-in-out infinite', width: '60%',
                 },
               })
             ),
-            React.createElement('div', { style: { color: '#555', fontSize: '12px', marginTop: '8px' } }, 'Downloading objects...')
+            React.createElement('div', { style: { color: 'var(--text-tertiary)', fontSize: '12px', marginTop: '8px' } }, 'Downloading objects...')
           )
         : null
     )

@@ -177,7 +177,7 @@ const Dashboard: React.FC = () => {
                 },
                   React.createElement(AgentStatusBadge, { status: agent.status }),
                   React.createElement('span', {
-                    style: { fontSize: '11px', color: 'var(--text-disabled)' },
+                    style: { fontSize: '11px', color: 'var(--text-tertiary)' },
                   }, getTimeSince(agent.lastActivity)),
                 ),
                 React.createElement('div', {

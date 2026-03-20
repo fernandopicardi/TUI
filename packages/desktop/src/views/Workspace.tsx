@@ -76,7 +76,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     : 'var(--text-disabled)'
 
   return React.createElement('div', {
-    style: { display: 'flex', flexDirection: 'column' as const, height: '100%', backgroundColor: '#0a0a0a' },
+    style: { display: 'flex', flexDirection: 'column' as const, height: '100%', backgroundColor: 'var(--bg-app)' },
   },
     // Header
     React.createElement('div', {
@@ -127,12 +127,12 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       React.createElement('button', {
         onClick: handleDelete,
         style: {
-          background: 'none', border: '1px solid #ef444466', borderRadius: 'var(--radius-sm)',
+          background: 'none', border: '1px solid #f8717166', borderRadius: 'var(--radius-sm)',
           color: 'var(--error)', padding: '2px 10px', cursor: 'pointer', fontSize: 'var(--text-sm)',
           transition: 'all 100ms',
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--error)' },
-        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = '#ef444466' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = '#f8717166' },
       }, 'Delete'),
     ),
 

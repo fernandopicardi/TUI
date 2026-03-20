@@ -92,10 +92,10 @@ const AgentBar: React.FC = () => {
         style: {
           display: 'flex', flexDirection: 'column' as const, gap: '2px',
           padding: '6px 12px', minWidth: '160px', maxWidth: '220px',
-          background: isActive ? 'var(--bg-selected)' : isAttention ? 'rgba(234,179,8,0.05)' : 'transparent',
+          background: isActive ? 'var(--bg-selected)' : isAttention ? 'rgba(251,191,36,0.05)' : 'transparent',
           border: isAttention
             ? '1px solid var(--waiting)'
-            : '1px solid ' + (isActive ? '#5b6af044' : 'var(--border-default)'),
+            : '1px solid ' + (isActive ? '#6366f144' : 'var(--border-default)'),
           borderLeft: `3px solid ${statusBorderColor}`,
           borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' as const,
           transition: 'all 150ms', flexShrink: 0,
@@ -105,11 +105,11 @@ const AgentBar: React.FC = () => {
           if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'
         },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-          if (!isActive) e.currentTarget.style.background = isAttention ? 'rgba(234,179,8,0.05)' : 'transparent'
+          if (!isActive) e.currentTarget.style.background = isAttention ? 'rgba(251,191,36,0.05)' : 'transparent'
         },
       },
         React.createElement('span', {
-          style: { color: 'var(--text-tertiary)', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+          style: { color: 'var(--text-secondary)', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
         }, getProjectName(agent.projectId)),
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: '6px' },
@@ -124,7 +124,7 @@ const AgentBar: React.FC = () => {
           }, agent.branch),
         ),
         React.createElement('span', {
-          style: { color: 'var(--text-disabled)', fontSize: '11px' },
+          style: { color: 'var(--text-tertiary)', fontSize: '11px' },
         }, getTimeSince(agent.lastActivity) || '\u00A0'),
       )
     }),
@@ -134,7 +134,7 @@ const AgentBar: React.FC = () => {
       onClick: () => useStore.getState().openCreateAgent(),
       style: {
         padding: '6px 12px', background: 'transparent',
-        border: '1px dashed #222', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
+        border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
         fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
         flexShrink: 0, height: '44px',
       },
@@ -143,7 +143,7 @@ const AgentBar: React.FC = () => {
         e.currentTarget.style.color = 'var(--accent)'
       },
       onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.currentTarget.style.borderColor = '#222'
+        e.currentTarget.style.borderColor = 'var(--border-default)'
         e.currentTarget.style.color = 'var(--text-tertiary)'
       },
     }, '+ agent')

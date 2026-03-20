@@ -17,7 +17,7 @@ const Sidebar: React.FC = () => {
   const tabStyle = (tab: SidebarTab): React.CSSProperties => ({
     flex: 1, padding: '6px 0', background: 'none', border: 'none',
     borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-tertiary)',
+    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
     fontSize: '10px', fontWeight: 600, textTransform: 'uppercase' as const,
     letterSpacing: '0.08em', cursor: 'pointer', transition: 'all 100ms',
   })
@@ -214,7 +214,7 @@ const Sidebar: React.FC = () => {
               onClick: () => useStore.getState().openAddProject(),
               style: {
                 width: '100%', padding: '7px', backgroundColor: 'transparent',
-                border: '1px dashed #222', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
+                border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
                 fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
               },
               onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -222,7 +222,7 @@ const Sidebar: React.FC = () => {
                 e.currentTarget.style.color = 'var(--accent)'
               },
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-                e.currentTarget.style.borderColor = '#222'
+                e.currentTarget.style.borderColor = 'var(--border-default)'
                 e.currentTarget.style.color = 'var(--text-tertiary)'
               },
             }, '+ Add project')

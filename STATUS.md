@@ -13,7 +13,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 
 ## Current Version
 
-- **Version:** 0.1.0 (package.json) / v0.1.1 (GitHub Release)
+- **Version:** 0.1.2 (package.json) / v0.1.2 (GitHub Release)
 - **Stack:** Electron 28 + React 18 + Zustand 4 + xterm.js 5 + node-pty 1.1 + simple-git 3
 - **Build:** esbuild (3-target: main/preload/renderer) + electron-builder (NSIS installer + portable)
 - **Platform:** Windows only (Mac planned for simultaneous launch)
@@ -43,7 +43,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 |-----|--------|---------|
 | Terminal | Done | xterm.js + FitAddon, Ctrl+V paste with dedup, right-click paste, auto-resize |
 | Files | Done | Recursive tree with git status (M/A/D/?), click-to-read viewer, 500 file limit, binary detection |
-| Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh on tab switch, 5s polling, 2000 line cap. No synchronized scrolling. No syntax highlighting. |
+| Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh on tab switch, 5s polling, 2000 line cap, syntax highlighting via highlight.js. No synchronized scrolling. |
 | History | Done | SVG bezier graph with lane colors, Code mode with virtual scroll (36px rows), People mode with author grouping (no sparklines/swimlanes — simple list per author). Gravatar avatars, agent diamond nodes, detail panel with files/checkout. |
 | PR | Done | 3-step flow (files/form/done), inline GitHub token input with validation, real GitHub API calls |
 | Notes | Done | Per-branch localStorage, auto-save with 1s debounce |
@@ -114,8 +114,7 @@ Renderer (React 18 + Zustand)
 5. **Single window** — No multi-window support
 6. **No auto-update** — Manual download for new versions
 7. **Windows only** — No Mac or Linux builds
-8. **No syntax highlighting** — File viewer and diff show plain text
-9. **Diff 2000 line cap** — Large files truncated
+8. **Diff 2000 line cap** — Large files truncated
 10. **File tree 500 file limit** — Large repos incomplete
 11. **No synchronized scrolling** in diff viewer
 12. **People mode is simple** — Author-grouped commit list, no swimlanes or sparklines
@@ -123,10 +122,12 @@ Renderer (React 18 + Zustand)
 ## Pending Work — Next Session Priorities
 
 1. ~~**Rename to Runnio**~~ — Done (2026-03-20)
-2. **Feature flags system** — `src/features.ts` with plan-based flags, UpgradeGate component, all defaulting to free tier
-3. **Pre-terminal config panel** — Model selection, permissions mode, initial prompt before launching agent
-4. **Mac build** — electron-builder macOS target, platform shell detection, path handling
-5. **Syntax highlighting** — Lightweight solution for file viewer and diff
+2. ~~**Feature flags system**~~ — Done (2026-03-20). `src/features.ts` with plan-based flags, UpgradeGate component
+3. ~~**Pre-terminal config panel**~~ — Done (2026-03-20). Model selection, permissions mode, initial prompt
+4. ~~**Syntax highlighting**~~ — Done (2026-03-20). highlight.js integration for Files and Diff tabs
+5. **Mac build** — electron-builder macOS target, platform shell detection, path handling
+6. **Cost tracker** — Parse Claude Code terminal output for token usage display
+7. **Contrast/accessibility polish** — Ongoing, major pass completed 2026-03-20
 
 ## Roadmap
 
@@ -138,16 +139,16 @@ Renderer (React 18 + Zustand)
 - Make GitHub repo private and rename to "regent" (manual — see REPO_SETUP.md)
 - ~~Update BMAD structure with new name~~ Done
 
-### Block 2 — Feature Flags System
-- Implement feature flag infrastructure in src/features.ts
-- FeatureGate component that shows upgrade screen when plan limit hit
-- All flags default to "free" tier until billing is connected
+### Block 2 — Feature Flags System (done)
+- ~~Implement feature flag infrastructure in src/features.ts~~ Done
+- ~~UpgradeGate component that shows upgrade screen when plan limit hit~~ Done
+- ~~All flags default to "free" tier until billing is connected~~ Done
 
-### Block 3 — Critical Fixes & Missing Features
-- Pre-terminal config panel (model selection, permissions mode, initial prompt)
-- Syntax highlighting in file viewer and diff
-- Improve agent status detection reliability
-- Fix any features currently marked as partial
+### Block 3 — Critical Fixes & Missing Features (done)
+- ~~Pre-terminal config panel (model selection, permissions mode, initial prompt)~~ Done
+- ~~Syntax highlighting in file viewer and diff~~ Done (highlight.js, 15 languages)
+- ~~Contrast and visibility audit~~ Done (CSS variables updated, hardcoded colors replaced)
+- Improve agent status detection reliability (ongoing)
 
 ### Block 4 — Cross-platform (Windows + Mac simultaneous launch)
 - macOS electron-builder target (DMG + zip)
@@ -277,7 +278,6 @@ Running without `RUNNIO_DEV=true` (e.g. `electron .` directly) uses the free pla
 
 ## Future Considerations
 
-- Pre-terminal config panel (model, mode, initial prompt selection)
 - Multi-AI support (Codex CLI, Gemini CLI, OpenCode adapters)
 - Plugin marketplace for custom workflows
 - Session recording and replay
@@ -290,5 +290,4 @@ Running without `RUNNIO_DEV=true` (e.g. `electron .` directly) uses the free pla
 - PR review comments inline
 - Multi-window support
 - Linux build
-- Syntax highlighting in file viewer and diff
 - People mode improvements (swimlanes, sparklines, density charts)

@@ -13,7 +13,7 @@ const pillBase: React.CSSProperties = {
 const InitBanner: React.FC<Props> = ({ onSelect }) => {
   return React.createElement('div', {
     style: {
-      background: 'var(--bg-selected)', border: '1px solid #5b6af033',
+      background: 'var(--bg-selected)', border: '1px solid #6366f133',
       borderLeft: '3px solid var(--accent)', borderRadius: 'var(--radius-lg)',
       padding: '20px 24px', margin: '16px',
     },

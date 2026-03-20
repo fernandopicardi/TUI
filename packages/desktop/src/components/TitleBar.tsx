@@ -37,11 +37,11 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
         ? React.createElement('div', {
             style: {
               padding: '2px 8px',
-              background: '#eab30820',
-              border: '1px solid #eab30840',
+              background: '#fbbf2420',
+              border: '1px solid #fbbf2440',
               borderRadius: '4px',
               fontSize: '10px',
-              color: '#eab308',
+              color: '#fbbf24',
               letterSpacing: '0.05em',
             },
           }, 'DEV')
@@ -97,9 +97,9 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
 
       // Window controls
       ...[
-        { action: 'minimize', color: '#eab308' },
-        { action: 'maximize', color: '#22c55e' },
-        { action: 'close', color: '#ef4444' },
+        { action: 'minimize', color: '#fbbf24' },
+        { action: 'maximize', color: '#4ade80' },
+        { action: 'close', color: '#f87171' },
       ].map((btn) =>
         React.createElement('button', {
           key: btn.action,

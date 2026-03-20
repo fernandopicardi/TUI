@@ -2,35 +2,67 @@
 
 Every agent must read this file before starting, update their status when starting and finishing, and check other agents' file ownership before touching any file.
 
-## Agent 1 — Rename + Core Fixes
-Branch: agent-1/rename-core
-Status: Complete
-Owns: all files (rename pass), electron/main.ts, src/store/index.ts, src/types.ts, src/features.ts, packages/core/*, packages/tui/*
-Do NOT touch: src/components/GitHistory.tsx, src/utils/gitGraph.ts, src/components/AgentLaunchPanel.tsx, src/hooks/useSyntaxHighlight.ts, src/components/TasksPanel.tsx
+## Completed work (v0.1.2 — 2026-03-20)
 
-## Agent 2 — UI/UX Polish + Tasks Tab
-Branch: runnio-a2-ui-tasks
-Status: Complete (merged)
-Owns: src/components/* (existing files), src/views/Welcome.tsx, src/views/Dashboard.tsx, src/components/TasksPanel.tsx (NEW)
-Do NOT touch: electron/main.ts, src/store/index.ts, src/utils/gitGraph.ts, src/views/Workspace.tsx
+### Agent 1 — Rename + Core Fixes
+Branch: agent-1/rename-core (merged to main)
+- Renamed entire codebase from agentflow/regent to Runnio
+- Updated all package names, config files, UI strings, localStorage keys
+- Added proprietary LICENSE file
+- Fixed worktree creation, error messages, init banner
 
-## Agent 3 — Git History Tab
-Branch: runnio-a3-git-history
-Status: Complete (merged)
-Owns: src/components/GitHistory.tsx (NEW), src/utils/gitGraph.ts (NEW), src/views/Workspace.tsx (ADD history tab only), electron/main.ts (ADD git:log, git:get-avatar, git:commit-files, git:checkout handlers only), electron/preload.ts (ADD new methods only)
-Do NOT touch: src/store/index.ts, src/components/* (existing files)
+### Agent 2 — UI/UX Polish + Tasks Tab
+Branch: runnio-a2-ui-tasks (merged to main)
+- Added Sidebar Tasks tab with GitHub Issues integration
+- Added filter pills (All, By project, By agent)
+- Added delete agent modal with worktree removal + branch deletion
+- Polished hover/active/focus states across all interactive elements
+- Added Dashboard plugin badges
 
-## Agent 4 — Launch Panel + Syntax Highlighting
-Branch: runnio-a4-launch-syntax
-Status: Complete (merged)
-Owns: src/components/AgentLaunchPanel.tsx (NEW), src/hooks/useSyntaxHighlight.ts (NEW), src/views/Workspace.tsx (ADD launch panel only), src/store/index.ts (ADD hasLaunched + launchConfig fields only)
-Do NOT touch: electron/main.ts core handlers, src/utils/gitGraph.ts
+### Agent 3 — Git History Tab
+Branch: runnio-a3-git-history (merged to main)
+- Added GitHistory component with SVG bezier graph
+- Code mode with virtual scroll (36px rows) and People mode with author grouping
+- Detail panel with file list, commit info, copy hash, checkout
+- Escape key handler, UpgradeGate integration
+- gitGraph.ts utility with lane assignment algorithm
 
-## Merge order after all agents complete
-1. Agent 1 first — rename affects all files
-2. Agent 3 second — new files, minimal conflict
-3. Agent 4 third — new files + small Workspace.tsx addition
-4. Agent 2 last — UI polish on top of everything
+### Agent 4 — Launch Panel + Syntax Highlighting
+Branch: runnio-a4-launch-syntax (merged to main)
+- Added AgentLaunchPanel with model dropdown (3 Claude models)
+- Plan mode (--plan) and auto-accept (--dangerously-skip-permissions)
+- hasLaunched tracking in store with persistence migration
+- highlight.js integration with 15 languages
+- Syntax highlighting in Files tab and Diff viewer
+
+### QA Pass + Contrast Fix (Prompt A)
+Branch: main (direct)
+- Full QA audit: all 33 checklist items verified PASS
+- CSS variables updated for improved contrast and visibility
+- All hardcoded dim colors replaced with CSS variable references
+- Documentation updated (STATUS.md, CONTEXT.md, AGENTS.md, CHANGELOG.md)
+
+## Agent slots (available for next session)
+
+### Agent 1 — [Not assigned]
+Branch: (TBD)
+Status: Not started
+Owns: (TBD)
+
+### Agent 2 — [Not assigned]
+Branch: (TBD)
+Status: Not started
+Owns: (TBD)
+
+### Agent 3 — [Not assigned]
+Branch: (TBD)
+Status: Not started
+Owns: (TBD)
+
+### Agent 4 — [Not assigned]
+Branch: (TBD)
+Status: Not started
+Owns: (TBD)
 
 ## Shared rules
 - Product name: Runnio (never agentflow, never regent)
@@ -41,3 +73,6 @@ Do NOT touch: electron/main.ts core handlers, src/utils/gitGraph.ts
 - No hardcoded / path separators — always path.normalize()
 - No bash or sh — always cmd or PowerShell on Windows
 - All IPC returns must use JSON.parse(JSON.stringify())
+- Use CSS variables for all colors — no hardcoded hex in components
+- Inactive tab labels must use var(--text-secondary), not var(--text-tertiary)
+- Empty state messages must use var(--text-secondary) for readability

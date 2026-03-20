@@ -184,12 +184,12 @@ const QuickPrompt: React.FC = () => {
                 onClick: () => setValue(t.prompt),
                 title: t.description,
                 style: {
-                  padding: '3px 10px', background: 'var(--bg-selected)', border: '1px solid #5b6af033',
+                  padding: '3px 10px', background: 'var(--bg-selected)', border: '1px solid #6366f133',
                   borderRadius: '12px', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', cursor: 'pointer',
                   transition: 'all 100ms',
                 },
                 onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--accent)' },
-                onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = '#5b6af033' },
+                onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = '#6366f133' },
               }, t.label)
             )
           )
@@ -201,8 +201,8 @@ const QuickPrompt: React.FC = () => {
         onKeyDown: handleKeyDown,
         placeholder: 'Type a prompt for the agent...',
         style: {
-          width: '100%', padding: '10px 14px', background: '#0a0a0a',
-          border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-lg)', color: 'var(--text-primary)',
+          width: '100%', padding: '10px 14px', background: 'var(--bg-app)',
+          border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', color: 'var(--text-primary)',
           fontSize: 'var(--text-base)', outline: 'none', fontFamily: 'inherit',
           boxSizing: 'border-box',
         },

@@ -32,9 +32,9 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       const xterm = new XTerm({
         theme: {
           background: '#0a0a0a',
-          foreground: '#ededed',
-          cursor: '#5b6af0',
-          selectionBackground: '#5b6af033',
+          foreground: '#f0f0f0',
+          cursor: '#6366f1',
+          selectionBackground: '#6366f133',
           black: '#1a1a1a',
           brightBlack: '#444444',
         },

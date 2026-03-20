@@ -14,7 +14,7 @@ const ContextPanel: React.FC<Props> = ({ pluginName, context }) => {
   return React.createElement('div', {
     style: {
       padding: '16px',
-      borderBottom: '1px solid #1f1f1f',
+      borderBottom: '1px solid var(--border-default)',
     },
   },
     pluginName === 'agency-os'
@@ -22,7 +22,7 @@ const ContextPanel: React.FC<Props> = ({ pluginName, context }) => {
       : pluginName === 'bmad'
         ? React.createElement(BmadPanel, { context })
         : React.createElement('div', {
-            style: { fontSize: '13px', color: '#888' },
+            style: { fontSize: '13px', color: 'var(--text-secondary)' },
           }, context.summary)
   )
 }

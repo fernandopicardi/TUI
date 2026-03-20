@@ -334,8 +334,8 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       const isTag = parsed.isTag
       const agentOnBranch = agentBranches.get(parsed.label)
 
-      const bg = parsed.isHead ? '#5b6af025' : isTag ? '#eab30820' : 'var(--bg-elevated)'
-      const border = parsed.isHead ? '#5b6af066' : isTag ? '#eab30866' : 'var(--border-default)'
+      const bg = parsed.isHead ? '#6366f125' : isTag ? '#fbbf2420' : 'var(--bg-elevated)'
+      const border = parsed.isHead ? '#6366f166' : isTag ? '#fbbf2466' : 'var(--border-default)'
       const color = parsed.isHead ? 'var(--accent)' : isTag ? 'var(--waiting)' : 'var(--text-secondary)'
 
       return React.createElement('span', {
@@ -371,12 +371,12 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       style: {
         display: 'flex', alignItems: 'center', height: ROW_HEIGHT + 'px',
         padding: '0 8px 0 0', cursor: 'pointer',
-        background: isSelected ? 'var(--bg-selected)' : isAgent ? '#5b6af008' : 'transparent',
+        background: isSelected ? 'var(--bg-selected)' : isAgent ? '#6366f108' : 'transparent',
         borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
         transition: 'background 100ms',
       },
       onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)' },
-      onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = isAgent ? '#5b6af008' : 'transparent' },
+      onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = isAgent ? '#6366f108' : 'transparent' },
     },
       // SVG graph
       renderGraphSvg(commit, index),

@@ -120,7 +120,7 @@ const UpgradeGate: React.FC<UpgradeGateProps> = ({ feature, children, fallback }
     React.createElement('div', {
       style: {
         padding: '3px 10px',
-        background: requiredPlan === 'business' ? '#5b6af020' : 'var(--bg-elevated)',
+        background: requiredPlan === 'business' ? '#6366f120' : 'var(--bg-elevated)',
         border: `1px solid ${requiredPlan === 'business' ? 'var(--accent)' : 'var(--border-default)'}`,
         borderRadius: '20px',
         fontSize: '11px',

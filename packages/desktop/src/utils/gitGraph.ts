@@ -7,8 +7,8 @@ export interface CommitWithLane extends GitCommitData {
 }
 
 export const LANE_COLORS = [
-  '#5b6af0',  // accent — main
-  '#22c55e',  // green
+  '#6366f1',  // accent — main
+  '#4ade80',  // green
   '#a78bfa',  // purple
   '#f472b6',  // pink
   '#38bdf8',  // sky
