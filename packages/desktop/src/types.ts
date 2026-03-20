@@ -70,6 +70,18 @@ export interface FileEntry {
   children?: FileEntry[]
 }
 
+export interface GitCommitData {
+  hash: string
+  hashShort: string
+  message: string
+  body: string
+  author: string
+  authorEmail: string
+  date: string
+  refs: string[]
+  parents: string[]
+}
+
 export interface MCPServerEntry {
   name: string
   command: string
@@ -90,6 +102,10 @@ export interface AgentflowAPI {
     onWorktreesChanged: (cb: (worktrees: WorktreeData[]) => void) => () => void
     getCurrentBranch: (rootPath: string) => Promise<string>
     clone: (url: string, targetPath: string, folderName: string) => Promise<{ success: boolean; path?: string; error?: string }>
+    log: (worktreePath: string, options?: { maxCount?: number }) => Promise<{ commits: GitCommitData[]; branches: string[]; currentBranch: string; error: string | null }>
+    commitFiles: (worktreePath: string, hash: string) => Promise<{ status: string; path: string }[]>
+    getAvatar: (email: string) => Promise<{ url: string | null; source: string }>
+    checkout: (worktreePath: string, ref: string) => Promise<{ success: boolean; error?: string }>
     watchProjectWorktrees: (projectId: string, rootPath: string) => Promise<{ success: boolean }>
     unwatchProjectWorktrees: (projectId: string) => void
     onProjectWorktreesChanged: (cb: (projectId: string, worktrees: WorktreeData[]) => void) => () => void

@@ -22,6 +22,14 @@ contextBridge.exposeInMainWorld('agentflow', {
       ipcRenderer.invoke('git:get-current-branch', rootPath),
     clone: (url: string, targetPath: string, folderName: string) =>
       ipcRenderer.invoke('git:clone', url, targetPath, folderName),
+    log: (worktreePath: string, options?: { maxCount?: number }) =>
+      ipcRenderer.invoke('git:log', worktreePath, options),
+    commitFiles: (worktreePath: string, hash: string) =>
+      ipcRenderer.invoke('git:commit-files', worktreePath, hash),
+    getAvatar: (email: string) =>
+      ipcRenderer.invoke('git:get-avatar', email),
+    checkout: (worktreePath: string, ref: string) =>
+      ipcRenderer.invoke('git:checkout', worktreePath, ref),
     watchProjectWorktrees: (projectId: string, rootPath: string) =>
       ipcRenderer.invoke('git:watch-project-worktrees', projectId, rootPath),
     unwatchProjectWorktrees: (projectId: string) =>

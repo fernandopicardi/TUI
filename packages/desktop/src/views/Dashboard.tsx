@@ -29,6 +29,10 @@ const Dashboard: React.FC = () => {
     if (!prompt) return
     const firstAgent = activeProject.agents[0]
     if (firstAgent) {
+      // Clear pluginContext so polling re-detects after init creates files
+      useStore.getState().updateProject(activeProject.id, {
+        pluginContext: undefined as any,
+      })
       useStore.getState().setInitPrompt(prompt)
       useStore.getState().setActiveAgent(firstAgent.id)
     }

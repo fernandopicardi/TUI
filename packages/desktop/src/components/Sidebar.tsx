@@ -16,20 +16,16 @@ const Sidebar: React.FC = () => {
       flexDirection: 'column' as const, height: '100%', overflow: 'hidden',
     },
   },
-    // Logo header
+    // Status summary header
     React.createElement('div', {
-      style: { padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: '8px' },
+      style: { padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
     },
       React.createElement('span', {
-        style: {
-          fontSize: '12px',
-          background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: 700,
-        } as React.CSSProperties,
-      }, '\u25C6'),
-      React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 600 } }, 'agentflow'),
+        style: { fontSize: '10px', color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', fontWeight: 600 },
+      }, 'Projects'),
+      React.createElement('span', {
+        style: { fontSize: 'var(--text-xs)', color: 'var(--text-disabled)' },
+      }, `${projects.length} project${projects.length !== 1 ? 's' : ''}`),
     ),
 
     // Project tree

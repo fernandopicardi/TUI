@@ -462,7 +462,28 @@ function registerIpcHandlers() {
 
   ipcMain.on('terminal:input', (_e, id: string, data: string) => {
     const entry = terminalRegistry.get(id)
-    if (entry && !entry.simulated && entry.pty) entry.pty.write(data)
+    if (!entry || entry.simulated || !entry.pty) return
+
+    // ConPTY on Windows truncates large writes. Chunk paste data into safe blocks.
+    const CHUNK_SIZE = 1024
+    if (data.length <= CHUNK_SIZE) {
+      entry.pty.write(data)
+    } else {
+      const chunks: string[] = []
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        chunks.push(data.slice(i, i + CHUNK_SIZE))
+      }
+      let idx = 0
+      const writeNext = () => {
+        if (idx >= chunks.length) return
+        const currentEntry = terminalRegistry.get(id)
+        if (!currentEntry || !currentEntry.pty) return
+        currentEntry.pty.write(chunks[idx])
+        idx++
+        if (idx < chunks.length) setTimeout(writeNext, 5)
+      }
+      writeNext()
+    }
   })
 
   ipcMain.on('terminal:resize', (_e, id: string, cols: number, rows: number) => {
