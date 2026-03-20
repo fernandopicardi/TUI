@@ -163,7 +163,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
       },
-        React.createElement(DiffViewer, { worktreePath: agent.worktreePath })
+        React.createElement(DiffViewer, { worktreePath: agent.worktreePath, visible: activeTab === 'diff' })
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
