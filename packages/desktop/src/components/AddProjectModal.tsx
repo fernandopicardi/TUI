@@ -107,8 +107,8 @@ const AddProjectModal: React.FC = () => {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px', background: '#0a0a0a',
-    border: '1px solid #333', borderRadius: '6px', color: '#ededed',
-    fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+    border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
+    fontSize: 'var(--text-base)', outline: 'none', boxSizing: 'border-box',
     fontFamily: 'Consolas, monospace',
   }
 

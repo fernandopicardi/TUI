@@ -8,29 +8,43 @@ const Welcome: React.FC = () => {
     useStore.getState().setActiveProject(projectId)
   }
 
+  const getAgentSummary = (p: typeof projects[0]) => {
+    const count = p.agents.length
+    const active = p.agents.filter(a => a.status === 'working').length
+    const waiting = p.agents.filter(a => a.status === 'waiting').length
+    const parts: string[] = []
+    parts.push(`${count} agent${count !== 1 ? 's' : ''}`)
+    if (active > 0) parts.push(`${active} active`)
+    else if (waiting > 0) parts.push(`${waiting} waiting`)
+    else parts.push('idle')
+    return parts.join(' \u00B7 ')
+  }
+
   return React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column' as const,
       alignItems: 'center', justifyContent: 'center',
       height: '100%', gap: '32px',
+      animation: 'fadeIn 0.2s ease-out',
     },
   },
     // Logo + title
     React.createElement('div', { style: { textAlign: 'center' as const } },
       React.createElement('div', {
         style: {
-          width: '48px', height: '48px', margin: '0 auto 16px',
-          background: 'linear-gradient(135deg, #5b6af0, #7c3aed)',
-          borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '24px', color: '#fff',
-        },
+          fontSize: '32px', margin: '0 auto 16px',
+          background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 700,
+        } as React.CSSProperties,
       }, '\u25C6'),
       React.createElement('h1', {
-        style: { fontSize: '22px', fontWeight: 600, color: '#ededed', margin: '0 0 8px' },
+        style: { fontSize: '22px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' },
       }, 'agentflow'),
       React.createElement('p', {
-        style: { fontSize: '14px', color: '#666', margin: 0, maxWidth: '360px', lineHeight: '1.5' },
-      }, 'Orchestrate multiple Claude Code agents across multiple projects, simultaneously.')
+        style: { fontSize: '15px', color: 'var(--text-secondary)', margin: 0, maxWidth: '360px', lineHeight: '1.5' },
+      }, 'Orchestrate multiple Claude Code agents across projects. Parallel. Persistent.')
     ),
 
     // Action buttons
@@ -40,27 +54,29 @@ const Welcome: React.FC = () => {
       React.createElement('button', {
         onClick: () => useStore.getState().openAddProject(),
         style: {
-          padding: '10px 28px', backgroundColor: '#5b6af0', color: '#fff',
-          border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
-          cursor: 'pointer', transition: 'opacity 150ms', width: '260px',
+          padding: '10px 28px', backgroundColor: 'var(--accent)', color: '#fff',
+          border: 'none', borderRadius: 'var(--radius-lg)', fontSize: 'var(--text-md)', fontWeight: 500,
+          cursor: 'pointer', transition: 'opacity 150ms, transform 80ms', width: '280px',
         },
-        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.opacity = '0.85' },
-        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.opacity = '1' },
-      }, '+ Add first project'),
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
+        onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.97)' },
+        onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(1)' },
+      }, '+ Add project'),
     ),
 
-    // Recent projects (from persisted store)
+    // Recent projects
     projects.length > 0
       ? React.createElement('div', { style: { width: '100%', maxWidth: '360px' } },
           React.createElement('div', {
-            style: { width: '100%', height: '1px', background: '#1f1f1f', marginBottom: '20px' },
+            style: { width: '100%', height: '1px', background: 'var(--border-default)', marginBottom: '20px' },
           }),
           React.createElement('div', {
             style: {
-              color: '#555', fontSize: '11px', fontWeight: 600,
+              color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', fontWeight: 600,
               textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '10px',
             },
-          }, 'Recent projects'),
+          }, 'Recent'),
           React.createElement('div', {
             style: { display: 'flex', flexDirection: 'column' as const, gap: '2px' },
           },
@@ -70,22 +86,22 @@ const Welcome: React.FC = () => {
                 onClick: () => handleReopen(p.id),
                 style: {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', background: 'transparent', border: 'none',
-                  borderRadius: '6px', cursor: 'pointer', textAlign: 'left' as const,
-                  transition: 'background 0.1s', width: '100%',
+                  padding: '10px 12px', background: 'transparent', border: 'none',
+                  borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' as const,
+                  transition: 'background 150ms', width: '100%',
                 },
-                onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.background = '#111' },
-                onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.background = 'transparent' },
+                onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-elevated)' },
+                onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
               },
                 React.createElement('div', null,
                   React.createElement('div', {
-                    style: { color: '#ededed', fontSize: '13px', fontFamily: 'Consolas, monospace' },
+                    style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontFamily: 'Consolas, monospace' },
                   }, p.name),
                   React.createElement('div', {
-                    style: { color: '#444', fontSize: '11px', marginTop: '2px' },
-                  }, p.rootPath),
+                    style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '2px' },
+                  }, getAgentSummary(p)),
                 ),
-                React.createElement('span', { style: { color: '#555', fontSize: '12px' } }, 'open \u2192')
+                React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' } }, 'open \u2192')
               )
             )
           )

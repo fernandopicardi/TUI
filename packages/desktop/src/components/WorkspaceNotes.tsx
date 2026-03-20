@@ -44,21 +44,21 @@ const WorkspaceNotes: React.FC<Props> = ({ branch, rootPath }) => {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
     },
       React.createElement('span', {
-        style: { color: '#888', fontSize: '12px' },
-      }, `Notas \u2014 ${branch}`),
+        style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' },
+      }, `Notes \u2014 ${branch}`),
       elapsed !== null
         ? React.createElement('span', {
-            style: { color: '#22c55e', fontSize: '11px' },
-          }, elapsed < 2 ? 'salvo agora \u2713' : `salvo h\u00E1 ${elapsed}s \u2713`)
+            style: { color: 'var(--working)', fontSize: 'var(--text-xs)' },
+          }, elapsed < 2 ? 'saved \u2713' : `saved ${elapsed}s ago \u2713`)
         : null
     ),
     React.createElement('textarea', {
       value: text,
       onChange: handleChange,
-      placeholder: 'Anota\u00E7\u00F5es sobre este workspace...\n\nHip\u00F3teses, TODOs, contexto...',
+      placeholder: 'Add notes for this workspace...',
       style: {
-        flex: 1, padding: '12px', background: '#111', border: '1px solid #1f1f1f',
-        borderRadius: '8px', color: '#ededed', fontSize: '13px', lineHeight: '1.6',
+        flex: 1, padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-lg)', color: 'var(--text-primary)', fontSize: 'var(--text-base)', lineHeight: '1.6',
         resize: 'none' as const, outline: 'none', fontFamily: 'inherit',
       },
     })

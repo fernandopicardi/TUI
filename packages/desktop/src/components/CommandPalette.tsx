@@ -26,10 +26,12 @@ const CommandPalette: React.FC = () => {
   const items: PaletteItem[] = React.useMemo(() => {
     const list: PaletteItem[] = []
 
-    // Active agents
     allAgents.forEach(agent => {
       const projectName = projects.find(p => p.id === agent.projectId)?.name || ''
-      const statusIcon = agent.status === 'working' ? '\u25CF' : agent.status === 'waiting' ? '\u25CF' : '\u25CB'
+      const statusIcon = agent.status === 'working' ? '\u25CF'
+        : agent.status === 'waiting' ? '\u26A0'
+        : agent.status === 'done' ? '\u2713'
+        : '\u25CB'
       list.push({
         id: `agent-${agent.id}`,
         icon: statusIcon,
@@ -39,25 +41,31 @@ const CommandPalette: React.FC = () => {
       })
     })
 
-    // Projects
     projects.forEach(p => {
       list.push({
         id: `proj-${p.id}`,
-        icon: '\uD83D\uDCC1',
+        icon: '\u25C6',
         label: p.name,
         sublabel: `${p.agents.length} agent(s) \u2014 ${p.plugin}`,
         action: () => { useStore.getState().setActiveProject(p.id); onClose() },
       })
     })
 
-    // Actions
     list.push({
-      id: 'add-project', icon: '\u2795', label: 'Add project', sublabel: 'Open local folder or clone',
+      id: 'add-project', icon: '+', label: 'Add project', sublabel: 'Open local folder or clone',
       action: () => { useStore.getState().openAddProject(); onClose() },
     })
     list.push({
-      id: 'new-agent', icon: '\u2795', label: 'New agent', sublabel: 'Create agent in active project',
+      id: 'new-agent', icon: '+', label: 'New agent', sublabel: 'Create agent in active project',
       action: () => { useStore.getState().openCreateAgent(); onClose() },
+    })
+    list.push({
+      id: 'settings', icon: '\u2699', label: 'Settings', sublabel: 'Ctrl+,',
+      action: () => { useStore.getState().openSettings(); onClose() },
+    })
+    list.push({
+      id: 'quick-prompt', icon: '\u26A1', label: 'Quick Prompt', sublabel: 'Ctrl+Space',
+      action: () => { useStore.getState().openQuickPrompt(); onClose() },
     })
 
     return list
@@ -86,24 +94,24 @@ const CommandPalette: React.FC = () => {
   },
     React.createElement('div', {
       style: {
-        backgroundColor: '#111', border: '1px solid #1f1f1f', borderRadius: '10px',
+        backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: '10px',
         width: '480px', overflow: 'hidden', animation: 'fadeIn 0.12s ease-out',
       },
       onClick: (e: React.MouseEvent) => e.stopPropagation(),
     },
       // Search input
       React.createElement('div', {
-        style: { padding: '12px 16px', borderBottom: '1px solid #1f1f1f', display: 'flex', alignItems: 'center', gap: '10px' },
+        style: { padding: '12px 16px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', gap: '10px' },
       },
-        React.createElement('span', { style: { color: '#555', fontSize: '14px' } }, '\uD83D\uDD0D'),
+        React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-md)' } }, '\u2315'),
         React.createElement('input', {
           ref: inputRef, value: query,
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value),
           onKeyDown: handleKeyDown,
           placeholder: 'Search project, agent, or action...',
           style: {
-            flex: 1, background: 'transparent', border: 'none', color: '#ededed',
-            fontSize: '14px', outline: 'none',
+            flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)',
+            fontSize: 'var(--text-md)', outline: 'none',
           },
         })
       ),
@@ -113,7 +121,7 @@ const CommandPalette: React.FC = () => {
       },
         filtered.length === 0
           ? React.createElement('div', {
-              style: { padding: '16px', color: '#555', fontSize: '13px', textAlign: 'center' as const },
+              style: { padding: '16px', color: 'var(--text-tertiary)', fontSize: 'var(--text-base)', textAlign: 'center' as const },
             }, 'No results')
           : filtered.slice(0, 8).map((item, i) =>
               React.createElement('button', {
@@ -121,16 +129,18 @@ const CommandPalette: React.FC = () => {
                 onClick: item.action,
                 style: {
                   width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 16px', background: i === selectedIdx ? '#1f1f1f' : 'transparent',
+                  padding: '10px 16px', background: i === selectedIdx ? 'var(--border-default)' : 'transparent',
                   border: 'none', cursor: 'pointer', textAlign: 'left' as const,
-                  transition: 'background 0.05s',
+                  transition: 'background 50ms',
                 },
                 onMouseEnter: () => setSelectedIdx(i),
               },
-                React.createElement('span', { style: { fontSize: '14px', width: '20px', textAlign: 'center' as const } }, item.icon),
+                React.createElement('span', {
+                  style: { fontSize: 'var(--text-md)', width: '20px', textAlign: 'center' as const, color: 'var(--text-secondary)' },
+                }, item.icon),
                 React.createElement('div', { style: { flex: 1 } },
-                  React.createElement('div', { style: { color: '#ededed', fontSize: '13px' } }, item.label),
-                  React.createElement('div', { style: { color: '#555', fontSize: '11px' } }, item.sublabel),
+                  React.createElement('div', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)' } }, item.label),
+                  React.createElement('div', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' } }, item.sublabel),
                 ),
               )
             )

@@ -1,10 +1,11 @@
 import * as React from 'react'
+import { useStore } from '../store/index'
 
 const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
   return React.createElement('div', {
     style: {
       height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 16px', borderBottom: '1px solid #1a1a1a', background: '#080808',
+      padding: '0 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-app)',
       WebkitAppRegion: 'drag', flexShrink: 0, userSelect: 'none',
     } as React.CSSProperties,
   },
@@ -12,29 +13,74 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
     React.createElement('div', {
       style: { display: 'flex', alignItems: 'center', gap: '10px' },
     },
-      React.createElement('div', {
-        style: {
-          width: '18px', height: '18px',
-          background: 'linear-gradient(135deg, #5b6af0, #7c3aed)',
-          borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '10px', color: '#fff', fontWeight: 700,
-        },
-      }, 'A'),
       React.createElement('span', {
-        style: { fontSize: '13px', color: '#ededed', fontWeight: 500 },
+        style: {
+          fontSize: '16px',
+          background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 700,
+        } as React.CSSProperties,
+      }, '\u25C6'),
+      React.createElement('span', {
+        style: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 },
       }, 'agentflow'),
       projectName
         ? React.createElement(React.Fragment, null,
-            React.createElement('span', { style: { color: '#333', fontSize: '12px' } }, '/'),
-            React.createElement('span', { style: { fontSize: '12px', color: '#666' } }, projectName)
+            React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: '12px' } }, '/'),
+            React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-secondary)' } }, projectName)
           )
-        : null
+        : null,
     ),
 
-    // Right — window controls (macOS-style dots)
+    // Right — action icons + window controls
     React.createElement('div', {
-      style: { display: 'flex', gap: '6px', WebkitAppRegion: 'no-drag' } as React.CSSProperties,
+      style: { display: 'flex', alignItems: 'center', gap: '4px', WebkitAppRegion: 'no-drag' } as React.CSSProperties,
     },
+      // Quick Prompt icon
+      React.createElement('button', {
+        onClick: () => useStore.getState().openQuickPrompt(),
+        title: 'Quick Prompt (Ctrl+Space)',
+        style: {
+          width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: 'var(--text-tertiary)', fontSize: '14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 100ms',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.background = 'var(--bg-elevated)'
+          e.currentTarget.style.color = 'var(--text-primary)'
+        },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'var(--text-tertiary)'
+        },
+      }, '\u26A1'),
+      // Command Palette icon
+      React.createElement('button', {
+        onClick: () => useStore.getState().openCommandPalette(),
+        title: 'Command Palette (Ctrl+K)',
+        style: {
+          width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: 'var(--text-tertiary)', fontSize: '13px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 100ms',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.background = 'var(--bg-elevated)'
+          e.currentTarget.style.color = 'var(--text-primary)'
+        },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'var(--text-tertiary)'
+        },
+      }, '\u2318'),
+
+      React.createElement('div', { style: { width: '8px' } }),
+
+      // Window controls
       ...[
         { action: 'minimize', color: '#eab308' },
         { action: 'maximize', color: '#22c55e' },
@@ -46,10 +92,10 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
           style: {
             width: '13px', height: '13px', borderRadius: '50%',
             background: `${btn.color}33`, border: `1px solid ${btn.color}66`,
-            cursor: 'pointer', padding: 0, transition: 'background 0.15s',
+            cursor: 'pointer', padding: 0, transition: 'background 150ms',
           },
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.background = btn.color },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget).style.background = `${btn.color}33` },
+          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = btn.color },
+          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = `${btn.color}33` },
         })
       )
     )

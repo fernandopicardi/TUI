@@ -1,12 +1,67 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src https://api.github.com">
   <title>agentflow</title>
   <link rel="stylesheet" href="../dist/xterm.css">
   <style>
+    :root {
+      /* Text sizes */
+      --text-xs: 11px;
+      --text-sm: 12px;
+      --text-base: 13px;
+      --text-md: 14px;
+      --text-lg: 16px;
+
+      /* Weights */
+      --weight-normal: 400;
+      --weight-medium: 500;
+
+      /* Spacing */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+
+      /* Radii */
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --radius-xl: 12px;
+
+      /* Text colors */
+      --text-primary: #ededed;
+      --text-secondary: #888;
+      --text-tertiary: #555;
+      --text-disabled: #333;
+
+      /* Surface colors */
+      --bg-app: #080808;
+      --bg-surface: #0d0d0d;
+      --bg-elevated: #111;
+      --bg-hover: #161616;
+      --bg-selected: #0d0d1a;
+
+      /* Borders */
+      --border-subtle: #1a1a1a;
+      --border-default: #1f1f1f;
+      --border-strong: #2a2a2a;
+
+      /* Accent */
+      --accent: #5b6af0;
+      --accent-hover: #6b7af5;
+
+      /* Semantic */
+      --working: #22c55e;
+      --waiting: #eab308;
+      --done: #5b6af0;
+      --error: #ef4444;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -14,8 +69,8 @@
     }
 
     body {
-      background-color: #0a0a0a;
-      color: #ededed;
+      background-color: var(--bg-app);
+      color: var(--text-primary);
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
@@ -33,38 +88,15 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #333;
+      background: var(--text-disabled);
       border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-
-    .window-btn {
-      width: 28px;
-      height: 28px;
-      border: none;
-      background: transparent;
-      color: #888;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 100ms;
-    }
-    .window-btn:hover {
-      background-color: #1f1f1f;
-      color: #ededed;
-    }
-    .window-btn-close:hover {
-      background-color: #ef4444;
-      color: white;
+      background: var(--text-tertiary);
     }
 
     input:focus {
-      border-color: #5b6af0 !important;
+      border-color: var(--accent) !important;
     }
 
     @keyframes pulse {
@@ -72,19 +104,55 @@
       50% { opacity: 0.4; }
     }
 
+    @keyframes pulseFast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
+      from { opacity: 0; transform: translateY(-8px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    kbd {
-      font-family: Consolas, monospace;
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(4px); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(100%); }
     }
 
     @keyframes cloneProgress {
       0% { width: 10%; margin-left: 0; }
       50% { width: 60%; margin-left: 20%; }
       100% { width: 10%; margin-left: 90%; }
+    }
+
+    @keyframes statusChange {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes glowWaiting {
+      0%, 100% { box-shadow: 0 0 0 rgba(234,179,8,0); }
+      50% { box-shadow: 0 0 8px rgba(234,179,8,0.15); }
+    }
+
+    @keyframes broadcastPulse {
+      0%, 100% { border-color: #5b6af044; }
+      50% { border-color: #5b6af0; }
+    }
+
+    kbd {
+      font-family: Consolas, monospace;
     }
   </style>
 </head>

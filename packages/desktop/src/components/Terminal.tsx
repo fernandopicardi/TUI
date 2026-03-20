@@ -17,6 +17,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
   const cleanupRef = useRef<(() => void) | null>(null)
   const initializedRef = useRef(false)
   const terminalReadyRef = useRef(false)
+  const pendingPromptRef = useRef<string | null>(null)
 
   // Main effect: create xterm + connect to pty (runs once per id)
   useEffect(() => {
@@ -56,6 +57,17 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       xtermRef.current = xterm
       fitAddonRef.current = fitAddon
 
+      // Handle Ctrl+V paste
+      xterm.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+        if (e.type === 'keydown' && e.ctrlKey && e.key === 'v') {
+          navigator.clipboard.readText().then(text => {
+            if (text) window.agentflow.terminal.input(id, text)
+          }).catch(() => {})
+          return false
+        }
+        return true
+      })
+
       // Register output listener FIRST to avoid losing data
       const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
         if (termId === id && isMounted && xtermRef.current) {
@@ -76,18 +88,29 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
 
       terminalReadyRef.current = true
 
-      // Inject initial prompt only on NEW terminals
+      // Inject initial prompt on NEW terminals using readiness detection
       if (!result.existed && initialPrompt) {
-        setTimeout(() => {
-          if (isMounted) {
-            window.agentflow.terminal.input(id, initialPrompt + '\n')
-          }
-        }, 3000)
+        pendingPromptRef.current = null
+        window.agentflow.terminal.injectWhenReady(id, initialPrompt)
+      }
+
+      // Check if there's a pending prompt from InitBanner
+      if (pendingPromptRef.current) {
+        const prompt = pendingPromptRef.current
+        pendingPromptRef.current = null
+        window.agentflow.terminal.injectWhenReady(id, prompt)
       }
 
       // Send input from xterm to main process
       xterm.onData((data: string) => {
         window.agentflow.terminal.input(id, data)
+      })
+
+      // Also handle browser paste event (right-click paste, etc)
+      containerRef.current!.addEventListener('paste', (e: ClipboardEvent) => {
+        e.preventDefault()
+        const text = e.clipboardData?.getData('text')
+        if (text) window.agentflow.terminal.input(id, text)
       })
 
       // Auto-resize
@@ -103,7 +126,6 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       cleanupRef.current = () => {
         removeOutput?.()
         resizeObserver.disconnect()
-        // Do NOT close the pty — it persists in main process across navigation
       }
     }
 
@@ -120,17 +142,19 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
   }, [id])
 
   // Separate effect: inject prompt into EXISTING terminal when initialPrompt changes
-  // This handles the InitBanner flow (user clicks template after terminal is already running)
   useEffect(() => {
-    if (!initialPrompt || !id || !terminalReadyRef.current) return
+    if (!initialPrompt || !id) return
 
-    // Terminal is already running — inject the prompt directly
-    const timer = setTimeout(() => {
-      window.agentflow.terminal.input(id, initialPrompt + '\n')
-    }, 500)
+    const prompt = initialPrompt
 
-    return () => clearTimeout(timer)
-  }, [initialPrompt]) // React to prompt changes, not id
+    if (terminalReadyRef.current) {
+      // Terminal is running — use readiness-based injection
+      window.agentflow.terminal.injectWhenReady(id, prompt)
+    } else {
+      // Terminal not ready yet — store for later injection
+      pendingPromptRef.current = prompt
+    }
+  }, [initialPrompt, id])
 
   return React.createElement('div', {
     ref: containerRef,

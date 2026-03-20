@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Props {
   worktreePath: string
@@ -31,16 +31,17 @@ const DiffViewer: React.FC<Props> = ({ worktreePath }) => {
 
   if (loading) {
     return React.createElement('div', {
-      style: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '13px' },
-    }, 'Carregando diff...')
+      style: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: 'var(--text-base)' },
+    }, 'Loading diff...')
   }
 
   if (data.files.length === 0) {
     return React.createElement('div', {
       style: { height: '100%', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: '8px' },
     },
-      React.createElement('span', { style: { fontSize: '24px' } }, '\u2713'),
-      React.createElement('span', { style: { color: '#888', fontSize: '13px' } }, 'Nenhuma altera\u00E7\u00E3o neste workspace')
+      React.createElement('span', { style: { fontSize: '24px', color: 'var(--working)' } }, '\u2713'),
+      React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)' } }, 'No changes in this workspace'),
+      React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' } }, 'All files are up to date'),
     )
   }
 
@@ -51,7 +52,7 @@ const DiffViewer: React.FC<Props> = ({ worktreePath }) => {
     React.createElement('div', {
       style: {
         display: 'flex', gap: 0, padding: '0 8px',
-        borderBottom: '1px solid #1f1f1f', overflowX: 'auto' as const, flexShrink: 0,
+        borderBottom: '1px solid var(--border-default)', overflowX: 'auto' as const, flexShrink: 0,
       },
     },
       ...data.files.map((f) =>
@@ -60,10 +61,10 @@ const DiffViewer: React.FC<Props> = ({ worktreePath }) => {
           onClick: () => setSelectedFile(f),
           style: {
             background: 'transparent', border: 'none',
-            borderBottom: selectedFile === f ? '2px solid #5b6af0' : '2px solid transparent',
-            padding: '8px 14px', color: selectedFile === f ? '#ededed' : '#666',
-            fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' as const,
-            fontFamily: 'Consolas, monospace',
+            borderBottom: selectedFile === f ? '2px solid var(--accent)' : '2px solid transparent',
+            padding: '8px 14px', color: selectedFile === f ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontSize: 'var(--text-sm)', cursor: 'pointer', whiteSpace: 'nowrap' as const,
+            fontFamily: 'Consolas, monospace', transition: 'all 150ms',
           },
         }, f.split(/[\\/]/).pop())
       )
@@ -75,25 +76,25 @@ const DiffViewer: React.FC<Props> = ({ worktreePath }) => {
         },
           // Original
           React.createElement('div', {
-            style: { flex: 1, overflow: 'auto', borderRight: '1px solid #1f1f1f' },
+            style: { flex: 1, overflow: 'auto', borderRight: '1px solid var(--border-default)' },
           },
             React.createElement('div', {
-              style: { padding: '4px 8px', borderBottom: '1px solid #1f1f1f', fontSize: '11px', color: '#ef4444', position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a' },
+              style: { padding: '4px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 'var(--text-xs)', color: 'var(--error)', position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a' },
             }, '\u2212 Original (HEAD)'),
             React.createElement('pre', {
-              style: { margin: 0, padding: '8px', fontSize: '12px', fontFamily: 'Consolas, monospace', color: '#ccc', whiteSpace: 'pre-wrap' as const, lineHeight: '1.5' },
-            }, diff.original || '(vazio)')
+              style: { margin: 0, padding: '8px', fontSize: 'var(--text-sm)', fontFamily: 'Consolas, monospace', color: '#ccc', whiteSpace: 'pre-wrap' as const, lineHeight: '1.5' },
+            }, diff.original || '(empty)')
           ),
           // Modified
           React.createElement('div', {
             style: { flex: 1, overflow: 'auto' },
           },
             React.createElement('div', {
-              style: { padding: '4px 8px', borderBottom: '1px solid #1f1f1f', fontSize: '11px', color: '#22c55e', position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a' },
-            }, '+ Modificado'),
+              style: { padding: '4px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 'var(--text-xs)', color: 'var(--working)', position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a' },
+            }, '+ Modified'),
             React.createElement('pre', {
-              style: { margin: 0, padding: '8px', fontSize: '12px', fontFamily: 'Consolas, monospace', color: '#ccc', whiteSpace: 'pre-wrap' as const, lineHeight: '1.5' },
-            }, diff.modified || '(vazio)')
+              style: { margin: 0, padding: '8px', fontSize: 'var(--text-sm)', fontFamily: 'Consolas, monospace', color: '#ccc', whiteSpace: 'pre-wrap' as const, lineHeight: '1.5' },
+            }, diff.modified || '(empty)')
           )
         )
       : null

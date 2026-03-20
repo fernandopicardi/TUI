@@ -26,13 +26,28 @@ process.on('unhandledRejection', (err) => {
 let mainWindow: BrowserWindow | null = null
 const worktreeWatchers = new Map<string, () => void>()
 
+// ── Claude Code readiness signals ──
+const CLAUDE_READY_SIGNALS = [
+  '✻ Welcome to Claude Code',
+  'claude>',
+  'Human:',
+  '─────',
+  '? ',
+  'Tips for getting started',
+]
+
 // Terminal registry — survives navigation, persistent across renderer lifecycle
 const terminalRegistry = new Map<string, {
   pty: any
   buffer: string[]
   isAlive: boolean
   simulated: boolean
+  isClaudeReady: boolean
+  pendingPrompt: string | null
 }>()
+
+// Worktree project watchers — polls worktrees per project
+const projectWorktreeWatchers = new Map<string, NodeJS.Timeout>()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -90,13 +105,8 @@ function registerIpcHandlers() {
       })
       if (result.canceled || result.filePaths.length === 0) return null
       const dir = result.filePaths[0]
-      console.log('[agentflow] Selected directory:', dir)
       const root = await getRepoRoot(dir)
-      console.log('[agentflow] Git root:', root)
-      if (!root) {
-        console.log('[agentflow] Not a git repo')
-        return null
-      }
+      if (!root) return null
       return root
     } catch (err) {
       console.error('[agentflow] open-directory error:', err)
@@ -163,6 +173,41 @@ function registerIpcHandlers() {
     }
   })
 
+  // ── Worktree sync per project (Subtask 2) ──
+  ipcMain.handle('git:watch-project-worktrees', async (event, projectId: string, rootPath: string) => {
+    const existing = projectWorktreeWatchers.get(projectId)
+    if (existing) clearInterval(existing)
+
+    let lastSnapshot = ''
+
+    const check = async () => {
+      try {
+        const worktrees = await listWorktrees(normalizePath(rootPath))
+        const serialized = JSON.parse(JSON.stringify(worktrees))
+        const snapshot = JSON.stringify(serialized.map((w: any) => w.path).sort())
+        if (snapshot !== lastSnapshot) {
+          lastSnapshot = snapshot
+          BrowserWindow.getAllWindows().forEach(win => {
+            if (!win.isDestroyed()) {
+              win.webContents.send('git:project-worktrees-changed', projectId, serialized)
+            }
+          })
+        }
+      } catch {}
+    }
+
+    await check()
+    const interval = setInterval(check, 3000)
+    projectWorktreeWatchers.set(projectId, interval)
+
+    return { success: true }
+  })
+
+  ipcMain.on('git:unwatch-project-worktrees', (_: any, projectId: string) => {
+    const w = projectWorktreeWatchers.get(projectId)
+    if (w) { clearInterval(w); projectWorktreeWatchers.delete(projectId) }
+  })
+
   // ── Agent status ──
   ipcMain.handle('agent:get-status', async (_e, worktreePath: string) => {
     try {
@@ -218,7 +263,57 @@ function registerIpcHandlers() {
     }
   })
 
-  // ── Terminal (persistent registry) ──
+  // ── GitHub / Create PR (Subtask 4) ──
+  ipcMain.handle('github:create-pr', async (_e, data: {
+    worktreePath: string
+    title: string
+    description: string
+    baseBranch: string
+    branch: string
+  }) => {
+    try {
+      const config = await loadConfig(normalizePath(data.worktreePath))
+      const token = (config as any).githubToken || process.env.GITHUB_TOKEN
+      if (!token) return { success: false, error: 'no_token' }
+
+      const git = simpleGit(normalizePath(data.worktreePath))
+      const remotes = await git.getRemotes(true)
+      const origin = remotes.find(r => r.name === 'origin')
+      if (!origin) return { success: false, error: 'no_remote' }
+
+      const match = origin.refs.push.match(/github\.com[:/](.+?)\/(.+?)(?:\.git)?$/)
+      if (!match) return { success: false, error: 'not_github' }
+      const [, owner, repo] = match
+
+      await git.push('origin', data.branch, ['--set-upstream'])
+
+      const response = await (globalThis as any).fetch(
+        `https://api.github.com/repos/${owner}/${repo}/pulls`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.github+json',
+          },
+          body: JSON.stringify({
+            title: data.title,
+            body: data.description,
+            head: data.branch,
+            base: data.baseBranch,
+          }),
+        }
+      )
+
+      const result = await response.json()
+      if (!response.ok) return { success: false, error: result.message }
+      return { success: true, url: result.html_url, number: result.number }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // ── Terminal (persistent registry with Claude readiness detection) ──
   let nodePty: any = null
   try {
     nodePty = require('node-pty')
@@ -238,7 +333,7 @@ function registerIpcHandlers() {
     }
 
     if (!nodePty) {
-      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true }
+      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null }
       terminalRegistry.set(id, entry)
 
       const simMsg = `\x1b[36m[agentflow]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
@@ -264,13 +359,47 @@ function registerIpcHandlers() {
         useConpty: true,
       })
 
-      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false }
+      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null }
       terminalRegistry.set(id, entry)
 
       pty.onData((data: string) => {
         // Keep last 1000 chunks for replay on reconnect
         entry.buffer.push(data)
         if (entry.buffer.length > 1000) entry.buffer.shift()
+
+        // Claude readiness detection
+        if (!entry.isClaudeReady) {
+          const recentOutput = entry.buffer.slice(-10).join('')
+          const ready = CLAUDE_READY_SIGNALS.some(s => recentOutput.includes(s))
+
+          if (ready) {
+            entry.isClaudeReady = true
+
+            // Send readiness notification to renderer
+            BrowserWindow.getAllWindows().forEach(win => {
+              if (!win.isDestroyed()) {
+                win.webContents.send('terminal:output', id,
+                  '\x1b[33m[agentflow]\x1b[0m Claude Code ready\r\n')
+              }
+            })
+
+            if (entry.pendingPrompt) {
+              const prompt = entry.pendingPrompt
+              entry.pendingPrompt = null
+              setTimeout(() => {
+                if (entry.isAlive && entry.pty) {
+                  entry.pty.write(prompt + '\r')
+                  BrowserWindow.getAllWindows().forEach(win => {
+                    if (!win.isDestroyed()) {
+                      win.webContents.send('terminal:output', id,
+                        '\x1b[32m[agentflow]\x1b[0m prompt injected \u2713\r\n')
+                    }
+                  })
+                }
+              }, 500)
+            }
+          }
+        }
 
         // Send to all renderer windows
         BrowserWindow.getAllWindows().forEach(win => {
@@ -291,6 +420,33 @@ function registerIpcHandlers() {
     } catch (err: any) {
       return { success: false, error: err.message }
     }
+  })
+
+  // Inject prompt when Claude Code is ready
+  ipcMain.handle('terminal:inject-when-ready', (_: any, terminalId: string, prompt: string) => {
+    const entry = terminalRegistry.get(terminalId)
+    if (!entry) return { success: false }
+
+    if (entry.isClaudeReady) {
+      if (entry.pty) entry.pty.write(prompt + '\r')
+      BrowserWindow.getAllWindows().forEach(win => {
+        if (!win.isDestroyed()) {
+          win.webContents.send('terminal:output', terminalId,
+            '\x1b[32m[agentflow]\x1b[0m prompt injected \u2713\r\n')
+        }
+      })
+      return { success: true, immediate: true }
+    }
+
+    entry.pendingPrompt = prompt
+    // Show waiting message
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('terminal:output', terminalId,
+          '\x1b[33m[agentflow]\x1b[0m waiting for Claude Code...\r\n')
+      }
+    })
+    return { success: true, queued: true }
   })
 
   // Replay buffer for reconnecting terminal
@@ -327,14 +483,143 @@ function registerIpcHandlers() {
   ipcMain.handle('git:clone', async (_e, url: string, targetPath: string, folderName: string) => {
     try {
       const fullPath = path.join(normalizePath(targetPath), folderName)
-      console.log('[agentflow] Cloning', url, 'to', fullPath)
       const git = simpleGit()
       await git.clone(url, fullPath)
-      console.log('[agentflow] Clone complete:', fullPath)
       return { success: true, path: fullPath }
     } catch (err: any) {
       console.error('[agentflow] clone error:', err)
       return { success: false, error: err.message }
+    }
+  })
+
+  // ── MCP Config (Subtask 5) ──
+  ipcMain.handle('mcp:get-config', async (_e, rootPath: string) => {
+    const servers: any[] = []
+
+    // 1. Global: ~/.claude/settings.json
+    try {
+      const home = process.env.USERPROFILE || process.env.HOME || ''
+      const globalPath = path.join(home, '.claude', 'settings.json')
+      const raw = await fs.promises.readFile(globalPath, 'utf-8')
+      const parsed = JSON.parse(raw)
+      Object.entries(parsed.mcpServers || {}).forEach(([name, cfg]: any) => {
+        servers.push({ name, ...cfg, scope: 'global' })
+      })
+    } catch {}
+
+    // 2. Project: .claude/settings.json
+    try {
+      const projectPath = path.join(normalizePath(rootPath), '.claude', 'settings.json')
+      const raw = await fs.promises.readFile(projectPath, 'utf-8')
+      const parsed = JSON.parse(raw)
+      Object.entries(parsed.mcpServers || {}).forEach(([name, cfg]: any) => {
+        if (!servers.find(s => s.name === name)) {
+          servers.push({ name, ...cfg, scope: 'project' })
+        }
+      })
+    } catch {}
+
+    return servers
+  })
+
+  ipcMain.handle('mcp:add-server', async (_e, rootPath: string, server: any, scope: 'global' | 'project') => {
+    try {
+      const targetPath = scope === 'global'
+        ? path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'settings.json')
+        : path.join(normalizePath(rootPath), '.claude', 'settings.json')
+
+      let settings: any = {}
+      try {
+        const raw = await fs.promises.readFile(targetPath, 'utf-8')
+        settings = JSON.parse(raw)
+      } catch {}
+
+      settings.mcpServers = settings.mcpServers || {}
+      settings.mcpServers[server.name] = {
+        command: server.command,
+        args: server.args || [],
+        ...(server.env ? { env: server.env } : {}),
+      }
+
+      await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
+      await fs.promises.writeFile(targetPath, JSON.stringify(settings, null, 2))
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('mcp:remove-server', async (_e, rootPath: string, name: string, scope: 'global' | 'project') => {
+    try {
+      const targetPath = scope === 'global'
+        ? path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'settings.json')
+        : path.join(normalizePath(rootPath), '.claude', 'settings.json')
+
+      const raw = await fs.promises.readFile(targetPath, 'utf-8')
+      const settings = JSON.parse(raw)
+      delete settings.mcpServers?.[name]
+      await fs.promises.writeFile(targetPath, JSON.stringify(settings, null, 2))
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // ── Settings (Subtask 6) ──
+  const globalConfigPath = () => {
+    const home = process.env.USERPROFILE || process.env.HOME || ''
+    return path.join(home, '.agentflow', 'config.json')
+  }
+
+  ipcMain.handle('settings:read-global', async () => {
+    try {
+      const raw = await fs.promises.readFile(globalConfigPath(), 'utf-8')
+      return JSON.parse(raw)
+    } catch {
+      return {}
+    }
+  })
+
+  ipcMain.handle('settings:write-global', async (_e, data: Record<string, any>) => {
+    try {
+      const p = globalConfigPath()
+      await fs.promises.mkdir(path.dirname(p), { recursive: true })
+      await fs.promises.writeFile(p, JSON.stringify(data, null, 2))
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  })
+
+  ipcMain.handle('settings:read-project', async (_e, rootPath: string) => {
+    try {
+      const p = path.join(normalizePath(rootPath), 'agentflow.config.json')
+      const raw = await fs.promises.readFile(p, 'utf-8')
+      return JSON.parse(raw)
+    } catch {
+      return {}
+    }
+  })
+
+  ipcMain.handle('settings:write-project', async (_e, rootPath: string, data: Record<string, any>) => {
+    try {
+      const p = path.join(normalizePath(rootPath), 'agentflow.config.json')
+      await fs.promises.writeFile(p, JSON.stringify(data, null, 2))
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  })
+
+  ipcMain.handle('settings:test-github', async (_e, token: string) => {
+    try {
+      const res = await (globalThis as any).fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const user = await res.json()
+      return res.ok ? { success: true, login: user.login, avatar: user.avatar_url } : { success: false }
+    } catch {
+      return { success: false }
     }
   })
 
@@ -362,6 +647,8 @@ app.whenReady().then(createWindow)
 app.on('window-all-closed', () => {
   for (const cleanup of worktreeWatchers.values()) cleanup()
   worktreeWatchers.clear()
+  for (const interval of projectWorktreeWatchers.values()) clearInterval(interval)
+  projectWorktreeWatchers.clear()
   for (const entry of terminalRegistry.values()) {
     if (!entry.simulated && entry.pty) entry.pty.kill()
   }

@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { AgentStatusValue } from '../types'
 
-const STATUS_CONFIG: Record<AgentStatusValue, { color: string; label: string; pulse: boolean }> = {
-  working: { color: '#22c55e', label: 'working', pulse: true },
-  waiting: { color: '#eab308', label: 'waiting', pulse: false },
-  idle: { color: '#444', label: 'idle', pulse: false },
-  done: { color: '#5b6af0', label: 'done', pulse: false },
+const STATUS_CONFIG: Record<AgentStatusValue, { color: string; label: string; pulse: string }> = {
+  working: { color: 'var(--working)', label: 'working', pulse: 'pulse 2s infinite' },
+  waiting: { color: 'var(--waiting)', label: 'waiting', pulse: 'pulseFast 1s infinite' },
+  idle: { color: 'var(--text-disabled)', label: 'idle', pulse: 'none' },
+  done: { color: 'var(--done)', label: 'done', pulse: 'none' },
 }
 
 const AgentStatusBadge: React.FC<{ status: AgentStatusValue }> = ({ status }) => {
@@ -16,7 +16,7 @@ const AgentStatusBadge: React.FC<{ status: AgentStatusValue }> = ({ status }) =>
       display: 'inline-flex',
       alignItems: 'center',
       gap: '5px',
-      fontSize: '11px',
+      fontSize: 'var(--text-xs)',
       color: cfg.color,
     },
   },
@@ -27,8 +27,8 @@ const AgentStatusBadge: React.FC<{ status: AgentStatusValue }> = ({ status }) =>
         borderRadius: '50%',
         backgroundColor: cfg.color,
         display: 'inline-block',
-        boxShadow: cfg.pulse ? `0 0 6px ${cfg.color}88` : 'none',
-        animation: cfg.pulse ? 'pulse 2s infinite' : 'none',
+        boxShadow: status === 'working' || status === 'waiting' ? `0 0 6px ${cfg.color}88` : 'none',
+        animation: cfg.pulse,
       },
     }),
     cfg.label
