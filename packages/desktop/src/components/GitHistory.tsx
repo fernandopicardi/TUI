@@ -735,7 +735,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       // Type filter
       React.createElement('select', {
         value: typeFilter,
-        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setTypeFilter(e.target.value as any),
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setTypeFilter(e.target.value as 'all' | 'merges' | 'agent' | 'human'),
         style: {
           padding: '2px 6px', fontSize: '10px', background: 'var(--bg-elevated)',
           border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)',
