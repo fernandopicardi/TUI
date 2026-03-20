@@ -653,43 +653,66 @@ function registerIpcHandlers() {
   ipcMain.handle('git:log', async (_e, worktreePath: string, options?: { maxCount?: number }) => {
     try {
       const git = simpleGit(normalizePath(worktreePath))
-      const result = await git.raw([
-        'log',
-        '--all',
-        '--decorate=full',
-        `--max-count=${options?.maxCount ?? 500}`,
-        '--format=%H%x1f%h%x1f%s%x1f%b%x1f%an%x1f%ae%x1f%aI%x1f%D%x1f%P%x1e',
-      ])
 
-      const commits = result
-        .split('\x1e')
-        .filter(Boolean)
-        .map(line => {
-          const parts = line.trim().split('\x1f')
-          return {
-            hash: parts[0]?.trim() ?? '',
-            hashShort: parts[1]?.trim() ?? '',
-            message: parts[2]?.trim() ?? '',
-            body: parts[3]?.trim() ?? '',
-            author: parts[4]?.trim() ?? '',
-            authorEmail: parts[5]?.trim() ?? '',
-            date: parts[6]?.trim() ?? '',
-            refs: parts[7] ? parts[7].split(',').map((r: string) => r.trim()).filter(Boolean) : [],
-            parents: parts[8] ? parts[8].trim().split(' ').filter(Boolean) : [],
-          }
+      // Use simple-git's built-in log to avoid format string issues on Windows
+      const logResult = await git.log({
+        '--all': null,
+        '--decorate': 'full',
+        maxCount: options?.maxCount ?? 500,
+      } as any)
+
+      const commits = logResult.all.map((entry: any) => {
+        const refsRaw = entry.refs || ''
+        return {
+          hash: entry.hash || '',
+          hashShort: (entry.hash || '').slice(0, 7),
+          message: entry.message || '',
+          body: entry.body || '',
+          author: entry.author_name || '',
+          authorEmail: entry.author_email || '',
+          date: entry.date || '',
+          refs: refsRaw ? refsRaw.split(',').map((r: string) => r.trim()).filter(Boolean) : [],
+          parents: [],  // populated below
+        }
+      })
+
+      // Get parent info via raw command (safe, no body field)
+      try {
+        const parentRaw = await git.raw([
+          'log', '--all', `--max-count=${options?.maxCount ?? 500}`,
+          '--format=%H %P',
+        ])
+        const parentMap = new Map<string, string[]>()
+        parentRaw.split('\n').filter(Boolean).forEach(line => {
+          const parts = line.trim().split(' ')
+          const hash = parts[0]
+          const parents = parts.slice(1).filter(Boolean)
+          if (hash) parentMap.set(hash, parents)
         })
-        .filter(c => c.hash)
+        commits.forEach((c: any) => {
+          c.parents = parentMap.get(c.hash) || []
+        })
+      } catch { /* parents optional */ }
 
-      const currentBranch = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim()
-      const branchSummary = await git.branch(['--all'])
+      let currentBranch = 'main'
+      try {
+        currentBranch = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim()
+      } catch {}
+
+      let branches: string[] = []
+      try {
+        const branchSummary = await git.branch(['--all'])
+        branches = Object.keys(branchSummary.branches)
+      } catch {}
 
       return JSON.parse(JSON.stringify({
         commits,
-        branches: Object.keys(branchSummary.branches),
+        branches,
         currentBranch,
         error: null,
       }))
     } catch (err: any) {
+      console.error('[agentflow] git:log error:', err)
       return { commits: [], branches: [], currentBranch: 'main', error: err.message }
     }
   })

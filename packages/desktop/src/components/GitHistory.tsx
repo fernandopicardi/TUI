@@ -65,7 +65,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
           }
         })
       })
-      .catch(() => setError('Failed to load git log'))
+      .catch((err: any) => setError(err?.message || String(err) || 'Failed to load git log'))
       .finally(() => setIsLoading(false))
   }, [worktreePath])
 
