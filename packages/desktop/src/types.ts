@@ -62,6 +62,14 @@ export interface ConfigData {
 
 export type AgentStatusValue = 'working' | 'waiting' | 'idle' | 'done'
 
+export interface FileEntry {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+  gitStatus?: 'M' | 'A' | 'D' | '?' | ''
+  children?: FileEntry[]
+}
+
 export interface MCPServerEntry {
   name: string
   command: string
@@ -104,6 +112,10 @@ export interface AgentflowAPI {
     getBuffer: (id: string) => Promise<string[]>
     isAlive: (id: string) => Promise<boolean>
     injectWhenReady: (id: string, prompt: string) => Promise<{ success: boolean; immediate?: boolean; queued?: boolean }>
+  }
+  files: {
+    list: (rootPath: string) => Promise<FileEntry[]>
+    read: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string; binary?: boolean }>
   }
   github: {
     getDiff: (worktreePath: string) => Promise<{ files: string[]; diffs: Record<string, { original: string; modified: string }> }>

@@ -65,6 +65,12 @@ contextBridge.exposeInMainWorld('agentflow', {
     injectWhenReady: (id: string, prompt: string) =>
       ipcRenderer.invoke('terminal:inject-when-ready', id, prompt),
   },
+  files: {
+    list: (rootPath: string) =>
+      ipcRenderer.invoke('files:list', rootPath),
+    read: (filePath: string) =>
+      ipcRenderer.invoke('files:read', filePath),
+  },
   github: {
     getDiff: (worktreePath: string) =>
       ipcRenderer.invoke('github:get-diff', worktreePath),

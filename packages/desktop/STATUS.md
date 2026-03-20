@@ -96,16 +96,38 @@
 
 ## Development
 
+All commands run from `packages/desktop/`:
+
 ```bash
-# Build renderer + main + preload
+cd packages/desktop
+
+# 1. Build renderer + main + preload (required before first run)
 node scripts/build-renderer.mjs
 
-# Run in dev mode
+# 2. Run in dev mode (opens the app window)
 npx electron .
 
-# Build installer + portable
+# 3. After code changes, rebuild and reload:
+node scripts/build-renderer.mjs    # recompile
+# Then press Ctrl+R inside agentflow to reload, or close and reopen
+
+# 4. Build installer + portable (only for releases)
+# IMPORTANT: close the running agentflow first — the .exe locks files
 npx electron-builder --win
 ```
+
+### Self-development workflow
+
+To use agentflow to develop agentflow itself:
+
+1. **Always run via `npx electron .`** in dev mode — never use the `.exe` during development
+2. Add the TUI repo as a project inside agentflow
+3. Create agents for your feature branches
+4. Claude Code makes changes → run `node scripts/build-renderer.mjs` → press Ctrl+R to reload
+5. When stable, close agentflow, run `npx electron-builder --win` to generate the release `.exe`
+
+> **Why not use the `.exe`?** The portable/installer executable locks itself on disk.
+> You can't rebuild it while it's running. Dev mode (`npx electron .`) doesn't have this problem.
 
 ---
 

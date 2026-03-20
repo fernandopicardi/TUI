@@ -623,6 +623,101 @@ function registerIpcHandlers() {
     }
   })
 
+  // ── File tree ──
+  ipcMain.handle('files:list', async (_e, rootPath: string) => {
+    const normalized = normalizePath(rootPath)
+
+    // Get git status for all files
+    let gitStatusMap: Record<string, string> = {}
+    try {
+      const git = simpleGit(normalized)
+      const status = await git.status()
+      status.modified.forEach(f => { gitStatusMap[f] = 'M' })
+      status.created.forEach(f => { gitStatusMap[f] = 'A' })
+      status.deleted.forEach(f => { gitStatusMap[f] = 'D' })
+      status.not_added.forEach(f => { gitStatusMap[f] = '?' })
+    } catch {}
+
+    // Recursively read directory tree
+    const IGNORE = new Set(['node_modules', '.git', 'dist', 'release', '.turbo', '.next', '__pycache__', '.cache', 'coverage'])
+    const MAX_DEPTH = 5
+    const MAX_FILES = 500
+
+    let fileCount = 0
+
+    const readDir = async (dirPath: string, relativePath: string, depth: number): Promise<any[]> => {
+      if (depth > MAX_DEPTH || fileCount > MAX_FILES) return []
+
+      let entries: any[]
+      try {
+        entries = await fs.promises.readdir(dirPath, { withFileTypes: true })
+      } catch {
+        return []
+      }
+
+      // Sort: directories first, then files, both alphabetical
+      entries.sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1
+        if (!a.isDirectory() && b.isDirectory()) return 1
+        return a.name.localeCompare(b.name)
+      })
+
+      const result: any[] = []
+      for (const entry of entries) {
+        if (fileCount > MAX_FILES) break
+        if (IGNORE.has(entry.name) || entry.name.startsWith('.')) continue
+
+        const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name
+        const fullPath = path.join(dirPath, entry.name)
+
+        if (entry.isDirectory()) {
+          const children = await readDir(fullPath, relPath, depth + 1)
+          result.push({
+            name: entry.name,
+            path: relPath,
+            type: 'directory',
+            gitStatus: '',
+            children,
+          })
+        } else {
+          fileCount++
+          result.push({
+            name: entry.name,
+            path: relPath,
+            type: 'file',
+            gitStatus: gitStatusMap[relPath] || '',
+          })
+        }
+      }
+      return result
+    }
+
+    try {
+      return await readDir(normalized, '', 0)
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('files:read', async (_e, filePath: string) => {
+    try {
+      const normalized = normalizePath(filePath)
+      const stat = await fs.promises.stat(normalized)
+      if (stat.size > 512 * 1024) {
+        return { success: false, error: 'File too large (>512KB)' }
+      }
+      // Check if binary
+      const buffer = await fs.promises.readFile(normalized)
+      const isBinary = buffer.includes(0)
+      if (isBinary) {
+        return { success: true, binary: true, content: `[Binary file, ${stat.size} bytes]` }
+      }
+      return { success: true, content: buffer.toString('utf-8') }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
   // ── Notifications ──
   ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
     try {

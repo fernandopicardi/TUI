@@ -4,10 +4,11 @@ import { useStore } from '../hooks/useStore'
 import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
 import PRPanel from '../components/PRPanel'
+import FileTree from '../components/FileTree'
 import MCPPanel from '../components/MCPPanel'
 import WorkspaceNotes from '../components/WorkspaceNotes'
 
-type Tab = 'terminal' | 'diff' | 'pr' | 'notes'
+type Tab = 'terminal' | 'files' | 'diff' | 'pr' | 'notes'
 
 interface Props {
   agentId: string
@@ -125,6 +126,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       // Tabs
       React.createElement('div', { style: { display: 'flex', gap: '2px', marginLeft: '16px' } },
         React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
+        React.createElement('button', { onClick: () => setActiveTab('files'), style: tabStyle('files') }, 'Files'),
         React.createElement('button', { onClick: () => setActiveTab('diff'), style: tabStyle('diff') }, 'Diff'),
         React.createElement('button', { onClick: () => setActiveTab('pr'), style: tabStyle('pr') }, 'PR'),
         React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
@@ -152,6 +154,11 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
           worktreePath: agent.worktreePath,
           initialPrompt: effectivePrompt,
         })
+      ),
+      React.createElement('div', {
+        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'files' ? 'flex' : 'none' },
+      },
+        React.createElement(FileTree, { worktreePath: agent.worktreePath })
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
