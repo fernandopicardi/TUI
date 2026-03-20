@@ -107,3 +107,15 @@ export const SYNTAX_THEME_CSS = `
 .hljs-tag { color: #f07178; }
 .hljs-meta { color: var(--text-tertiary); }
 `
+
+const STYLE_ID = 'runnio-syntax-theme'
+
+/** Injects the syntax theme CSS once into the document head. Safe to call multiple times. */
+export function ensureSyntaxTheme(): void {
+  if (typeof document === 'undefined') return
+  if (document.getElementById(STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = STYLE_ID
+  style.textContent = SYNTAX_THEME_CSS
+  document.head.appendChild(style)
+}

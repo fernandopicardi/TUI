@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FileEntry } from '../types'
-import { useHighlightedCode, SYNTAX_THEME_CSS } from '../hooks/useSyntaxHighlight'
+import { useHighlightedCode, ensureSyntaxTheme } from '../hooks/useSyntaxHighlight'
 
 interface Props {
   worktreePath: string
@@ -22,6 +22,7 @@ const FILE_ICONS: Record<string, string> = {
 }
 
 const HighlightedFileContent: React.FC<{ content: string; filename: string }> = ({ content, filename }) => {
+  ensureSyntaxTheme()
   const highlighted = useHighlightedCode(content, filename)
   return React.createElement('pre', {
     style: {
@@ -281,8 +282,6 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
             }, '\u00D7'),
           ),
-          // Syntax theme
-          React.createElement('style', null, SYNTAX_THEME_CSS),
           // File content
           React.createElement('div', {
             style: { flex: 1, overflow: 'auto', padding: 0 },

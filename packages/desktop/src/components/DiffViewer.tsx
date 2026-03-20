@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { highlightCode, SYNTAX_THEME_CSS } from '../hooks/useSyntaxHighlight'
+import { highlightCode, ensureSyntaxTheme } from '../hooks/useSyntaxHighlight'
 
 interface Props {
   worktreePath: string
@@ -30,7 +30,6 @@ function computeLineDiff(original: string, modified: string): { left: DiffLine[]
   // Build LCS table
   const m = oldLines.length
   const n = newLines.length
-  // Use Uint16Array for memory efficiency on large files
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -89,6 +88,7 @@ const LINE_NUM_STYLES: Record<DiffLineType, React.CSSProperties> = {
 }
 
 const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
+  ensureSyntaxTheme()
   const [data, setData] = useState<DiffData>({ files: [], diffs: {} })
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -118,8 +118,8 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
       .finally(() => setLoading(false))
   }, [worktreePath, selectedFile])
 
-  useEffect(() => { fetchDiff() }, [worktreePath])
-  useEffect(() => { if (visible) fetchDiff() }, [visible])
+  useEffect(() => { fetchDiff() }, [fetchDiff])
+  useEffect(() => { if (visible) fetchDiff() }, [visible, fetchDiff])
   useEffect(() => {
     if (visible) {
       pollRef.current = setInterval(fetchDiff, 5000)
@@ -245,8 +245,6 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
   return React.createElement('div', {
     style: { height: '100%', display: 'flex', flexDirection: 'column' as const },
   },
-    // Syntax theme
-    React.createElement('style', null, SYNTAX_THEME_CSS),
     // File tabs + stats
     React.createElement('div', {
       style: {

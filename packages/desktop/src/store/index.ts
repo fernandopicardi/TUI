@@ -222,6 +222,20 @@ export const useStore = create<RunnioStore>()(
         defaultModel: state.defaultModel,
         defaultMode: state.defaultMode,
       }),
+      // Migrate persisted agents that predate the hasLaunched field
+      merge: (persisted: any, current: any) => {
+        const merged = { ...current, ...(persisted as object) }
+        if (merged.projects) {
+          merged.projects = merged.projects.map((p: any) => ({
+            ...p,
+            agents: (p.agents || []).map((a: any) => ({
+              ...a,
+              hasLaunched: a.hasLaunched ?? true, // existing agents already launched
+            })),
+          }))
+        }
+        return merged
+      },
     }
   )
 )
