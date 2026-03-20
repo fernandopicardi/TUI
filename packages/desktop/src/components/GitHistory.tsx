@@ -28,6 +28,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [branchFilter, setBranchFilter] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<'all' | 'merges' | 'agent' | 'human'>('all')
   const [copiedHash, setCopiedHash] = useState(false)
   const [avatarCache, setAvatarCache] = useState<Record<string, string>>({})
 
@@ -93,6 +94,19 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       .finally(() => setCommitFilesLoading(false))
   }, [selectedCommit?.hash, worktreePath])
 
+  // Escape key closes detail panel
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedCommit) {
+        setSelectedCommit(null)
+      }
+    }
+    if (selectedCommit) {
+      window.addEventListener('keydown', handler)
+      return () => window.removeEventListener('keydown', handler)
+    }
+  }, [selectedCommit])
+
   // Resize observer for virtual scroll
   useEffect(() => {
     const el = scrollContainerRef.current
@@ -135,8 +149,15 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     if (branchFilter) {
       result = result.filter(c => c.refs.some(r => r.includes(branchFilter)))
     }
+    if (typeFilter === 'merges') {
+      result = result.filter(c => c.parents.length > 1)
+    } else if (typeFilter === 'agent') {
+      result = result.filter(c => isAgentCommit(c.authorEmail))
+    } else if (typeFilter === 'human') {
+      result = result.filter(c => !isAgentCommit(c.authorEmail))
+    }
     return result
-  }, [commits, searchQuery, branchFilter])
+  }, [commits, searchQuery, branchFilter, typeFilter])
 
   // Virtual scroll calculations
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS)
@@ -711,6 +732,21 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
           b,
         )
       }),
+      // Type filter
+      React.createElement('select', {
+        value: typeFilter,
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setTypeFilter(e.target.value as 'all' | 'merges' | 'agent' | 'human'),
+        style: {
+          padding: '2px 6px', fontSize: '10px', background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)',
+          color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', flexShrink: 0,
+        },
+      },
+        React.createElement('option', { value: 'all' }, 'All'),
+        React.createElement('option', { value: 'merges' }, 'Merges only'),
+        React.createElement('option', { value: 'agent' }, 'Agent commits'),
+        React.createElement('option', { value: 'human' }, 'Human commits'),
+      ),
       React.createElement('div', { style: { flex: 1 } }),
       // Commit count
       React.createElement('span', {
