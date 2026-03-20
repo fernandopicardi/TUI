@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { Box, Text } from 'ink'
-import { Worktree, AgentStatus, pathExists } from '@agentflow/core'
+import { Worktree, AgentStatus, pathExists } from '@regent/core'
 import AgentStatusBadge from './AgentStatusBadge.js'
 
 interface Props {

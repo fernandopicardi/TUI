@@ -5,13 +5,13 @@ export function useWorktreeSync() {
   const projects = useStore(s => s.projects)
 
   useEffect(() => {
-    if (!projects.length || !window.agentflow?.git?.watchProjectWorktrees) return
+    if (!projects.length || !window.regent?.git?.watchProjectWorktrees) return
 
     projects.forEach(p => {
-      window.agentflow.git.watchProjectWorktrees(p.id, p.rootPath)
+      window.regent.git.watchProjectWorktrees(p.id, p.rootPath)
     })
 
-    const cleanup = window.agentflow.git.onProjectWorktreesChanged((projectId, worktrees) => {
+    const cleanup = window.regent.git.onProjectWorktreesChanged((projectId, worktrees) => {
       const state = useStore.getState()
       const project = state.getProjectById(projectId)
       if (!project) return
@@ -47,7 +47,7 @@ export function useWorktreeSync() {
     })
 
     return () => {
-      projects.forEach(p => window.agentflow.git.unwatchProjectWorktrees(p.id))
+      projects.forEach(p => window.regent.git.unwatchProjectWorktrees(p.id))
       cleanup()
     }
   }, [projects.map(p => p.id).join(',')])

@@ -24,7 +24,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       }, '\u25C6'),
       React.createElement('span', {
         style: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 },
-      }, 'agentflow'),
+      }, 'Regent'),
       projectName
         ? React.createElement(React.Fragment, null,
             React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: '12px' } }, '/'),
@@ -88,7 +88,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       ].map((btn) =>
         React.createElement('button', {
           key: btn.action,
-          onClick: () => (window.agentflow?.window as any)?.[btn.action]?.(),
+          onClick: () => (window.regent?.window as any)?.[btn.action]?.(),
           style: {
             width: '13px', height: '13px', borderRadius: '50%',
             background: `${btn.color}33`, border: `1px solid ${btn.color}66`,

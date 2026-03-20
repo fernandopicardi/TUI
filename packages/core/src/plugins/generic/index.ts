@@ -1,8 +1,8 @@
-import { AgentflowPlugin, PluginContext } from '../../types/plugin'
+import { RegentPlugin, PluginContext } from '../../types/plugin'
 import { fileExists, readFileSafe, splitLines, joinPath } from '../../git/utils'
 import { listWorktrees } from '../../git/worktrees'
 
-const genericPlugin: AgentflowPlugin = {
+const genericPlugin: RegentPlugin = {
   name: 'generic',
   priority: 10,
   async detect(rootPath: string): Promise<boolean> {

@@ -1,4 +1,4 @@
-# Architect Agent — agentflow
+# Architect Agent — Regent
 
 ## Papel
 Responsável por decisões de arquitetura cross-package, interfaces entre

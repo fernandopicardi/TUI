@@ -1,9 +1,9 @@
-import { AgentflowPlugin, PluginContext } from '../../types/plugin'
+import { RegentPlugin, PluginContext } from '../../types/plugin'
 import { detectAgencyOS } from './detect'
 import { readClients } from './reader'
 import { joinPath } from '../../git/utils'
 
-const agencyOSPlugin: AgentflowPlugin = {
+const agencyOSPlugin: RegentPlugin = {
   name: 'agency-os',
   priority: 100,
   detect: detectAgencyOS,

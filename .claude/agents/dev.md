@@ -1,4 +1,4 @@
-# Developer Agent — agentflow
+# Developer Agent — Regent
 
 ## Papel
 Implementação de features, correção de bugs, integração entre componentes.

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Regent. All rights reserved.
+// Proprietary and confidential. Unauthorized use prohibited.
+
 import * as React from 'react'
 import { useEffect } from 'react'
 import { useStore } from './hooks/useStore'
@@ -50,8 +53,8 @@ const App: React.FC = () => {
   useWorktreeSync()
 
   useEffect(() => {
-    if (window.agentflow) setPreloadOk(true)
-    else console.error('[agentflow] PRELOAD FAILED')
+    if (window.regent) setPreloadOk(true)
+    else console.error('[regent] PRELOAD FAILED')
   }, [])
 
   // Global keyboard shortcuts

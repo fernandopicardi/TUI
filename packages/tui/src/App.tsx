@@ -7,9 +7,9 @@ import {
   loadConfig,
   createWorktree,
   removeWorktree,
-  AgentflowConfig,
+  RegentConfig,
   DEFAULT_CONFIG,
-} from '@agentflow/core'
+} from '@regent/core'
 import { useWorktrees } from './hooks/useWorktrees.js'
 import { useAgentStatus } from './hooks/useAgentStatus.js'
 import { usePlugin } from './hooks/usePlugin.js'
@@ -61,7 +61,7 @@ function reducer(state: AppState, action: AppAction): AppState {
 
 interface Props {
   rootPath: string
-  config: AgentflowConfig
+  config: RegentConfig
 }
 
 const App: React.FC<Props> = ({ rootPath, config }) => {
@@ -178,7 +178,7 @@ const App: React.FC<Props> = ({ rootPath, config }) => {
     return React.createElement(
       Box,
       { flexDirection: 'column' },
-      React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 agentflow'),
+      React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 Regent'),
       React.createElement(
         Box,
         { marginTop: 1 },
@@ -193,7 +193,7 @@ const App: React.FC<Props> = ({ rootPath, config }) => {
     return React.createElement(
       Box,
       { flexDirection: 'column' },
-      React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 agentflow'),
+      React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 Regent'),
       React.createElement(Text, null, ''),
       React.createElement(Text, { color: 'red' }, `Erro: ${wtError}`),
       React.createElement(Text, { dimColor: true }, 'Verifique se est\u00E1 dentro de um reposit\u00F3rio git.'),
@@ -205,7 +205,7 @@ const App: React.FC<Props> = ({ rootPath, config }) => {
     Box,
     { flexDirection: 'column' },
     // Header
-    React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 agentflow'),
+    React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 Regent'),
     React.createElement(Text, null, ''),
 
     // Plugin warning

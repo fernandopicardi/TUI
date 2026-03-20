@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Box, Text } from 'ink'
-import { PluginContext } from '@agentflow/core'
+import { PluginContext } from '@regent/core'
 import AgencyOSPanel from './AgencyOSPanel.js'
 import BmadPanel from './BmadPanel.js'
 

@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useState } from 'react'
 import { useStore } from '../store/index'
 import AgentStatusBadge from './AgentStatusBadge'
+import { getFlags } from '../features'
 
 const Sidebar: React.FC = () => {
   const projects = useStore(s => s.projects)
@@ -85,7 +86,7 @@ const Sidebar: React.FC = () => {
                   e.stopPropagation()
                   if (confirm(`Remove project "${project.name}"?`)) {
                     project.agents.forEach(a => {
-                      window.agentflow?.terminal?.close(a.terminalId)
+                      window.regent?.terminal?.close(a.terminalId)
                     })
                     useStore.getState().removeProject(project.id)
                   }
@@ -135,7 +136,7 @@ const Sidebar: React.FC = () => {
               isExternal
                 ? React.createElement('span', {
                     style: { color: 'var(--text-tertiary)', fontSize: '9px', flexShrink: 0 },
-                    title: 'Created outside agentflow',
+                    title: 'Created outside Regent',
                   }, '\u2B21')
                 : null,
               React.createElement('span', {
@@ -152,6 +153,27 @@ const Sidebar: React.FC = () => {
         )
       })
     ),
+
+    // Plan limit indicator
+    (() => {
+      const { maxProjects } = getFlags()
+      if (maxProjects === Infinity) return null
+      const count = projects.length
+      return React.createElement('div', {
+        style: {
+          padding: '4px 16px', fontSize: '11px',
+          color: count >= maxProjects ? 'var(--waiting)' : 'var(--text-tertiary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        },
+      },
+        React.createElement('span', null, `${count} / ${maxProjects} projects`),
+        count >= maxProjects
+          ? React.createElement('span', {
+              style: { fontSize: '11px', color: 'var(--accent)', cursor: 'pointer' },
+            }, 'Upgrade \u2192')
+          : null
+      )
+    })(),
 
     // Add project button
     React.createElement('div', { style: { padding: '8px' } },

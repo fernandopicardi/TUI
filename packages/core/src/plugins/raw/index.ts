@@ -1,8 +1,8 @@
-import { AgentflowPlugin, PluginContext } from '../../types/plugin'
+import { RegentPlugin, PluginContext } from '../../types/plugin'
 import { getRepoName } from '../../git/utils'
 import { getCurrentBranch, listWorktrees } from '../../git/worktrees'
 
-const rawPlugin: AgentflowPlugin = {
+const rawPlugin: RegentPlugin = {
   name: 'raw',
   priority: 0,
   async detect(): Promise<boolean> {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as React from 'react'
 import { render, Text, Box } from 'ink'
-import { getRepoRoot, loadConfig } from '@agentflow/core'
+import { getRepoRoot, loadConfig } from '@regent/core'
 import App from './App.js'
 
 async function main() {
@@ -14,10 +14,10 @@ async function main() {
       React.createElement(
         Box,
         { flexDirection: 'column' },
-        React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 agentflow'),
+        React.createElement(Text, { bold: true, color: 'cyan' }, '\u2B21 Regent'),
         React.createElement(Text, null, ''),
         React.createElement(Text, { color: 'red' }, 'Nenhum reposit\u00F3rio git encontrado neste diret\u00F3rio.'),
-        React.createElement(Text, { dimColor: true }, 'Execute agentflow dentro de um reposit\u00F3rio git.'),
+        React.createElement(Text, { dimColor: true }, 'Execute Regent dentro de um reposit\u00F3rio git.'),
         React.createElement(Text, { dimColor: true }, `Diret\u00F3rio atual: ${cwd}`)
       )
     )

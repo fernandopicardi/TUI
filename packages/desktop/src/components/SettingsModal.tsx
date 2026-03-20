@@ -28,21 +28,21 @@ const SettingsModal: React.FC = () => {
 
   // Load settings on mount
   useEffect(() => {
-    window.agentflow.settings.readGlobal().then((data) => {
+    window.regent.settings.readGlobal().then((data) => {
       if (data.openCommand) setOpenCommand(data.openCommand)
       if (data.refreshInterval) setRefreshInterval(data.refreshInterval)
       if (data.githubToken) setGithubToken(data.githubToken)
     })
 
     if (activeProject) {
-      window.agentflow.settings.readProject(activeProject.rootPath).then((data) => {
+      window.regent.settings.readProject(activeProject.rootPath).then((data) => {
         setProjectConfig(JSON.stringify(data, null, 2))
       })
     }
   }, [activeProject?.rootPath])
 
   const handleSaveGeneral = async () => {
-    await window.agentflow.settings.writeGlobal({
+    await window.regent.settings.writeGlobal({
       openCommand,
       refreshInterval,
       githubToken: githubToken || undefined,
@@ -54,7 +54,7 @@ const SettingsModal: React.FC = () => {
     if (!githubToken.trim()) return
     setTesting(true)
     setTestResult(null)
-    const result = await window.agentflow.settings.testGithub(githubToken)
+    const result = await window.regent.settings.testGithub(githubToken)
     setTestResult(result)
     setTesting(false)
   }
@@ -64,7 +64,7 @@ const SettingsModal: React.FC = () => {
     setConfigSaving(true)
     try {
       const parsed = JSON.parse(projectConfig)
-      await window.agentflow.settings.writeProject(activeProject.rootPath, parsed)
+      await window.regent.settings.writeProject(activeProject.rootPath, parsed)
       useStore.getState().showToast('Project config saved', 'success')
     } catch {
       useStore.getState().showToast('Invalid JSON', 'warning')
@@ -258,7 +258,7 @@ const SettingsModal: React.FC = () => {
             },
               React.createElement('div', {
                 style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' },
-              }, `agentflow.config.json \u2014 ${activeProject.name}`),
+              }, `regent.config.json \u2014 ${activeProject.name}`),
               React.createElement('textarea', {
                 value: projectConfig,
                 onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setProjectConfig(e.target.value),

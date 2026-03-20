@@ -1,10 +1,10 @@
 {
-  "name": "@agentflow/tui",
+  "name": "@regent/tui",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "agentflow": "./dist/index.js"
+    "regent": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -12,7 +12,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@agentflow/core": "workspace:*",
+    "@regent/core": "workspace:*",
     "ink": "^4.4.1",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^5.0.1",

@@ -1,8 +1,12 @@
+// Copyright (c) 2026 Regent. All rights reserved.
+// Proprietary and confidential. Unauthorized use prohibited.
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Project, AgentSession, Toast } from '../types'
+import { canAddProject, canAddAgent, PLAN_FLAGS } from '../features'
 
-export interface AgentflowStore {
+export interface RegentStore {
   // State
   projects: Project[]
   activeProjectId: string | null
@@ -55,7 +59,7 @@ export interface AgentflowStore {
   getProjectById: (id: string) => Project | null
 }
 
-export const useStore = create<AgentflowStore>()(
+export const useStore = create<RegentStore>()(
   persist(
     (set, get) => ({
       projects: [],
@@ -70,15 +74,25 @@ export const useStore = create<AgentflowStore>()(
       toasts: [],
       initPrompt: null,
 
-      addProject: (projectData) => set(state => ({
-        projects: [...state.projects, {
-          ...projectData,
-          agents: [],
-          addedAt: Date.now(),
-          lastOpenedAt: Date.now(),
-        }],
-        activeProjectId: projectData.id,
-      })),
+      addProject: (projectData) => {
+        const state = get()
+        if (!canAddProject(state.projects.length)) {
+          state.showToast(
+            `Free plan is limited to ${PLAN_FLAGS.free.maxProjects} projects. Upgrade to Pro for unlimited projects.`,
+            'warning'
+          )
+          return
+        }
+        set(s => ({
+          projects: [...s.projects, {
+            ...projectData,
+            agents: [],
+            addedAt: Date.now(),
+            lastOpenedAt: Date.now(),
+          }],
+          activeProjectId: projectData.id,
+        }))
+      },
 
       removeProject: (projectId) => set(state => ({
         projects: state.projects.filter(p => p.id !== projectId),
@@ -98,14 +112,25 @@ export const useStore = create<AgentflowStore>()(
         activeAgentId: null,
       }),
 
-      addAgent: (projectId, agent) => set(state => ({
-        projects: state.projects.map(p =>
-          p.id === projectId
-            ? { ...p, agents: [...p.agents, agent] }
-            : p
-        ),
-        activeAgentId: agent.id,
-      })),
+      addAgent: (projectId, agent) => {
+        const state = get()
+        const project = state.projects.find(p => p.id === projectId)
+        if (project && !canAddAgent(project.agents.length)) {
+          state.showToast(
+            `Free plan is limited to ${PLAN_FLAGS.free.maxAgentsPerProject} agents per project. Upgrade to Pro for unlimited agents.`,
+            'warning'
+          )
+          return
+        }
+        set(s => ({
+          projects: s.projects.map(p =>
+            p.id === projectId
+              ? { ...p, agents: [...p.agents, agent] }
+              : p
+          ),
+          activeAgentId: agent.id,
+        }))
+      },
 
       removeAgent: (projectId, agentId) => set(state => ({
         projects: state.projects.map(p =>
@@ -166,7 +191,7 @@ export const useStore = create<AgentflowStore>()(
       getProjectById: (id) => get().projects.find(p => p.id === id) ?? null,
     }),
     {
-      name: 'agentflow-store',
+      name: 'regent-store',
       // Persist projects, active selections, and agent states
       partialize: (state) => ({
         projects: state.projects,

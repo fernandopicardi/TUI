@@ -1,5 +1,5 @@
-import { AgentflowPlugin, PluginContext } from '../types/plugin'
-import { AgentflowConfig } from '../types/config'
+import { RegentPlugin, PluginContext } from '../types/plugin'
+import { RegentConfig } from '../types/config'
 import { readJsonSafe, joinPath, withTimeout } from '../git/utils'
 import agencyOSPlugin from './agency-os/index'
 import bmadPlugin from './bmad/index'
@@ -9,14 +9,14 @@ import rawPlugin from './raw/index'
 const DETECT_TIMEOUT_MS = 2000
 const LOAD_TIMEOUT_MS = 2000
 
-const plugins: AgentflowPlugin[] = [
+const plugins: RegentPlugin[] = [
   agencyOSPlugin,
   bmadPlugin,
   genericPlugin,
   rawPlugin,
 ].sort((a, b) => b.priority - a.priority)
 
-const pluginsByName = new Map<string, AgentflowPlugin>(
+const pluginsByName = new Map<string, RegentPlugin>(
   plugins.map(p => [p.name, p])
 )
 
@@ -27,8 +27,8 @@ const pluginsByName = new Map<string, AgentflowPlugin>(
  */
 export async function resolvePlugin(
   rootPath: string,
-  config?: AgentflowConfig
-): Promise<AgentflowPlugin> {
+  config?: RegentConfig
+): Promise<RegentPlugin> {
   // Check for manual override in config
   if (config?.plugin && pluginsByName.has(config.plugin)) {
     return pluginsByName.get(config.plugin)!
@@ -37,7 +37,7 @@ export async function resolvePlugin(
   // Also check config file
   if (!config?.plugin) {
     const fileConfig = await readJsonSafe<{ plugin?: string }>(
-      joinPath(rootPath, 'agentflow.config.json')
+      joinPath(rootPath, 'regent.config.json')
     )
     if (fileConfig?.plugin && pluginsByName.has(fileConfig.plugin)) {
       return pluginsByName.get(fileConfig.plugin)!
@@ -65,7 +65,7 @@ export async function resolvePlugin(
  * Safely load a plugin's context. Falls back to raw plugin on failure.
  */
 export async function loadPluginSafe(
-  plugin: AgentflowPlugin,
+  plugin: RegentPlugin,
   rootPath: string
 ): Promise<PluginContext | null> {
   try {
@@ -89,7 +89,7 @@ export async function loadPluginSafe(
 /**
  * Register a custom plugin at runtime.
  */
-export function registerPlugin(plugin: AgentflowPlugin): void {
+export function registerPlugin(plugin: RegentPlugin): void {
   plugins.push(plugin)
   plugins.sort((a, b) => b.priority - a.priority)
   pluginsByName.set(plugin.name, plugin)

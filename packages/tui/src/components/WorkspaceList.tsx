@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useMemo } from 'react'
 import { Box, Text } from 'ink'
-import { Worktree, AgentStatus } from '@agentflow/core'
+import { Worktree, AgentStatus } from '@regent/core'
 import WorkspaceCard from './WorkspaceCard.js'
 
 interface Props {

@@ -1,14 +1,14 @@
-appId: com.agentflow.desktop
-productName: agentflow
-copyright: Copyright © 2026
+appId: com.regent.desktop
+productName: Regent
+copyright: Copyright © 2026 Regent. All rights reserved.
 
 win:
-  icon: assets/icon.ico
   target:
     - target: nsis
       arch: [x64]
-    - target: portable
+    - target: zip
       arch: [x64]
+  icon: assets/icon.ico
 
 nsis:
   oneClick: false
@@ -16,7 +16,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: agentflow
+  shortcutName: Regent
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
 
 directories:
   output: release

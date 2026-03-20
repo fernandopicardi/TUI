@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Regent. All rights reserved.
+// Proprietary and confidential. Unauthorized use prohibited.
+
 // ── Domain types ──
 
 export interface AgentSession {
@@ -90,7 +93,7 @@ export interface MCPServerEntry {
   scope: 'global' | 'project'
 }
 
-export interface AgentflowAPI {
+export interface RegentAPI {
   dialog: {
     openDirectory: () => Promise<string | null>
   }
@@ -159,6 +162,6 @@ export interface AgentflowAPI {
 
 declare global {
   interface Window {
-    agentflow: AgentflowAPI
+    regent: RegentAPI
   }
 }

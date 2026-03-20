@@ -26,7 +26,7 @@ importers:
 
   packages/desktop:
     dependencies:
-      '@agentflow/core':
+      '@regent/core':
         specifier: workspace:*
         version: link:../core
       node-pty:
@@ -84,7 +84,7 @@ importers:
 
   packages/tui:
     dependencies:
-      '@agentflow/core':
+      '@regent/core':
         specifier: workspace:*
         version: link:../core
       chokidar:

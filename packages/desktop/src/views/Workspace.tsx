@@ -8,6 +8,7 @@ import FileTree from '../components/FileTree'
 import MCPPanel from '../components/MCPPanel'
 import WorkspaceNotes from '../components/WorkspaceNotes'
 import GitHistory from '../components/GitHistory'
+import UpgradeGate from '../components/UpgradeGate'
 
 type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
@@ -51,9 +52,9 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     if (!agent || !project) return
     if (!confirm(`Delete agent "${agent.branch}"?`)) return
     try {
-      window.agentflow?.terminal?.close(agent.terminalId)
+      window.regent?.terminal?.close(agent.terminalId)
       if (agent.worktreePath !== project.rootPath) {
-        await window.agentflow.git.removeWorktree(project.rootPath, agent.worktreePath)
+        await window.regent.git.removeWorktree(project.rootPath, agent.worktreePath)
       }
       useStore.getState().removeAgent(project.id, agent.id)
     } catch (err: unknown) {
@@ -170,22 +171,30 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'history' ? 'flex' : 'none', flexDirection: 'column' as const },
       },
-        React.createElement(GitHistory, { worktreePath: agent.worktreePath, visible: activeTab === 'history' })
+        React.createElement(UpgradeGate, { feature: 'gitHistoryFull' },
+          React.createElement(GitHistory, { worktreePath: agent.worktreePath, visible: activeTab === 'history' })
+        )
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
       },
-        React.createElement(PRPanel, { worktreePath: agent.worktreePath, branch: agent.branch })
+        React.createElement(UpgradeGate, { feature: 'prFlow' },
+          React.createElement(PRPanel, { worktreePath: agent.worktreePath, branch: agent.branch })
+        )
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
       },
-        React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
+        React.createElement(UpgradeGate, { feature: 'sessionNotes' },
+          React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
+        )
       ),
     ),
 
     // MCP Panel
-    React.createElement(MCPPanel, { worktreePath: agent.worktreePath })
+    React.createElement(UpgradeGate, { feature: 'mcpManager' },
+      React.createElement(MCPPanel, { worktreePath: agent.worktreePath })
+    )
   )
 }
 

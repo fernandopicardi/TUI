@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import {
-  AgentflowPlugin,
+  RegentPlugin,
   PluginContext,
   resolvePlugin,
   loadPluginSafe,
   rawPlugin,
-} from '@agentflow/core'
+} from '@regent/core'
 
 export function usePlugin(rootPath: string) {
-  const [plugin, setPlugin] = useState<AgentflowPlugin | null>(null)
+  const [plugin, setPlugin] = useState<RegentPlugin | null>(null)
   const [context, setContext] = useState<PluginContext | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [warning, setWarning] = useState<string | null>(null)

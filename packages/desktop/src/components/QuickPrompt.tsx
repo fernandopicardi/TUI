@@ -2,8 +2,9 @@ import * as React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../store/index'
 import { PROMPT_TEMPLATES } from '../data/promptTemplates'
+import { hasFeature } from '../features'
 
-const HISTORY_KEY = 'agentflow:prompt-history'
+const HISTORY_KEY = 'regent:prompt-history'
 const MAX_HISTORY = 20
 
 type BroadcastMode = 'active' | 'project' | 'all'
@@ -55,11 +56,16 @@ const QuickPrompt: React.FC = () => {
 
     if (targets.length === 0) return
 
+    if (broadcastMode !== 'active' && !hasFeature('broadcastPrompts')) {
+      useStore.getState().showToast('Broadcast requires Pro plan. Upgrade to send to multiple agents.', 'warning')
+      return
+    }
+
     saveHistory(prompt)
 
     for (const agent of targets) {
       if (agent) {
-        await window.agentflow.terminal.injectWhenReady(agent.terminalId, prompt)
+        await window.regent.terminal.injectWhenReady(agent.terminalId, prompt)
       }
     }
 

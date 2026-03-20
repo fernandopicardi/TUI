@@ -10,7 +10,7 @@ const AddProjectModal: React.FC = () => {
   const [step, setStep] = useState<'choose' | 'clone' | 'cloning'>('choose')
   const [url, setUrl] = useState('')
   const [targetPath, setTargetPath] = useState(() => {
-    try { return localStorage.getItem('agentflow:clone-dir') || '' } catch { return '' }
+    try { return localStorage.getItem('regent:clone-dir') || '' } catch { return '' }
   })
   const [folderName, setFolderName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +36,7 @@ const AddProjectModal: React.FC = () => {
     let plugin = 'raw'
     let pluginContext: any = null
     try {
-      const result = await window.agentflow.plugins.load(rootPath)
+      const result = await window.regent.plugins.load(rootPath)
       plugin = result.pluginName
       pluginContext = result.context
     } catch {}
@@ -62,8 +62,8 @@ const AddProjectModal: React.FC = () => {
   }, [onClose])
 
   const handleOpenLocal = useCallback(async () => {
-    if (!window.agentflow?.dialog) return
-    const selectedPath = await window.agentflow.dialog.openDirectory()
+    if (!window.regent?.dialog) return
+    const selectedPath = await window.regent.dialog.openDirectory()
     if (!selectedPath) return
     await addProjectFromPath(selectedPath)
   }, [addProjectFromPath])
@@ -78,10 +78,10 @@ const AddProjectModal: React.FC = () => {
   }
 
   const handlePickDir = async () => {
-    const dir = await window.agentflow.dialog.openDirectory()
+    const dir = await window.regent.dialog.openDirectory()
     if (dir) {
       setTargetPath(dir)
-      try { localStorage.setItem('agentflow:clone-dir', dir) } catch {}
+      try { localStorage.setItem('regent:clone-dir', dir) } catch {}
     }
   }
 
@@ -91,10 +91,10 @@ const AddProjectModal: React.FC = () => {
     setStep('cloning')
     setError(null)
 
-    const result = await window.agentflow.git.clone(url.trim(), targetPath.trim(), folderName.trim())
+    const result = await window.regent.git.clone(url.trim(), targetPath.trim(), folderName.trim())
 
     if (result.success && result.path) {
-      window.agentflow.notify('Clone complete', `${folderName} cloned successfully`, 'success')
+      window.regent.notify('Clone complete', `${folderName} cloned successfully`, 'success')
       await addProjectFromPath(result.path)
     } else {
       setError(result.error || 'Clone failed')

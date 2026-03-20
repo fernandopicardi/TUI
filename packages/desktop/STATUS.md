@@ -1,7 +1,7 @@
 # Regent — Project Status
 
 > Last updated: 2026-03-20
-> Current codebase name: agentflow (rename to Regent pending — see Naming section)
+> Codebase name: Regent (renamed from agentflow on 2026-03-20)
 
 ## Product Vision
 
@@ -28,7 +28,7 @@ Regent is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Multi-project store | Done | Zustand + persist to localStorage, hydration guard |
 | Terminal persistence | Done | All Workspaces always mounted (display:none). PTY registry in main process with 1000-chunk buffer replay |
 | Claude readiness detection | Done | 7 output signals matched, prompt queued via injectWhenReady until ready |
-| Agent status polling | Done | Every 2s via @agentflow/core detectAgentStatus |
+| Agent status polling | Done | Every 2s via @regent/core detectAgentStatus |
 | Worktree sync (external) | Done | Polls every 3s per project, auto-adds/removes agents for worktrees created outside app |
 | Broadcast prompts | Done | QuickPrompt with active/project/all target selector, uses injectWhenReady per agent |
 | Chunked terminal paste | Done | Splits large pastes into 512-char chunks for Windows ConPTY |
@@ -122,21 +122,21 @@ Renderer (React 18 + Zustand)
 
 ## Pending Work — Next Session Priorities
 
-1. **Rename to Regent** — All references: package names, window title, store key, config paths, electron-builder, README, BMAD structure
-2. **Feature flags system** — `src/features.ts` with plan-based flags, FeatureGate component, all defaulting to free tier
+1. ~~**Rename to Regent**~~ — Done (2026-03-20)
+2. **Feature flags system** — `src/features.ts` with plan-based flags, UpgradeGate component, all defaulting to free tier
 3. **Pre-terminal config panel** — Model selection, permissions mode, initial prompt before launching agent
 4. **Mac build** — electron-builder macOS target, platform shell detection, path handling
 5. **Syntax highlighting** — Lightweight solution for file viewer and diff
 
 ## Roadmap
 
-### Block 1 — Foundation & Identity (next)
-- Rename entire codebase from agentflow to Regent
-- Add proprietary LICENSE file
-- Add copyright headers to main files
-- Update README
-- Make GitHub repo private and rename to "regent"
-- Update BMAD structure with new name
+### Block 1 — Foundation & Identity (done)
+- ~~Rename entire codebase from agentflow to Regent~~ Done
+- ~~Add proprietary LICENSE file~~ Done
+- ~~Add copyright headers to main files~~ Done
+- ~~Update README~~ Done
+- Make GitHub repo private and rename to "regent" (manual — see REPO_SETUP.md)
+- ~~Update BMAD structure with new name~~ Done
 
 ### Block 2 — Feature Flags System
 - Implement feature flag infrastructure in src/features.ts
@@ -203,20 +203,24 @@ Renderer (React 18 + Zustand)
 
 ## Naming
 
-The product is being renamed from **agentflow** to **Regent**. This rename has NOT been executed yet.
+The product has been renamed from **agentflow** to **Regent** (2026-03-20).
 
-Locations that need updating:
-- `package.json` (all 3 packages: name fields)
-- `electron-builder.yml` (appId, productName, shortcutName)
-- Zustand store key (`agentflow-store` → `regent-store`)
-- Global config path (`~/.agentflow/` → `~/.regent/`)
-- All UI strings referencing "agentflow"
-- Window title
-- localStorage keys (prompt history, notes)
-- CSP connect-src if needed
-- GitHub repo name
+Completed:
+- `package.json` (all 3 packages: @regent/core, @regent/tui, @regent/desktop)
+- `electron-builder.yml` (appId: com.regent.desktop, productName: Regent)
+- Zustand store key → `regent-store`
+- Global config path → `~/.regent/config.json`
+- All UI strings → "Regent"
+- Window title → "Regent"
+- localStorage keys → `regent:*`
+- Config file → `regent.config.json`
 - BMAD structure files
-- CLAUDE.md references
+- CLAUDE.md, CONTEXT.md, STATUS.md, README.md
+- Copyright headers on main files
+- Proprietary LICENSE file
+
+Remaining (manual):
+- GitHub repo name (see REPO_SETUP.md)
 
 ## Development Workflow
 

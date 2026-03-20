@@ -1,17 +1,17 @@
-# agentflow
+# Regent
 
-## O que é
-Orquestrador multi-projeto de agentes Claude Code para Windows, usando Git worktrees para isolamento de branches e terminais persistentes via node-pty.
+## What it is
+Multi-project Claude Code agent orchestrator for Windows, using Git worktrees for branch isolation and persistent terminals via node-pty.
 
-## Arquitetura do monorepo
+## Monorepo architecture
 
 ```
-packages/core     — Lógica compartilhada (Git, plugins, agents, config). CJS, sem React/UI.
-packages/tui      — CLI com Ink 4.x (React terminal). ESM, type: module.
-packages/desktop  — App Electron 28 (React 18 + Zustand + xterm.js + node-pty + esbuild).
+packages/core     — Shared logic (Git, plugins, agents, config). CJS, no React/UI.
+packages/tui      — CLI with Ink 4.x (React terminal). ESM, type: module.
+packages/desktop  — Electron 28 app (React 18 + Zustand + xterm.js + node-pty + esbuild).
 ```
 
-### @agentflow/core — exports principais
+### @regent/core — main exports
 - **Git:** `listWorktrees`, `createWorktree`, `removeWorktree`, `watchWorktrees`, `getCurrentBranch`
 - **Utils:** `normalizePath`, `joinPath`, `resolvePath`, `getRepoRoot`, `getRepoName`, `pathExists`, `fileExists`, `readFileSafe`, `withTimeout`
 - **Agents:** `detectAgentStatus`, `getRunningNodeProcesses`
@@ -19,48 +19,48 @@ packages/desktop  — App Electron 28 (React 18 + Zustand + xterm.js + node-pty 
 - **Plugins:** `resolvePlugin`, `loadPluginSafe`, `registerPlugin`
 - **Readers:** `readClients` (Agency OS), `readBmadData` (BMAD)
 
-### @agentflow/desktop — IPC channels
-- `dialog:open-directory` — seletor de pasta com validação de repo Git
+### @regent/desktop — IPC channels
+- `dialog:open-directory` — folder picker with Git repo validation
 - `git:*` — list-worktrees, create-worktree, remove-worktree, get-current-branch, watch-worktrees, watch-project-worktrees, clone
-- `agent:get-status` — detecta working/waiting/idle/done por mtime de arquivos
-- `plugin:load` — resolve + load plugin com timeout 2s
-- `terminal:*` — create (com buffer replay), input, resize, close, get-buffer, is-alive, inject-when-ready
-- `github:*` — get-diff (simple-git status + show), create-pr (GitHub REST API com token)
+- `agent:get-status` — detects working/waiting/idle/done by file mtime
+- `plugin:load` — resolve + load plugin with 2s timeout
+- `terminal:*` — create (with buffer replay), input, resize, close, get-buffer, is-alive, inject-when-ready
+- `github:*` — get-diff (simple-git status + show), create-pr (GitHub REST API with token)
 - `mcp:*` — get-config (global + project), add-server, remove-server
-- `settings:*` — read/write global (~/.agentflow/config.json) e project (agentflow.config.json)
-- `files:*` — list (tree recursivo com git status), read (com proteção binário/512KB)
+- `settings:*` — read/write global (~/.regent/config.json) and project (regent.config.json)
+- `files:*` — list (recursive tree with git status), read (with binary/512KB protection)
 
-## Como buildar
+## How to build
 ```bash
-pnpm install                          # Instala deps de todos os workspaces
+pnpm install                          # Install deps for all workspaces
 pnpm build                            # Build all: core (tsc) → desktop (esbuild 3-target)
 ```
-**Ordem importa:** core deve compilar primeiro (tui e desktop dependem de `@agentflow/core`).
+**Order matters:** core must compile first (tui and desktop depend on `@regent/core`).
 
-## Como rodar em desenvolvimento
+## How to run in development
 ```bash
-pnpm dev:desktop                      # Build renderer + inicia Electron (DevTools abre auto)
-pnpm dev:tui                          # Watch mode para TUI (tsc --watch)
+pnpm dev:desktop                      # Build renderer + start Electron (DevTools opens auto)
+pnpm dev:tui                          # Watch mode for TUI (tsc --watch)
 ```
-O desktop usa `node scripts/build-renderer.mjs` que roda esbuild com 3 targets: main, preload, renderer.
+Desktop uses `node scripts/build-renderer.mjs` which runs esbuild with 3 targets: main, preload, renderer.
 
-## Decisões arquiteturais tomadas
-- **Terminal registry no main process** — ptys vivem no main, não no renderer. Buffer de 1000 chunks para replay ao reconectar. Terminals só morrem em `terminal:close` explícito, nunca em unmount de componente.
-- **ALL agents mounted** — todos os Workspace components ficam montados (display:none/flex) para preservar estado do xterm. Sem unmount/remount.
-- **Zustand com persist** — localStorage salva projects, activeProjectId, activeAgentId. Hydration guard no App.tsx.
-- **Plugin system com prioridade** — agency-os(100) > bmad(90) > generic(10) > raw(0). Cada detect() tem timeout 2s. Config override via agentflow.config.json.
-- **Claude Code readiness detection** — main process escuta output do pty procurando sinais ("Welcome to Claude Code", "claude>", etc). Quando pronto, injeta prompt pendente com 500ms delay.
-- **Worktree sync externo** — poll a cada 3s compara snapshot de paths. Worktrees criados fora do app são detectados e adicionados como source: 'external'.
-- **IPC serialization** — todos os objetos passam por `JSON.parse(JSON.stringify())` antes de cruzar a bridge. Dates e funções não sobrevivem.
-- **Frameless window** — titleBarStyle: 'hidden', frame: false. Custom TitleBar component com window controls.
+## Architectural decisions
+- **Terminal registry in main process** — ptys live in main, not renderer. 1000-chunk buffer for replay on reconnect. Terminals only die on explicit `terminal:close`, never on component unmount.
+- **ALL agents mounted** — all Workspace components stay mounted (display:none/flex) to preserve xterm state. No unmount/remount.
+- **Zustand with persist** — localStorage saves projects, activeProjectId, activeAgentId. Hydration guard in App.tsx.
+- **Plugin system with priority** — agency-os(100) > bmad(90) > generic(10) > raw(0). Each detect() has 2s timeout. Config override via regent.config.json.
+- **Claude Code readiness detection** — main process listens to pty output for signals ("Welcome to Claude Code", "claude>", etc). When ready, injects pending prompt with 500ms delay.
+- **External worktree sync** — polls every 3s comparing path snapshots. Worktrees created outside the app are detected and added as source: 'external'.
+- **IPC serialization** — all objects pass through `JSON.parse(JSON.stringify())` before crossing the bridge. Dates and functions don't survive.
+- **Frameless window** — titleBarStyle: 'hidden', frame: false. Custom TitleBar component with window controls.
 
-## Modelo de dados
+## Data model
 
 ### Project
 ```typescript
 {
-  id: string                    // hash do rootPath
-  name: string                  // nome da pasta do repo
+  id: string                    // hash of rootPath
+  name: string                  // repo folder name
   rootPath: string
   plugin: 'raw' | 'generic' | 'agency-os' | 'bmad'
   pluginContext?: any
@@ -79,7 +79,7 @@ O desktop usa `node scripts/build-renderer.mjs` que roda esbuild com 3 targets: 
   worktreePath: string
   status: 'working' | 'waiting' | 'idle' | 'done'
   lastActivity?: number
-  terminalId: string            // id do pty no main process
+  terminalId: string            // pty id in main process
   isTerminalAlive: boolean
   notes?: string
   tokenUsage?: { input: number; output: number; costUsd: number }
@@ -90,66 +90,41 @@ O desktop usa `node scripts/build-renderer.mjs` que roda esbuild com 3 targets: 
 ```
 
 ## Plugin system
-Detecção por prioridade com fallback:
-1. **agency-os** (100) — detecta `agency/clients/` ou `agency/{name}/profile.md`
-2. **bmad** (90) — detecta `.bmad/` ou "bmad" no CLAUDE.md ou `.claude/agents/`
-3. **generic** (10) — detecta `CLAUDE.md` na raiz
-4. **raw** (0) — sempre match (fallback universal)
+Detection by priority with fallback:
+1. **agency-os** (100) — detects `agency/clients/` or `agency/{name}/profile.md`
+2. **bmad** (90) — detects `.bmad/` or "bmad" in CLAUDE.md or `.claude/agents/`
+3. **generic** (10) — detects `CLAUDE.md` at root
+4. **raw** (0) — always matches (universal fallback)
 
-Override manual: campo `plugin` no `agentflow.config.json`.
+Manual override: `plugin` field in `regent.config.json`.
 
-Para adicionar plugin: implementar `AgentflowPlugin` (name, priority, detect, load) e chamar `registerPlugin()`.
+To add a plugin: implement `RegentPlugin` (name, priority, detect, load) and call `registerPlugin()`.
 
-## Estado atual do MVP (v0.1.1)
+## What NOT to do
+- Do NOT use the name "agentflow" for new code — the product is **Regent**
+- Do NOT make the repository public — it is proprietary
+- Do NOT use JSX syntax — this project uses `React.createElement()` calls exclusively
+- Do NOT hardcode paths with forward slashes — always use `path.join()` or `normalizePath()`
+- Do NOT expose Node APIs directly to the renderer — always go through preload.ts
+- Do NOT add external CSS frameworks — use the existing CSS variables system in index.html
+- Do NOT use `JSON.stringify()` alone for IPC returns — always wrap with `JSON.parse(JSON.stringify())`
+- Do NOT unmount Workspace components — all agents stay mounted with `display: none` to preserve terminal sessions
+- Do NOT add JSX transpilation — esbuild config uses plain React.createElement
 
-### Funcionando
-- Multi-projeto com sidebar e troca rápida
-- Criação/remoção de worktrees via Git
-- Terminais persistentes com node-pty + xterm.js (buffer replay)
-- Claude Code readiness detection + init prompt injection
-- Worktree sync externo (poll 3s)
-- Agent status detection (working/waiting/idle por mtime)
-- Plugin detection (4 plugins built-in)
-- Diff viewer (files + inline diff via simple-git)
-- PR creation via GitHub REST API (push + create PR)
-- MCP config viewer/editor (global + project scope)
-- Settings modal (general, GitHub token test, project config)
-- Command palette (Ctrl+K)
-- Quick prompt broadcast (active/project/all agents)
-- File tree viewer com git status indicators
-- Toast notifications
-- Custom frameless window com title bar
-- Windows native notifications
+## Code conventions
+- **React without JSX** — desktop uses `React.createElement()` directly, no JSX transpiler
+- **Inline styles** — CSS via style objects, no CSS modules or styled-components
+- **CSS variables** — colors defined in `index.html` (:root), referenced via `var(--name)`
+- **TypeScript strict** — no implicit any, paths via `normalizePath()` from core
+- **IPC naming** — `domain:action` (e.g. `git:list-worktrees`, `terminal:create`)
+- **Error handling** — try/catch in every IPC handler, console.error with `[regent]` prefix
+- **Store access** — `useStore(s => s.field)` in components, `useStore.getState()` in event handlers
 
-### Placeholders / gaps conhecidos
-- Cost tracker — campo `tokenUsage` existe no model mas sem UI de coleta
-- GitHub OAuth — usa token manual, sem flow OAuth
-- MCP runtime status — mostra config mas não detecta se servidor está rodando
-- Agent status — heurística por mtime de arquivos, não comunicação direta com Claude Code
-- Auto-update — não implementado, download manual
-- Multi-window — single window only
-
-### Próximas prioridades
-- Estabilizar terminal lifecycle (edge cases de reconexão)
-- Melhorar UX de criação de agente (templates, prompts sugeridos)
-- Token/cost tracking real
-- Diff viewer melhorado (syntax highlighting)
-- Temas customizáveis
-
-## Convenções de código
-- **React sem JSX** — desktop usa `React.createElement()` direto, sem transpiler JSX
-- **Inline styles** — CSS via objetos style, sem CSS modules ou styled-components
-- **CSS variables** — cores definidas em `index.html` (:root), referenciadas via `var(--name)`
-- **TypeScript strict** — sem any implícito, paths via `normalizePath()` do core
-- **IPC naming** — `domain:action` (ex: `git:list-worktrees`, `terminal:create`)
-- **Error handling** — try/catch em todo IPC handler, console.error com prefixo `[agentflow]`
-- **Store access** — `useStore(s => s.field)` em componentes, `useStore.getState()` em event handlers
-
-## Cuidados importantes
-- **Windows paths** — sempre usar `normalizePath()` do core antes de operações Git/fs. Backslashes causam problemas com simple-git.
-- **node-pty ConPTY** — `useConpty: true` obrigatório no Windows. Sem isso, terminal não renderiza ANSI corretamente.
-- **IPC serialization** — objetos que cruzam a bridge perdem protótipos, Dates viram strings, funções somem. Sempre `JSON.parse(JSON.stringify())`.
-- **Terminal unmount** — NUNCA chamar `terminal:close` em cleanup de useEffect. Terminals devem persistir entre navegações. Só fechar em remoção explícita de agente.
-- **Zustand hydration** — App.tsx tem guard que espera hidratação do localStorage. Sem isso, estado aparece vazio no primeiro render.
-- **esbuild 3 targets** — main.ts e preload.ts compilam como CJS (Node), renderer compila como ESM (browser). Não misturar imports.
-- **simple-git em worktrees** — passar o path do worktree, não da raiz do repo. Cada worktree tem seu próprio HEAD.
+## Important caveats
+- **Windows paths** — always use `normalizePath()` from core before Git/fs operations. Backslashes cause problems with simple-git.
+- **node-pty ConPTY** — `useConpty: true` required on Windows. Without it, terminal doesn't render ANSI correctly.
+- **IPC serialization** — objects crossing the bridge lose prototypes, Dates become strings, functions disappear. Always `JSON.parse(JSON.stringify())`.
+- **Terminal unmount** — NEVER call `terminal:close` in useEffect cleanup. Terminals must persist across navigation. Only close on explicit agent removal.
+- **Zustand hydration** — App.tsx has a guard that waits for localStorage hydration. Without it, state appears empty on first render.
+- **esbuild 3 targets** — main.ts and preload.ts compile as CJS (Node), renderer compiles as ESM (browser). Don't mix imports.
+- **simple-git in worktrees** — pass the worktree path, not the repo root. Each worktree has its own HEAD.

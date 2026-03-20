@@ -1,6 +1,9 @@
+// Copyright (c) 2026 Regent. All rights reserved.
+// Proprietary and confidential. Unauthorized use prohibited.
+
 import { contextBridge, ipcRenderer } from 'electron'
 
-contextBridge.exposeInMainWorld('agentflow', {
+contextBridge.exposeInMainWorld('regent', {
   dialog: {
     openDirectory: () => ipcRenderer.invoke('dialog:open-directory'),
   },

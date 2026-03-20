@@ -1,8 +1,8 @@
-import { AgentflowPlugin, PluginContext } from '../../types/plugin'
+import { RegentPlugin, PluginContext } from '../../types/plugin'
 import { detectBMAD } from './detect'
 import { readBmadData } from './reader'
 
-const bmadPlugin: AgentflowPlugin = {
+const bmadPlugin: RegentPlugin = {
   name: 'bmad',
   priority: 90,
   detect: detectBMAD,

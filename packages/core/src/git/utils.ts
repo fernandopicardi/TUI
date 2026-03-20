@@ -117,7 +117,7 @@ export async function readJsonSafe<T>(filePath: string): Promise<T | null> {
   try {
     return JSON.parse(content) as T
   } catch {
-    console.error(`[agentflow] Warning: Invalid JSON in ${filePath}, using defaults`)
+    console.error(`[regent] Warning: Invalid JSON in ${filePath}, using defaults`)
     return null
   }
 }

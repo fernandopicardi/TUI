@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Text } from 'ink'
-import { AgentStatus } from '@agentflow/core'
+import { AgentStatus } from '@regent/core'
 
 const STATUS_CONFIG: Record<AgentStatus, { icon: string; color: string; label: string }> = {
   working: { icon: '\u25CF', color: 'green', label: 'working' },

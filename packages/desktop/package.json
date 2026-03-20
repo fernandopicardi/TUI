@@ -1,5 +1,5 @@
 {
-  "name": "@agentflow/desktop",
+  "name": "@regent/desktop",
   "version": "0.1.0",
   "main": "dist/electron/main.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "clean": "rimraf dist release"
   },
   "dependencies": {
-    "@agentflow/core": "workspace:*",
+    "@regent/core": "workspace:*",
     "node-pty": "^1.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -21,7 +21,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
 
   // Main effect: create xterm + connect to pty (runs once per id)
   useEffect(() => {
-    if (!containerRef.current || !window.agentflow?.terminal || !id) return
+    if (!containerRef.current || !window.regent?.terminal || !id) return
     if (initializedRef.current) return
     initializedRef.current = true
     terminalReadyRef.current = false
@@ -65,7 +65,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
         if (e.type === 'keydown' && e.ctrlKey && e.key === 'v') {
           pasteHandled = true
           navigator.clipboard.readText().then(text => {
-            if (text) window.agentflow.terminal.input(id, text)
+            if (text) window.regent.terminal.input(id, text)
           }).catch(() => {})
           setTimeout(() => { pasteHandled = false }, 100)
           return false
@@ -74,21 +74,21 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       })
 
       // Register output listener FIRST to avoid losing data
-      const removeOutput = window.agentflow.terminal.onOutput((termId: string, data: string) => {
+      const removeOutput = window.regent.terminal.onOutput((termId: string, data: string) => {
         if (termId === id && isMounted && xtermRef.current) {
           xtermRef.current.write(data)
         }
       })
 
       // Create or reconnect to existing terminal in main process
-      const result = await window.agentflow.terminal.create(id, worktreePath, openCommand)
+      const result = await window.regent.terminal.create(id, worktreePath, openCommand)
 
       if (!isMounted) { removeOutput?.(); return }
 
       // Replay buffer if terminal already existed (persistent session)
       if (result.existed && result.buffer) {
         result.buffer.forEach((chunk: string) => xterm.write(chunk))
-        xterm.write('\r\n\x1b[33m[agentflow] session reconnected\x1b[0m\r\n')
+        xterm.write('\r\n\x1b[33m[regent] session reconnected\x1b[0m\r\n')
       }
 
       terminalReadyRef.current = true
@@ -96,19 +96,19 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       // Inject initial prompt on NEW terminals using readiness detection
       if (!result.existed && initialPrompt) {
         pendingPromptRef.current = null
-        window.agentflow.terminal.injectWhenReady(id, initialPrompt)
+        window.regent.terminal.injectWhenReady(id, initialPrompt)
       }
 
       // Check if there's a pending prompt from InitBanner
       if (pendingPromptRef.current) {
         const prompt = pendingPromptRef.current
         pendingPromptRef.current = null
-        window.agentflow.terminal.injectWhenReady(id, prompt)
+        window.regent.terminal.injectWhenReady(id, prompt)
       }
 
       // Send input from xterm to main process
       xterm.onData((data: string) => {
-        window.agentflow.terminal.input(id, data)
+        window.regent.terminal.input(id, data)
       })
 
       // Handle right-click / context-menu paste (skip if Ctrl+V already handled it)
@@ -116,7 +116,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
         e.preventDefault()
         if (pasteHandled) return
         const text = e.clipboardData?.getData('text')
-        if (text) window.agentflow.terminal.input(id, text)
+        if (text) window.regent.terminal.input(id, text)
       })
 
       // Auto-resize
@@ -124,7 +124,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
         if (!isMounted || !fitAddonRef.current || !xtermRef.current) return
         try {
           fitAddonRef.current.fit()
-          window.agentflow.terminal.resize(id, xtermRef.current.cols, xtermRef.current.rows)
+          window.regent.terminal.resize(id, xtermRef.current.cols, xtermRef.current.rows)
         } catch {}
       })
       resizeObserver.observe(containerRef.current!)
@@ -155,7 +155,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
 
     if (terminalReadyRef.current) {
       // Terminal is running — use readiness-based injection
-      window.agentflow.terminal.injectWhenReady(id, prompt)
+      window.regent.terminal.injectWhenReady(id, prompt)
     } else {
       // Terminal not ready yet — store for later injection
       pendingPromptRef.current = prompt

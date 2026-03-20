@@ -1,43 +1,43 @@
 export const INIT_PROMPTS: Record<string, string> = {
-  auto: `Analise este projeto e identifique qual estrutura agentflow faz mais sentido configurar.
+  auto: `Analyze this project and identify which Regent structure makes the most sense to configure.
 
-Opções disponíveis:
-- Agency OS: para agências com múltiplos clientes, loops de CRO, hipóteses e testes A/B
-- BMAD: para projetos de desenvolvimento com agentes especializados (PM, Arquiteto, Dev, QA)
-- Generic: para qualquer projeto que queira contexto persistente entre sessões Claude Code
+Available options:
+- Agency OS: for agencies with multiple clients, CRO loops, hypotheses, and A/B tests
+- BMAD: for development projects with specialized agents (PM, Architect, Dev, QA)
+- Generic: for any project that wants persistent context between Claude Code sessions
 
-Analise os arquivos existentes, a stack do projeto e o contexto geral. Sugira a melhor opção com justificativa e inicialize a estrutura escolhida após minha confirmação.`,
+Analyze existing files, the project stack, and overall context. Suggest the best option with justification and initialize the chosen structure after my confirmation.`,
 
-  agencyOS: `Configure a estrutura Agency OS neste projeto.
+  agencyOS: `Configure the Agency OS structure in this project.
 
-Crie as seguintes pastas e arquivos:
-- agency/clients/ (pasta para clientes)
-- agency/clients/exemplo/ (cliente de exemplo para referência)
-- agency/clients/exemplo/profile.md (template de perfil)
-- agency/clients/exemplo/hypothesis-log.md (template de hipóteses)
-- agency/clients/exemplo/active-tests.md (template de testes ativos)
-- agency/clients/exemplo/winners.md (template de winners)
-- agency/portfolio-wins.md (biblioteca cross-client)
-- agentflow.config.json com plugin: "agency-os"
-- CLAUDE.md com contexto da agência
+Create the following folders and files:
+- agency/clients/ (client folder)
+- agency/clients/example/ (example client for reference)
+- agency/clients/example/profile.md (profile template)
+- agency/clients/example/hypothesis-log.md (hypothesis template)
+- agency/clients/example/active-tests.md (active tests template)
+- agency/clients/example/winners.md (winners template)
+- agency/portfolio-wins.md (cross-client library)
+- regent.config.json with plugin: "agency-os"
+- CLAUDE.md with agency context
 
-Antes de criar, me pergunte: nome da agência, e se já tenho um primeiro cliente para adicionar.`,
+Before creating, ask me: agency name, and whether I have a first client to add.`,
 
-  bmad: `Configure a estrutura BMAD neste projeto.
+  bmad: `Configure the BMAD structure in this project.
 
-Analise o projeto atual (stack, arquivos existentes, package.json se houver) e configure:
-- CLAUDE.md com contexto do projeto e instruções para agentes
-- .bmad/ com configuração dos agentes
-- Estrutura de stories e sprints adequada ao projeto
-- agentflow.config.json com plugin: "bmad"
+Analyze the current project (stack, existing files, package.json if any) and configure:
+- CLAUDE.md with project context and agent instructions
+- .bmad/ with agent configuration
+- Story and sprint structure appropriate for the project
+- regent.config.json with plugin: "bmad"
 
-Antes de criar, me pergunte: nome do projeto, tipo (web app / API / mobile / outro) e stack principal.`,
+Before creating, ask me: project name, type (web app / API / mobile / other) and main stack.`,
 
-  generic: `Configure estrutura genérica agentflow neste projeto.
+  generic: `Configure generic Regent structure in this project.
 
-Crie:
-- CLAUDE.md completo com: descrição do projeto, stack, convenções de código, comandos importantes, contexto para agentes
-- agentflow.config.json com configurações básicas
+Create:
+- CLAUDE.md with: project description, stack, code conventions, important commands, context for agents
+- regent.config.json with basic configuration
 
-Antes de criar, analise os arquivos existentes para popular o CLAUDE.md automaticamente com informações reais do projeto.`,
+Before creating, analyze existing files to auto-populate CLAUDE.md with real project information.`,
 }

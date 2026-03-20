@@ -1,4 +1,4 @@
-export interface AgentflowPlugin {
+export interface RegentPlugin {
   name: string
   priority: number
   detect(rootPath: string): Promise<boolean>

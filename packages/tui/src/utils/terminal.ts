@@ -1,5 +1,5 @@
 import { execFile } from 'child_process'
-import { normalizePath } from '@agentflow/core'
+import { normalizePath } from '@regent/core'
 
 export interface OpenWorkspaceResult {
   success: boolean

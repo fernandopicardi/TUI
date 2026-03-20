@@ -1,4 +1,4 @@
-export interface AgentflowConfig {
+export interface RegentConfig {
   plugin?: string
   agencyPath?: string
   refreshInterval?: number
@@ -8,7 +8,7 @@ export interface AgentflowConfig {
   openCommand?: string
 }
 
-export const DEFAULT_CONFIG: AgentflowConfig = {
+export const DEFAULT_CONFIG: RegentConfig = {
   refreshInterval: 3000,
   terminal: 'auto',
   maxVisibleWorkspaces: 8,

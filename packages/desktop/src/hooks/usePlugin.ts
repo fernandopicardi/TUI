@@ -14,9 +14,9 @@ export function usePluginLoader() {
 
   // Initial load when no context yet
   useEffect(() => {
-    if (!activeProject || activeProject.hasContext || !window.agentflow?.plugins) return
+    if (!activeProject || activeProject.hasContext || !window.regent?.plugins) return
 
-    window.agentflow.plugins.load(activeProject.rootPath)
+    window.regent.plugins.load(activeProject.rootPath)
       .then(({ pluginName, context }) => {
         useStore.getState().updateProject(activeProject.id, {
           plugin: pluginName,
@@ -24,7 +24,7 @@ export function usePluginLoader() {
         })
       })
       .catch((err: unknown) => {
-        console.error('[agentflow] plugin load failed:', err)
+        console.error('[regent] plugin load failed:', err)
       })
   }, [activeProject?.id, activeProject?.hasContext])
 
@@ -35,10 +35,10 @@ export function usePluginLoader() {
       pollRef.current = null
     }
 
-    if (!activeProject || activeProject.plugin !== 'raw' || !window.agentflow?.plugins) return
+    if (!activeProject || activeProject.plugin !== 'raw' || !window.regent?.plugins) return
 
     pollRef.current = setInterval(() => {
-      window.agentflow.plugins.load(activeProject.rootPath)
+      window.regent.plugins.load(activeProject.rootPath)
         .then(({ pluginName, context }) => {
           if (pluginName !== 'raw') {
             useStore.getState().updateProject(activeProject.id, {

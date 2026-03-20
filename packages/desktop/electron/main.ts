@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Regent. All rights reserved.
+// Proprietary and confidential. Unauthorized use prohibited.
+
 import { app, BrowserWindow, Menu, ipcMain, dialog, Notification } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -13,14 +16,14 @@ import {
   detectAgentStatus,
   getRepoRoot,
   normalizePath,
-} from '@agentflow/core'
+} from '@regent/core'
 import { simpleGit } from 'simple-git'
 
 process.on('uncaughtException', (err) => {
-  console.error('[agentflow] Uncaught exception:', err)
+  console.error('[regent] Uncaught exception:', err)
 })
 process.on('unhandledRejection', (err) => {
-  console.error('[agentflow] Unhandled rejection:', err)
+  console.error('[regent] Unhandled rejection:', err)
 })
 
 let mainWindow: BrowserWindow | null = null
@@ -109,7 +112,7 @@ function registerIpcHandlers() {
       if (!root) return null
       return root
     } catch (err) {
-      console.error('[agentflow] open-directory error:', err)
+      console.error('[regent] open-directory error:', err)
       return null
     }
   })
@@ -120,7 +123,7 @@ function registerIpcHandlers() {
       const result = await listWorktrees(normalizePath(rootPath))
       return JSON.parse(JSON.stringify(result))
     } catch (err) {
-      console.error('[agentflow] list-worktrees error:', err)
+      console.error('[regent] list-worktrees error:', err)
       return []
     }
   })
@@ -131,7 +134,7 @@ function registerIpcHandlers() {
       const data = JSON.parse(JSON.stringify(result))
       return { success: true, path: data.path, error: undefined }
     } catch (err: any) {
-      console.error('[agentflow] create-worktree error:', err)
+      console.error('[regent] create-worktree error:', err)
       return { success: false, path: undefined, error: err.message || String(err) }
     }
   })
@@ -140,7 +143,7 @@ function registerIpcHandlers() {
     try {
       await removeWorktree(normalizePath(rootPath), normalizePath(wtPath))
     } catch (err) {
-      console.error('[agentflow] remove-worktree error:', err)
+      console.error('[regent] remove-worktree error:', err)
       throw err
     }
   })
@@ -149,7 +152,7 @@ function registerIpcHandlers() {
     try {
       return await getCurrentBranch(normalizePath(rootPath))
     } catch (err) {
-      console.error('[agentflow] get-current-branch error:', err)
+      console.error('[regent] get-current-branch error:', err)
       return 'unknown'
     }
   })
@@ -168,7 +171,7 @@ function registerIpcHandlers() {
       worktreeWatchers.set(normalized, cleanup)
       return true
     } catch (err) {
-      console.error('[agentflow] watch-worktrees error:', err)
+      console.error('[regent] watch-worktrees error:', err)
       return false
     }
   })
@@ -225,7 +228,7 @@ function registerIpcHandlers() {
       const context = await loadPluginSafe(plugin, normalizePath(rootPath))
       return JSON.parse(JSON.stringify({ pluginName: plugin.name, context }))
     } catch (err) {
-      console.error('[agentflow] plugin-load error:', err)
+      console.error('[regent] plugin-load error:', err)
       return { pluginName: 'raw', context: null }
     }
   })
@@ -272,7 +275,7 @@ function registerIpcHandlers() {
     branch: string
   }) => {
     try {
-      // Read token from global settings (~/.agentflow/config.json), NOT project config
+      // Read token from global settings (~/.regent/config.json), NOT project config
       let token = process.env.GITHUB_TOKEN
       try {
         const raw = await fs.promises.readFile(globalConfigPath(), 'utf-8')
@@ -323,7 +326,7 @@ function registerIpcHandlers() {
   try {
     nodePty = require('node-pty')
   } catch {
-    console.warn('[agentflow] node-pty not available — terminal in simulated mode')
+    console.warn('[regent] node-pty not available — terminal in simulated mode')
   }
 
   ipcMain.handle('terminal:create', async (event, id: string, worktreePath: string, command: string) => {
@@ -341,8 +344,8 @@ function registerIpcHandlers() {
       const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null }
       terminalRegistry.set(id, entry)
 
-      const simMsg = `\x1b[36m[agentflow]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
-      const dirMsg = `\x1b[36m[agentflow]\x1b[0m Directory: ${worktreePath}\r\n`
+      const simMsg = `\x1b[36m[regent]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
+      const dirMsg = `\x1b[36m[regent]\x1b[0m Directory: ${worktreePath}\r\n`
       entry.buffer.push(simMsg, dirMsg)
 
       BrowserWindow.getAllWindows().forEach(win => {
@@ -384,7 +387,7 @@ function registerIpcHandlers() {
             BrowserWindow.getAllWindows().forEach(win => {
               if (!win.isDestroyed()) {
                 win.webContents.send('terminal:output', id,
-                  '\x1b[33m[agentflow]\x1b[0m Claude Code ready\r\n')
+                  '\x1b[33m[regent]\x1b[0m Claude Code ready\r\n')
               }
             })
 
@@ -397,7 +400,7 @@ function registerIpcHandlers() {
                   BrowserWindow.getAllWindows().forEach(win => {
                     if (!win.isDestroyed()) {
                       win.webContents.send('terminal:output', id,
-                        '\x1b[32m[agentflow]\x1b[0m prompt injected \u2713\r\n')
+                        '\x1b[32m[regent]\x1b[0m prompt injected \u2713\r\n')
                     }
                   })
                 }
@@ -437,7 +440,7 @@ function registerIpcHandlers() {
       BrowserWindow.getAllWindows().forEach(win => {
         if (!win.isDestroyed()) {
           win.webContents.send('terminal:output', terminalId,
-            '\x1b[32m[agentflow]\x1b[0m prompt injected \u2713\r\n')
+            '\x1b[32m[regent]\x1b[0m prompt injected \u2713\r\n')
         }
       })
       return { success: true, immediate: true }
@@ -448,7 +451,7 @@ function registerIpcHandlers() {
     BrowserWindow.getAllWindows().forEach(win => {
       if (!win.isDestroyed()) {
         win.webContents.send('terminal:output', terminalId,
-          '\x1b[33m[agentflow]\x1b[0m waiting for Claude Code...\r\n')
+          '\x1b[33m[regent]\x1b[0m waiting for Claude Code...\r\n')
       }
     })
     return { success: true, queued: true }
@@ -513,7 +516,7 @@ function registerIpcHandlers() {
       await git.clone(url, fullPath)
       return { success: true, path: fullPath }
     } catch (err: any) {
-      console.error('[agentflow] clone error:', err)
+      console.error('[regent] clone error:', err)
       return { success: false, error: err.message }
     }
   })
@@ -594,7 +597,7 @@ function registerIpcHandlers() {
   // ── Settings (Subtask 6) ──
   const globalConfigPath = () => {
     const home = process.env.USERPROFILE || process.env.HOME || ''
-    return path.join(home, '.agentflow', 'config.json')
+    return path.join(home, '.regent', 'config.json')
   }
 
   ipcMain.handle('settings:read-global', async () => {
@@ -619,7 +622,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('settings:read-project', async (_e, rootPath: string) => {
     try {
-      const p = path.join(normalizePath(rootPath), 'agentflow.config.json')
+      const p = path.join(normalizePath(rootPath), 'regent.config.json')
       const raw = await fs.promises.readFile(p, 'utf-8')
       return JSON.parse(raw)
     } catch {
@@ -629,7 +632,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('settings:write-project', async (_e, rootPath: string, data: Record<string, any>) => {
     try {
-      const p = path.join(normalizePath(rootPath), 'agentflow.config.json')
+      const p = path.join(normalizePath(rootPath), 'regent.config.json')
       await fs.promises.writeFile(p, JSON.stringify(data, null, 2))
       return { success: true }
     } catch {
@@ -712,7 +715,7 @@ function registerIpcHandlers() {
         error: null,
       }))
     } catch (err: any) {
-      console.error('[agentflow] git:log error:', err)
+      console.error('[regent] git:log error:', err)
       return { commits: [], branches: [], currentBranch: 'main', error: err.message }
     }
   })
@@ -855,7 +858,7 @@ function registerIpcHandlers() {
       if (!Notification.isSupported()) return
       new Notification({ title, body, silent: type === 'info' }).show()
     } catch (err) {
-      console.error('[agentflow] notification error:', err)
+      console.error('[regent] notification error:', err)
     }
   })
 

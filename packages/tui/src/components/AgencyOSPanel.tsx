@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Text, Box } from 'ink'
-import { PluginContext, AgencyClient } from '@agentflow/core'
+import { PluginContext, AgencyClient } from '@regent/core'
 
 const AgencyOSPanel: React.FC<{ context: PluginContext }> = ({ context }) => {
   const clients = (context.data.clients || []) as AgencyClient[]

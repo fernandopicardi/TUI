@@ -1,4 +1,4 @@
-# QA Agent — agentflow
+# QA Agent — Regent
 
 ## Papel
 Verificação de qualidade, smoke tests, identificação de regressões.

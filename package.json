@@ -1,13 +1,13 @@
 {
-  "name": "agentflow",
+  "name": "regent",
   "private": true,
   "description": "Orchestrate multiple Claude Code agents in parallel with git worktrees",
   "keywords": ["cli", "tui", "claude", "agent", "worktree", "electron"],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "pnpm -r build",
-    "dev:tui": "pnpm --filter @agentflow/tui dev",
-    "dev:desktop": "pnpm --filter @agentflow/desktop dev",
+    "dev:tui": "pnpm --filter @regent/tui dev",
+    "dev:desktop": "pnpm --filter @regent/desktop dev",
     "clean": "pnpm -r clean"
   },
   "pnpm": {
