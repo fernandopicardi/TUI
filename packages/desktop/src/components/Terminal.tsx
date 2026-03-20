@@ -57,12 +57,17 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
       xtermRef.current = xterm
       fitAddonRef.current = fitAddon
 
+      // Paste dedup flag — Ctrl+V handler sets this so the browser paste event won't fire twice
+      let pasteHandled = false
+
       // Handle Ctrl+V paste
       xterm.attachCustomKeyEventHandler((e: KeyboardEvent) => {
         if (e.type === 'keydown' && e.ctrlKey && e.key === 'v') {
+          pasteHandled = true
           navigator.clipboard.readText().then(text => {
             if (text) window.agentflow.terminal.input(id, text)
           }).catch(() => {})
+          setTimeout(() => { pasteHandled = false }, 100)
           return false
         }
         return true
@@ -106,9 +111,10 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
         window.agentflow.terminal.input(id, data)
       })
 
-      // Also handle browser paste event (right-click paste, etc)
+      // Handle right-click / context-menu paste (skip if Ctrl+V already handled it)
       containerRef.current!.addEventListener('paste', (e: ClipboardEvent) => {
         e.preventDefault()
+        if (pasteHandled) return
         const text = e.clipboardData?.getData('text')
         if (text) window.agentflow.terminal.input(id, text)
       })

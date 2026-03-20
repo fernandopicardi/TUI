@@ -35,10 +35,17 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
     checkToken()
   }, [worktreePath])
 
-  const checkToken = () => {
-    window.agentflow.settings.readGlobal()
-      .then((cfg) => setHasToken(!!(cfg as any).githubToken))
-      .catch(() => setHasToken(false))
+  const checkToken = async () => {
+    try {
+      const cfg = await window.agentflow.settings.readGlobal()
+      const token = (cfg as any).githubToken
+      if (!token) { setHasToken(false); return }
+      // Validate token actually works
+      const testResult = await window.agentflow.settings.testGithub(token)
+      setHasToken(testResult.success)
+    } catch {
+      setHasToken(false)
+    }
   }
 
   useEffect(() => {
