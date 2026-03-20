@@ -499,8 +499,14 @@ function registerIpcHandlers() {
       pty.onData((data: string) => {
         // Track activity for status detection
         entry.lastActivityAt = Date.now()
-        // Filter out ConPTY noise (cursor moves, empty data, control-only sequences)
-        const stripped = data.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/[\r\n\t]/g, '').trim()
+        // Filter out ConPTY noise (cursor moves, empty data, control-only sequences, OSC, DEC private modes)
+        const stripped = data
+          .replace(/\x1b\[[\?]?[0-9;]*[A-Za-z]/g, '')   // CSI sequences (including ?-prefixed DEC modes)
+          .replace(/\x1b\][^\x07]*\x07/g, '')             // OSC sequences (window title, etc)
+          .replace(/\x1b\][^\x1b]*\x1b\\/g, '')           // OSC with ST terminator
+          .replace(/\x1b[()][0-9A-Za-z]/g, '')            // Character set selection
+          .replace(/[\r\n\t\x07\x08]/g, '')               // Control characters (CR, LF, TAB, BEL, BS)
+          .trim()
         if (stripped.length > 0) {
           entry.lastMeaningfulActivityAt = Date.now()
         }
