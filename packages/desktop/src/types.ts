@@ -119,6 +119,8 @@ export interface RunnioAPI {
     commitFiles: (worktreePath: string, hash: string) => Promise<{ status: string; path: string }[]>
     getAvatar: (email: string) => Promise<{ url: string | null; source: string }>
     checkout: (worktreePath: string, ref: string) => Promise<{ success: boolean; error?: string }>
+    stageAll: (worktreePath: string) => Promise<{ success: boolean; error?: string }>
+    status: (worktreePath: string) => Promise<{ success: boolean; files: Array<{ path: string; status: string }>; error?: string }>
     watchProjectWorktrees: (projectId: string, rootPath: string) => Promise<{ success: boolean }>
     unwatchProjectWorktrees: (projectId: string) => void
     onProjectWorktreesChanged: (cb: (projectId: string, worktrees: WorktreeData[]) => void) => () => void
@@ -145,6 +147,7 @@ export interface RunnioAPI {
   files: {
     list: (rootPath: string) => Promise<FileEntry[]>
     read: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string; binary?: boolean }>
+    write: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>
   }
   github: {
     getDiff: (worktreePath: string) => Promise<{ files: string[]; diffs: Record<string, { original: string; modified: string }> }>

@@ -855,6 +855,46 @@ function registerIpcHandlers() {
     }
   })
 
+  // ── Git stage all ──
+  ipcMain.handle('git:stage-all', async (_e, worktreePath: string) => {
+    try {
+      const git = simpleGit(normalizePath(worktreePath))
+      await git.add('.')
+      return { success: true }
+    } catch (err: any) {
+      console.error('[runnio] stage-all error:', err)
+      return { success: false, error: err.message }
+    }
+  })
+
+  // ── Git status ──
+  ipcMain.handle('git:status', async (_e, worktreePath: string) => {
+    try {
+      const git = simpleGit(normalizePath(worktreePath))
+      const status = await git.status()
+      const files: Array<{ path: string; status: string }> = []
+      status.modified.forEach(f => files.push({ path: f, status: 'M' }))
+      status.created.forEach(f => files.push({ path: f, status: 'A' }))
+      status.deleted.forEach(f => files.push({ path: f, status: 'D' }))
+      status.not_added.forEach(f => files.push({ path: f, status: '?' }))
+      return JSON.parse(JSON.stringify({ success: true, files }))
+    } catch (err: any) {
+      console.error('[runnio] git:status error:', err)
+      return { success: false, error: err.message, files: [] }
+    }
+  })
+
+  // ── File write ──
+  ipcMain.handle('files:write', async (_e, filePath: string, content: string) => {
+    try {
+      await fs.promises.writeFile(normalizePath(filePath), content, 'utf-8')
+      return { success: true }
+    } catch (err: any) {
+      console.error('[runnio] files:write error:', err)
+      return { success: false, error: err.message }
+    }
+  })
+
   // ── File tree ──
   ipcMain.handle('files:list', async (_e, rootPath: string) => {
     const normalized = normalizePath(rootPath)

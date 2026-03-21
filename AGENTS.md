@@ -26,6 +26,12 @@ Status: Waiting for Agent 1 to merge
 Owns: src/components/AgentLaunchPanel.tsx (NEW), src/hooks/useSyntaxHighlight.ts (NEW), src/views/Workspace.tsx (ADD launch panel only), src/store/index.ts (ADD hasLaunched + launchConfig fields only)
 Do NOT touch: electron/main.ts core handlers, src/utils/gitGraph.ts
 
+## Agent D — Right Panel + Browser Preview + File Editor
+Branch: agent-d/right-panel-browser-editor
+Status: Complete — ready to merge
+Owns: src/components/RightPanel.tsx (NEW), src/components/FileEditor.tsx (NEW), src/components/BrowserPreview.tsx (NEW), src/views/Workspace.tsx (ADD right panel slot only)
+Do NOT touch: TitleBar.tsx, SettingsModal.tsx, TasksPanel.tsx, gitGraph.ts
+
 ## Merge order after all agents complete
 1. Agent 1 first — rename affects all files
 2. Agent 3 second — new files, minimal conflict

@@ -1,6 +1,6 @@
 # Runnio — Project Status
 
-> Last updated: 2026-03-20
+> Last updated: 2026-03-21
 > Codebase name: Runnio (renamed from agentflow/regent on 2026-03-20)
 
 ## Product Vision
@@ -35,6 +35,9 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Branch validation | Done | git-check-ref-format rules before worktree creation |
 | Clone repository | Done | 3-step modal (choose/clone/cloning) with progress animation |
 | Plugin detection | Done | Auto-detect agency-os/bmad/generic, re-polls every 10s while plugin=raw |
+| Right panel (Changes/Files/Info) | Done | Collapsible 280px panel with git status, file tree, agent info |
+| CodeMirror file editor | Done | Syntax highlighting, auto-save with 1s debounce, Runnio theme |
+| Browser preview | Done | Iframe-based localhost preview with URL bar |
 | Cost tracker | Not implemented | tokenUsage field exists in AgentSession type but zero UI or data collection |
 
 ### Workspace Tabs (6 tabs)
@@ -114,7 +117,7 @@ Renderer (React 18 + Zustand)
 5. **Single window** — No multi-window support
 6. **No auto-update** — Manual download for new versions
 7. **Windows only** — No Mac or Linux builds
-8. **No syntax highlighting** — File viewer and diff show plain text
+8. ~~**No syntax highlighting**~~ — CodeMirror 6 editor with syntax highlighting added in right panel
 9. **Diff 2000 line cap** — Large files truncated
 10. **File tree 500 file limit** — Large repos incomplete
 11. **No synchronized scrolling** in diff viewer

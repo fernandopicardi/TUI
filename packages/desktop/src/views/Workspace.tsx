@@ -9,6 +9,8 @@ import MCPPanel from '../components/MCPPanel'
 import WorkspaceNotes from '../components/WorkspaceNotes'
 import GitHistory from '../components/GitHistory'
 import UpgradeGate from '../components/UpgradeGate'
+import RightPanel from '../components/RightPanel'
+import BrowserPreview from '../components/BrowserPreview'
 
 type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
@@ -30,6 +32,12 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
   const initPrompt = useStore(s => s.initPrompt)
   const isActive = useStore(s => s.activeAgentId === agentId)
   const [activeTab, setActiveTab] = useState<Tab>('terminal')
+  const isRightPanelOpen = useStore(s => s.isRightPanelOpen)
+  const rightPanelTab = useStore(s => s.rightPanelTab)
+  const isBrowserPreviewOpen = useStore(s => s.isBrowserPreviewOpen)
+  const browserPreviewUrl = useStore(s => s.browserPreviewUrl)
+  const toggleRightPanel = useStore(s => s.toggleRightPanel)
+  const toggleBrowserPreview = useStore(s => s.toggleBrowserPreview)
 
   const terminalId = useMemo(() => {
     if (!agent) return ''
@@ -65,6 +73,15 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     padding: '4px 12px', cursor: 'pointer',
     color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 'var(--text-sm)',
     transition: 'all 150ms',
+  })
+
+  const toolbarBtnStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? 'var(--bg-elevated)' : 'none',
+    border: '1px solid ' + (active ? 'var(--accent)' : 'var(--text-disabled)'),
+    borderRadius: 'var(--radius-sm)',
+    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+    padding: '2px 8px', cursor: 'pointer', fontSize: 'var(--text-sm)',
+    transition: 'all 100ms',
   })
 
   const effectivePrompt = isActive ? (initPrompt || undefined) : undefined
@@ -123,6 +140,18 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
       ),
       React.createElement('div', { style: { flex: 1 } }),
+      // Toolbar: Browser preview toggle
+      React.createElement('button', {
+        onClick: () => toggleBrowserPreview(),
+        style: toolbarBtnStyle(isBrowserPreviewOpen),
+        title: 'Browser preview',
+      }, '\uD83C\uDF10'),
+      // Toolbar: Right panel toggle
+      React.createElement('button', {
+        onClick: () => toggleRightPanel(),
+        style: toolbarBtnStyle(isRightPanelOpen),
+        title: 'Toggle panel',
+      }, '\u2261'),
       React.createElement('button', {
         onClick: handleDelete,
         style: {
@@ -135,48 +164,78 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       }, 'Delete'),
     ),
 
-    // Tab content
-    React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
-      },
-        React.createElement(Terminal, {
-          id: terminalId,
-          worktreePath: agent.worktreePath,
-          initialPrompt: effectivePrompt,
-        })
+    // Main content area: flex row with tab content, browser preview, and right panel
+    React.createElement('div', {
+      style: { flex: 1, display: 'flex', overflow: 'hidden' },
+    },
+      // Tab content area (flex: 1)
+      React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
+        React.createElement('div', {
+          style: { position: 'absolute' as const, inset: 0, display: 'flex' },
+        },
+          // Main tab content
+          React.createElement('div', {
+            style: { flex: 1, position: 'relative' as const, overflow: 'hidden' },
+          },
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
+            },
+              React.createElement(Terminal, {
+                id: terminalId,
+                worktreePath: agent.worktreePath,
+                initialPrompt: effectivePrompt,
+              })
+            ),
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'files' ? 'flex' : 'none' },
+            },
+              React.createElement(FileTree, { worktreePath: agent.worktreePath })
+            ),
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
+            },
+              React.createElement(DiffViewer, { worktreePath: agent.worktreePath, visible: activeTab === 'diff' })
+            ),
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'history' ? 'flex' : 'none', flexDirection: 'column' as const },
+            },
+              React.createElement(UpgradeGate, { feature: 'gitHistoryFull' },
+                React.createElement(GitHistory, { worktreePath: agent.worktreePath, visible: activeTab === 'history' })
+              )
+            ),
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
+            },
+              React.createElement(UpgradeGate, { feature: 'prFlow' },
+                React.createElement(PRPanel, { worktreePath: agent.worktreePath, branch: agent.branch })
+              )
+            ),
+            React.createElement('div', {
+              style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
+            },
+              React.createElement(UpgradeGate, { feature: 'sessionNotes' },
+                React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
+              )
+            ),
+          ),
+
+          // Browser preview (50% width when open)
+          isBrowserPreviewOpen ? React.createElement('div', {
+            style: { width: '50%', minWidth: '300px', height: '100%' },
+          },
+            React.createElement(BrowserPreview, { url: browserPreviewUrl })
+          ) : null,
+        ),
       ),
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'files' ? 'flex' : 'none' },
-      },
-        React.createElement(FileTree, { worktreePath: agent.worktreePath })
-      ),
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'diff' ? 'flex' : 'none', flexDirection: 'column' as const },
-      },
-        React.createElement(DiffViewer, { worktreePath: agent.worktreePath, visible: activeTab === 'diff' })
-      ),
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'history' ? 'flex' : 'none', flexDirection: 'column' as const },
-      },
-        React.createElement(UpgradeGate, { feature: 'gitHistoryFull' },
-          React.createElement(GitHistory, { worktreePath: agent.worktreePath, visible: activeTab === 'history' })
-        )
-      ),
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'pr' ? 'block' : 'none', overflow: 'auto' as const },
-      },
-        React.createElement(UpgradeGate, { feature: 'prFlow' },
-          React.createElement(PRPanel, { worktreePath: agent.worktreePath, branch: agent.branch })
-        )
-      ),
-      React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'notes' ? 'block' : 'none' },
-      },
-        React.createElement(UpgradeGate, { feature: 'sessionNotes' },
-          React.createElement(WorkspaceNotes, { branch: agent.branch, rootPath: project.rootPath })
-        )
-      ),
+
+      // Right panel
+      isRightPanelOpen ? React.createElement(RightPanel, {
+        worktreePath: agent.worktreePath,
+        rootPath: project.rootPath,
+        activeTab: rightPanelTab,
+        pluginName: project.plugin,
+        pluginContext: project.pluginContext,
+      }) : null,
     ),
 
     // MCP Panel

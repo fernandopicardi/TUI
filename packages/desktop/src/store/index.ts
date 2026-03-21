@@ -20,6 +20,10 @@ export interface RunnioStore {
   deleteAgentTarget: { projectId: string; agentId: string } | null
   toasts: Toast[]
   initPrompt: string | null
+  isRightPanelOpen: boolean
+  rightPanelTab: 'changes' | 'files' | 'info'
+  isBrowserPreviewOpen: boolean
+  browserPreviewUrl: string
 
   // Project actions
   addProject: (project: Omit<Project, 'agents' | 'addedAt' | 'lastOpenedAt'>) => void
@@ -47,6 +51,10 @@ export interface RunnioStore {
   closeQuickPrompt: () => void
   openDeleteAgent: (projectId: string, agentId: string) => void
   closeDeleteAgent: () => void
+  toggleRightPanel: (tab?: 'changes' | 'files' | 'info') => void
+  setRightPanelTab: (tab: 'changes' | 'files' | 'info') => void
+  toggleBrowserPreview: (url?: string) => void
+  setBrowserPreviewUrl: (url: string) => void
 
   // Toast
   showToast: (message: string, type?: 'info' | 'success' | 'warning') => void
@@ -78,6 +86,10 @@ export const useStore = create<RunnioStore>()(
       deleteAgentTarget: null,
       toasts: [],
       initPrompt: null,
+      isRightPanelOpen: false,
+      rightPanelTab: 'changes' as const,
+      isBrowserPreviewOpen: false,
+      browserPreviewUrl: 'http://localhost:3000',
 
       addProject: (projectData) => {
         const state = get()
@@ -170,6 +182,16 @@ export const useStore = create<RunnioStore>()(
       closeQuickPrompt: () => set({ isQuickPromptOpen: false }),
       openDeleteAgent: (projectId, agentId) => set({ isDeleteAgentModalOpen: true, deleteAgentTarget: { projectId, agentId } }),
       closeDeleteAgent: () => set({ isDeleteAgentModalOpen: false, deleteAgentTarget: null }),
+      toggleRightPanel: (tab) => set(s => ({
+        isRightPanelOpen: tab ? (s.rightPanelTab === tab && s.isRightPanelOpen ? false : true) : !s.isRightPanelOpen,
+        rightPanelTab: tab ?? s.rightPanelTab,
+      })),
+      setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+      toggleBrowserPreview: (url) => set(s => ({
+        isBrowserPreviewOpen: !s.isBrowserPreviewOpen,
+        browserPreviewUrl: url ?? s.browserPreviewUrl,
+      })),
+      setBrowserPreviewUrl: (url) => set({ browserPreviewUrl: url }),
 
       showToast: (message, type = 'info') => {
         const id = Date.now().toString()

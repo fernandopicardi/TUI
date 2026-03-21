@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('git:get-avatar', email),
     checkout: (worktreePath: string, ref: string) =>
       ipcRenderer.invoke('git:checkout', worktreePath, ref),
+    stageAll: (worktreePath: string) =>
+      ipcRenderer.invoke('git:stage-all', worktreePath),
+    status: (worktreePath: string) =>
+      ipcRenderer.invoke('git:status', worktreePath),
     watchProjectWorktrees: (projectId: string, rootPath: string) =>
       ipcRenderer.invoke('git:watch-project-worktrees', projectId, rootPath),
     unwatchProjectWorktrees: (projectId: string) =>
@@ -80,6 +84,8 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('files:list', rootPath),
     read: (filePath: string) =>
       ipcRenderer.invoke('files:read', filePath),
+    write: (filePath: string, content: string) =>
+      ipcRenderer.invoke('files:write', filePath, content),
   },
   github: {
     getDiff: (worktreePath: string) =>
