@@ -51,7 +51,7 @@ Owns: (TBD)
 
 ### Agent B — Settings Redesign + CLI Detection + Theme System + History Graph Fix
 Branch: agent-b/settings-cli-history
-Status: In progress
+Status: Complete — ready to merge
 Owns: SettingsModal.tsx, src/utils/gitGraph.ts, src/styles/ (theme tokens), electron/main.ts (CLI detection handlers only)
 
 ### Agent 3 — [Not assigned]
