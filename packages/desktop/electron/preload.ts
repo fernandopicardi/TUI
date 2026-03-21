@@ -102,6 +102,18 @@ contextBridge.exposeInMainWorld('runnio', {
     writeProject: (rootPath: string, data: Record<string, any>) => ipcRenderer.invoke('settings:write-project', rootPath, data),
     testGithub: (token: string) => ipcRenderer.invoke('settings:test-github', token),
   },
+  tasks: {
+    githubList: (rootPath: string) =>
+      ipcRenderer.invoke('tasks:github-list', rootPath),
+    linearList: (apiKey: string) =>
+      ipcRenderer.invoke('tasks:linear-list', apiKey),
+    asanaList: (workspaceId: string, token: string) =>
+      ipcRenderer.invoke('tasks:asana-list', workspaceId, token),
+    notionCheckMcp: () =>
+      ipcRenderer.invoke('tasks:notion-check-mcp'),
+    skillsList: () =>
+      ipcRenderer.invoke('tasks:skills-list'),
+  },
   notify: (title: string, body: string, type: string) =>
     ipcRenderer.send('notify', title, body, type),
   window: {

@@ -35,6 +35,27 @@ export interface Toast {
   type: 'info' | 'success' | 'warning'
 }
 
+// ── Task types ──
+
+export type TaskStatus = 'todo' | 'in-progress' | 'ready-for-review' | 'in-review' | 'done'
+export type TaskSource = 'runnio' | 'github' | 'linear' | 'jira' | 'asana' | 'notion' | 'gitlab'
+
+export interface RunnioTask {
+  id: string
+  title: string
+  status: TaskStatus
+  source: TaskSource
+  projectId: string
+  agentId?: string
+  providerId?: string
+  initialPrompt?: string
+  externalId?: string
+  externalUrl?: string
+  createdAt: number
+  updatedAt: number
+  isAutomatic: boolean
+}
+
 // ── IPC types ──
 
 export interface WorktreeData {
@@ -150,6 +171,13 @@ export interface RunnioAPI {
     readProject: (rootPath: string) => Promise<Record<string, any>>
     writeProject: (rootPath: string, data: Record<string, any>) => Promise<{ success: boolean }>
     testGithub: (token: string) => Promise<{ success: boolean; login?: string; avatar?: string }>
+  }
+  tasks: {
+    githubList: (rootPath: string) => Promise<{ success: boolean; tasks?: { id: string; title: string; url: string; number: number }[]; error?: string }>
+    linearList: (apiKey: string) => Promise<{ success: boolean; tasks?: { id: string; title: string; url: string; status?: string }[]; error?: string }>
+    asanaList: (workspaceId: string, token: string) => Promise<{ success: boolean; tasks?: { id: string; title: string; url: string; completed?: boolean }[]; error?: string }>
+    notionCheckMcp: () => Promise<{ configured: boolean }>
+    skillsList: () => Promise<{ skills: { name: string; description: string; path: string }[] }>
   }
   notify: (title: string, body: string, type: string) => void
   window: {

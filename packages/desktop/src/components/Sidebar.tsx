@@ -175,6 +175,45 @@ const Sidebar: React.FC = () => {
       )
     })(),
 
+    // Skills & MCP navigation
+    React.createElement('div', {
+      style: {
+        padding: '4px 8px', borderTop: '1px solid var(--border-subtle)',
+        display: 'flex', flexDirection: 'column' as const, gap: '2px',
+      },
+    },
+      React.createElement('button', {
+        onClick: () => {
+          useStore.getState().setActiveAgent(null)
+          useStore.getState().setActiveView('skills')
+        },
+        style: {
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '6px 10px', background: 'none', border: 'none',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          fontSize: 'var(--text-sm)', textAlign: 'left' as const,
+          borderRadius: 'var(--radius-sm)', transition: 'all 100ms', width: '100%',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-secondary)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-tertiary)' },
+      }, '\u2726 Skills'),
+      React.createElement('button', {
+        onClick: () => {
+          useStore.getState().setActiveAgent(null)
+          useStore.getState().setActiveView('mcp')
+        },
+        style: {
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '6px 10px', background: 'none', border: 'none',
+          color: 'var(--text-tertiary)', cursor: 'pointer',
+          fontSize: 'var(--text-sm)', textAlign: 'left' as const,
+          borderRadius: 'var(--radius-sm)', transition: 'all 100ms', width: '100%',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-secondary)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-tertiary)' },
+      }, '\u2630 MCP'),
+    ),
+
     // Add project button
     React.createElement('div', { style: { padding: '8px' } },
       React.createElement('button', {

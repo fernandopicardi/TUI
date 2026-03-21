@@ -1,6 +1,6 @@
 # Runnio — Project Status
 
-> Last updated: 2026-03-20
+> Last updated: 2026-03-21
 > Codebase name: Runnio (renamed from agentflow/regent on 2026-03-20)
 
 ## Product Vision
@@ -35,6 +35,10 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Branch validation | Done | git-check-ref-format rules before worktree creation |
 | Clone repository | Done | 3-step modal (choose/clone/cloning) with progress animation |
 | Plugin detection | Done | Auto-detect agency-os/bmad/generic, re-polls every 10s while plugin=raw |
+| Kanban board | Done | 5-column board (todo/in-progress/ready-for-review/in-review/done), auto-sync with agent lifecycle |
+| New Task modal | Done | Provider selection, branch naming, issue linking (GitHub, Linear, Asana, Notion via MCP) |
+| Skills marketplace | Done | Browse installed ~/.claude/skills, discover registry, new skill creation |
+| MCP marketplace | Done | Recommended servers with one-click install, custom MCP modal, server management |
 | Cost tracker | Not implemented | tokenUsage field exists in AgentSession type but zero UI or data collection |
 
 ### Workspace Tabs (6 tabs)

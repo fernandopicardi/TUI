@@ -26,6 +26,12 @@ Status: Waiting for Agent 1 to merge
 Owns: src/components/AgentLaunchPanel.tsx (NEW), src/hooks/useSyntaxHighlight.ts (NEW), src/views/Workspace.tsx (ADD launch panel only), src/store/index.ts (ADD hasLaunched + launchConfig fields only)
 Do NOT touch: electron/main.ts core handlers, src/utils/gitGraph.ts
 
+## Agent E — Kanban Tasks + Skills Marketplace + MCP Marketplace
+Branch: agent-e/kanban-skills-mcp
+Status: Complete — ready to merge
+Owns: src/components/KanbanBoard.tsx (NEW), src/components/SkillsView.tsx (NEW), src/components/McpMarketplace.tsx (NEW), src/components/NewTaskModal.tsx (NEW), src/store/index.ts (additive — task fields), src/types.ts (additive — task types), electron/main.ts (additive — task source handlers), electron/preload.ts (additive — task methods), src/hooks/useAgentStatus.ts (additive — task sync), src/components/Sidebar.tsx (additive — Skills/MCP nav), src/App.tsx (additive — Skills/MCP views)
+Do NOT touch: TitleBar.tsx, RightPanel.tsx, FileEditor.tsx, SettingsModal.tsx, gitGraph.ts
+
 ## Merge order after all agents complete
 1. Agent 1 first — rename affects all files
 2. Agent 3 second — new files, minimal conflict

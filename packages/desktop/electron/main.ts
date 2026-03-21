@@ -891,6 +891,135 @@ function registerIpcHandlers() {
     }
   })
 
+  // ── Task sources ──
+  ipcMain.handle('tasks:github-list', async (_e, rootPath: string) => {
+    try {
+      let token = process.env.GITHUB_TOKEN
+      try {
+        const raw = await fs.promises.readFile(globalConfigPath(), 'utf-8')
+        const globalSettings = JSON.parse(raw)
+        if (globalSettings.githubToken) token = globalSettings.githubToken
+      } catch {}
+      if (!token) return { success: false, error: 'no_token' }
+
+      const git = simpleGit(normalizePath(rootPath))
+      const remotes = await git.getRemotes(true)
+      const origin = remotes.find(r => r.name === 'origin')
+      if (!origin) return { success: false, error: 'no_remote' }
+
+      const match = origin.refs.push.match(/github\.com[:/](.+?)\/(.+?)(?:\.git)?$/)
+      if (!match) return { success: false, error: 'not_github' }
+      const [, owner, repo] = match
+
+      const response = await (globalThis as any).fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=50`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+      )
+      const issues = await response.json()
+      if (!response.ok) return { success: false, error: issues.message }
+
+      return {
+        success: true,
+        tasks: issues
+          .filter((i: any) => !i.pull_request)
+          .map((i: any) => ({ id: String(i.number), title: i.title, url: i.html_url, number: i.number })),
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('tasks:linear-list', async (_e, apiKey: string) => {
+    try {
+      const res = await (globalThis as any).fetch('https://api.linear.app/graphql', {
+        method: 'POST',
+        headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{ issues(filter: { state: { type: { nin: ["completed", "cancelled"] } } }) { nodes { id title url state { name } assignee { name } } } }`,
+        }),
+      })
+      const data = await res.json()
+      return {
+        success: true,
+        tasks: data.data?.issues?.nodes?.map((i: any) => ({
+          id: i.id, title: i.title, url: i.url, status: i.state?.name,
+        })) ?? [],
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('tasks:asana-list', async (_e, workspaceId: string, token: string) => {
+    try {
+      const res = await (globalThis as any).fetch(
+        `https://app.asana.com/api/1.0/workspaces/${workspaceId}/tasks?opt_fields=name,notes,assignee,due_on,completed`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const data = await res.json()
+      return {
+        success: true,
+        tasks: data.data?.map((t: any) => ({
+          id: t.gid, title: t.name,
+          url: `https://app.asana.com/0/${workspaceId}/${t.gid}`,
+          completed: t.completed,
+        })) ?? [],
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('tasks:notion-check-mcp', async () => {
+    try {
+      const home = process.env.USERPROFILE || process.env.HOME || ''
+      const settingsPath = path.join(home, '.claude', 'settings.json')
+      const raw = await fs.promises.readFile(settingsPath, 'utf-8')
+      const settings = JSON.parse(raw)
+      const hasNotion = Object.keys(settings.mcpServers ?? {})
+        .some((k: string) => k.toLowerCase().includes('notion'))
+      return { configured: hasNotion }
+    } catch {
+      return { configured: false }
+    }
+  })
+
+  ipcMain.handle('tasks:skills-list', async () => {
+    try {
+      const home = process.env.USERPROFILE || process.env.HOME || ''
+      const skillsDir = path.join(home, '.claude', 'skills')
+      const skills: { name: string; description: string; path: string }[] = []
+
+      if (!fs.existsSync(skillsDir)) return { skills }
+
+      const entries = await fs.promises.readdir(skillsDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md')
+        let description = ''
+        try {
+          const content = await fs.promises.readFile(skillMdPath, 'utf-8')
+          // Get first non-empty, non-frontmatter line as description
+          const lines = content.split('\n')
+          let inFrontmatter = false
+          for (const line of lines) {
+            if (line.trim() === '---') { inFrontmatter = !inFrontmatter; continue }
+            if (inFrontmatter) continue
+            const trimmed = line.trim()
+            if (trimmed && !trimmed.startsWith('#')) {
+              description = trimmed.slice(0, 80)
+              break
+            }
+          }
+        } catch {}
+        skills.push({ name: entry.name, description, path: path.join(skillsDir, entry.name) })
+      }
+      return { skills }
+    } catch {
+      return { skills: [] }
+    }
+  })
+
   // ── Notifications ──
   ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
     try {

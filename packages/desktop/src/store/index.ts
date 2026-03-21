@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Project, AgentSession, Toast } from '../types'
+import { Project, AgentSession, Toast, RunnioTask, TaskStatus } from '../types'
 import { canAddProject, canAddAgent, PLAN_FLAGS } from '../features'
 
 export interface RunnioStore {
@@ -18,6 +18,9 @@ export interface RunnioStore {
   isQuickPromptOpen: boolean
   toasts: Toast[]
   initPrompt: string | null
+  tasks: RunnioTask[]
+  activeView: 'workspace' | 'skills' | 'mcp'
+  tasksViewMode: 'list' | 'board'
 
   // Project actions
   addProject: (project: Omit<Project, 'agents' | 'addedAt' | 'lastOpenedAt'>) => void
@@ -51,6 +54,16 @@ export interface RunnioStore {
   // Prompt
   setInitPrompt: (prompt: string | null) => void
 
+  // Tasks
+  addTask: (task: Omit<RunnioTask, 'id' | 'createdAt' | 'updatedAt'>) => void
+  updateTask: (taskId: string, updates: Partial<RunnioTask>) => void
+  removeTask: (taskId: string) => void
+  moveTask: (taskId: string, newStatus: TaskStatus) => void
+
+  // View
+  setActiveView: (view: 'workspace' | 'skills' | 'mcp') => void
+  setTasksViewMode: (mode: 'list' | 'board') => void
+
   // Computed helpers
   getActiveProject: () => Project | null
   getActiveAgent: () => AgentSession | null
@@ -72,6 +85,9 @@ export const useStore = create<RunnioStore>()(
       isQuickPromptOpen: false,
       toasts: [],
       initPrompt: null,
+      tasks: [],
+      activeView: 'workspace' as const,
+      tasksViewMode: 'list' as const,
 
       addProject: (projectData) => {
         const state = get()
@@ -149,7 +165,7 @@ export const useStore = create<RunnioStore>()(
         })),
       })),
 
-      setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+      setActiveAgent: (agentId) => set({ activeAgentId: agentId, activeView: 'workspace' as const }),
 
       openAddProject: () => set({ isAddProjectModalOpen: true }),
       closeAddProject: () => set({ isAddProjectModalOpen: false }),
@@ -174,6 +190,33 @@ export const useStore = create<RunnioStore>()(
 
       setInitPrompt: (prompt) => set({ initPrompt: prompt }),
 
+      addTask: (taskData) => {
+        const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const now = Date.now()
+        set(s => ({
+          tasks: [...s.tasks, { ...taskData, id, createdAt: now, updatedAt: now }],
+        }))
+      },
+
+      updateTask: (taskId, updates) => set(s => ({
+        tasks: s.tasks.map(t =>
+          t.id === taskId ? { ...t, ...updates, updatedAt: Date.now() } : t
+        ),
+      })),
+
+      removeTask: (taskId) => set(s => ({
+        tasks: s.tasks.filter(t => t.id !== taskId),
+      })),
+
+      moveTask: (taskId, newStatus) => set(s => ({
+        tasks: s.tasks.map(t =>
+          t.id === taskId ? { ...t, status: newStatus, updatedAt: Date.now() } : t
+        ),
+      })),
+
+      setActiveView: (view) => set({ activeView: view }),
+      setTasksViewMode: (mode) => set({ tasksViewMode: mode }),
+
       getActiveProject: () => {
         const s = get()
         return s.projects.find(p => p.id === s.activeProjectId) ?? null
@@ -196,6 +239,8 @@ export const useStore = create<RunnioStore>()(
         projects: state.projects,
         activeProjectId: state.activeProjectId,
         activeAgentId: state.activeAgentId,
+        tasks: state.tasks,
+        tasksViewMode: state.tasksViewMode,
       }),
     }
   )

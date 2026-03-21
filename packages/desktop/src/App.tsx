@@ -17,6 +17,8 @@ import SettingsModal from './components/SettingsModal'
 import Welcome from './views/Welcome'
 import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
+import SkillsView from './components/SkillsView'
+import McpMarketplace from './components/McpMarketplace'
 
 const App: React.FC = () => {
   const [hydrated, setHydrated] = React.useState(false)
@@ -81,11 +83,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  const activeView = useStore(s => s.activeView)
   const hasProjects = projects.length > 0
   const hasActiveAgent = !!activeAgentId
   const activeProject = useStore(s => s.projects.find(p => p.id === s.activeProjectId))
   const projectName = activeProject?.name
   const allAgents = projects.flatMap(p => p.agents)
+  const showSpecialView = activeView === 'skills' || activeView === 'mcp'
 
   return React.createElement('div', {
     style: {
@@ -128,11 +132,23 @@ const App: React.FC = () => {
               React.createElement('main', {
                 style: { flex: 1, overflow: 'hidden', position: 'relative' as const },
               },
+                // Skills view
+                showSpecialView && activeView === 'skills'
+                  ? React.createElement('div', {
+                      style: { position: 'absolute' as const, inset: 0, overflow: 'auto' as const },
+                    }, React.createElement(SkillsView))
+                  : null,
+                // MCP Marketplace view
+                showSpecialView && activeView === 'mcp'
+                  ? React.createElement('div', {
+                      style: { position: 'absolute' as const, inset: 0, overflow: 'auto' as const },
+                    }, React.createElement(McpMarketplace))
+                  : null,
                 // Dashboard
                 React.createElement('div', {
                   style: {
                     position: 'absolute' as const, inset: 0,
-                    display: hasActiveAgent ? 'none' : 'block',
+                    display: hasActiveAgent || showSpecialView ? 'none' : 'block',
                     overflow: 'auto' as const,
                   },
                 },
@@ -144,7 +160,7 @@ const App: React.FC = () => {
                     key: agent.id,
                     style: {
                       position: 'absolute' as const, inset: 0,
-                      display: agent.id === activeAgentId ? 'flex' : 'none',
+                      display: agent.id === activeAgentId && !showSpecialView ? 'flex' : 'none',
                       flexDirection: 'column' as const,
                     },
                   },
