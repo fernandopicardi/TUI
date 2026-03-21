@@ -88,7 +88,7 @@ const Sidebar: React.FC = () => {
                 },
                   React.createElement('span', {
                     style: {
-                      fontSize: '10px', color: isActiveProject ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                      fontSize: '10px', color: isActiveProject ? 'var(--text-primary)' : 'var(--text-secondary)',
                       textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontWeight: 600,
                     },
                   }, project.name),

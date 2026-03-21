@@ -1,5 +1,26 @@
 # Runnio Changelog
 
+## v0.1.3 — 2026-03-20
+
+### Added
+- Theme system: Dark, Dark Navy, Light, System modes
+- Settings redesign: 6-section left-nav layout (General, Agents, Integrations, Repository, Interface, Account)
+- CLI agent detection: auto-detects 9 providers (Claude Code, Codex, Gemini, OpenCode, Amp, Cursor, Cline, Continue, Aider)
+- Branch name pattern configuration with live preview
+- Repository settings section (auto-push, worktree location)
+- Interface section with color mode selector, terminal font options, keyboard shortcuts reference
+- Account section with GitHub token management and developer mode indicator
+
+### Fixed
+- Git History bezier curves now render at merge and branch points (was only drawing vertical lines)
+- Contrast improvements: updated CSS variable defaults for better visibility
+- Hardcoded color values replaced with CSS variables in GitHistory search input
+- Sidebar inactive project labels now use text-secondary for better contrast
+
+### Changed
+- Settings modal expanded from 3-tab layout to 6-section left-nav sidebar
+- CSS variables updated: text-tertiary #6b6b6b to #707070, text-disabled #3a3a3a to #444444, borders improved
+
 ## v0.1.2 — 2026-03-20
 
 ### Added

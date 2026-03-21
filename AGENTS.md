@@ -49,10 +49,10 @@ Branch: (TBD)
 Status: Not started
 Owns: (TBD)
 
-### Agent 2 — [Not assigned]
-Branch: (TBD)
-Status: Not started
-Owns: (TBD)
+### Agent B — Settings Redesign + CLI Detection + Theme System + History Graph Fix
+Branch: agent-b/settings-cli-history
+Status: In progress
+Owns: SettingsModal.tsx, src/utils/gitGraph.ts, src/styles/ (theme tokens), electron/main.ts (CLI detection handlers only)
 
 ### Agent 3 — [Not assigned]
 Branch: (TBD)

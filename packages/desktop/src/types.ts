@@ -131,6 +131,7 @@ export interface RunnioAPI {
   }
   agents: {
     getStatus: (worktreePath: string) => Promise<AgentStatusValue>
+    detectAll: () => Promise<Record<string, boolean>>
   }
   plugins: {
     load: (rootPath: string) => Promise<{ pluginName: string; context: PluginContextData | null }>

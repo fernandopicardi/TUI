@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('runnio', {
   agents: {
     getStatus: (worktreePath: string) =>
       ipcRenderer.invoke('agent:get-status', worktreePath),
+    detectAll: () =>
+      ipcRenderer.invoke('agents:detect-all'),
   },
   plugins: {
     load: (rootPath: string) =>

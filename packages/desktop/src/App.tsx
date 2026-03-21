@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useEffect } from 'react'
 import { useStore } from './hooks/useStore'
+import { Theme, applyTheme } from './styles/themes'
 import { useAgentStatusWatcher } from './hooks/useAgentStatus'
 import { useWorktreeSync } from './hooks/useWorktreeSync'
 import TitleBar from './components/TitleBar'
@@ -46,6 +47,19 @@ const App: React.FC = () => {
   const isSettingsOpen = useStore(s => s.isSettingsOpen)
   const isDeleteAgentModalOpen = useStore(s => s.isDeleteAgentModalOpen)
   const [preloadOk, setPreloadOk] = React.useState(false)
+
+  // Apply saved theme on mount
+  useEffect(() => {
+    const savedTheme = (useStore.getState().theme as Theme) ?? 'dark'
+    applyTheme(savedTheme)
+
+    if (savedTheme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handler = () => applyTheme('system')
+      mediaQuery.addEventListener('change', handler)
+      return () => mediaQuery.removeEventListener('change', handler)
+    }
+  }, [])
 
   // Poll agent statuses across all projects
   useAgentStatusWatcher()

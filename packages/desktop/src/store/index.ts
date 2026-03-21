@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Project, AgentSession, Toast } from '../types'
 import { canAddProject, canAddAgent, PLAN_FLAGS } from '../features'
+import { Theme } from '../styles/themes'
 
 export interface RunnioStore {
   // State
@@ -39,6 +40,10 @@ export interface RunnioStore {
   defaultMode: 'normal' | 'plan' | 'auto'
   setDefaultModel: (model: string) => void
   setDefaultMode: (mode: 'normal' | 'plan' | 'auto') => void
+
+  // Theme
+  theme: Theme
+  setTheme: (theme: Theme) => void
 
   // UI actions
   openAddProject: () => void
@@ -87,6 +92,7 @@ export const useStore = create<RunnioStore>()(
       initPrompt: null,
       defaultModel: 'claude-sonnet-4-5',
       defaultMode: 'normal' as 'normal' | 'plan' | 'auto',
+      theme: 'dark' as Theme,
 
       addProject: (projectData) => {
         const state = get()
@@ -179,6 +185,7 @@ export const useStore = create<RunnioStore>()(
 
       setDefaultModel: (model) => set({ defaultModel: model }),
       setDefaultMode: (mode) => set({ defaultMode: mode }),
+      setTheme: (theme) => set({ theme }),
 
       openAddProject: () => set({ isAddProjectModalOpen: true }),
       closeAddProject: () => set({ isAddProjectModalOpen: false }),
@@ -229,6 +236,7 @@ export const useStore = create<RunnioStore>()(
         activeAgentId: state.activeAgentId,
         defaultModel: state.defaultModel,
         defaultMode: state.defaultMode,
+        theme: state.theme,
       }),
       // Migrate persisted agents that predate the hasLaunched field
       merge: (persisted: any, current: any) => {

@@ -13,7 +13,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 
 ## Current Version
 
-- **Version:** 0.1.2 (package.json) / v0.1.2 (GitHub Release)
+- **Version:** 0.1.3 (package.json) / v0.1.3 (GitHub Release)
 - **Stack:** Electron 28 + React 18 + Zustand 4 + xterm.js 5 + node-pty 1.1 + simple-git 3
 - **Build:** esbuild (3-target: main/preload/renderer) + electron-builder (NSIS installer + portable)
 - **Platform:** Windows only (Mac planned for simultaneous launch)
@@ -44,7 +44,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Terminal | Done | xterm.js + FitAddon, Ctrl+V paste with dedup, right-click paste, auto-resize |
 | Files | Done | Recursive tree with git status (M/A/D/?), click-to-read viewer, 500 file limit, binary detection |
 | Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh on tab switch, 5s polling, 2000 line cap, syntax highlighting via highlight.js. No synchronized scrolling. |
-| History | Done | SVG bezier graph with lane colors, Code mode with virtual scroll (36px rows), People mode with author grouping (no sparklines/swimlanes — simple list per author). Gravatar avatars, agent diamond nodes, detail panel with files/checkout. |
+| History | Done | SVG bezier graph with lane colors and merge/branch-off curves, Code mode with virtual scroll (36px rows), People mode with author grouping. Gravatar avatars, agent diamond nodes, detail panel with files/checkout. |
 | PR | Done | 3-step flow (files/form/done), inline GitHub token input with validation, real GitHub API calls |
 | Notes | Done | Per-branch localStorage, auto-save with 1s debounce |
 
@@ -55,7 +55,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | GitHistory | 778 | Done — Code/People modes, SVG graph, virtual scroll, detail panel |
 | PRPanel | 342 | Done — GitHub API, inline token setup |
 | DiffViewer | 306 | Done — LCS diff, file tabs, polling |
-| SettingsModal | 298 | Done — 3 tabs: General (openCommand, refreshInterval), GitHub (token+test), Config (project JSON) |
+| SettingsModal | ~500 | Done — 6-section left-nav: General, Agents (CLI detection), Integrations, Repository, Interface (theme), Account |
 | FileTree | 292 | Done — Tree + viewer, git status, filter |
 | MCPPanel | 288 | Done — Reads/writes real ~/.claude/settings.json and .claude/settings.json |
 | AddProjectModal | 256 | Done — Local folder or clone |
@@ -127,7 +127,9 @@ Renderer (React 18 + Zustand)
 4. ~~**Syntax highlighting**~~ — Done (2026-03-20). highlight.js integration for Files and Diff tabs
 5. **Mac build** — electron-builder macOS target, platform shell detection, path handling
 6. **Cost tracker** — Parse Claude Code terminal output for token usage display
-7. **Contrast/accessibility polish** — Ongoing, major pass completed 2026-03-20
+7. ~~**Contrast/accessibility polish**~~ — Done (2026-03-20). Theme system added with Dark, Dark Navy, Light, System modes
+8. ~~**Settings redesign**~~ — Done (2026-03-20). 6-section left-nav layout with CLI detection
+9. ~~**History bezier curves**~~ — Done (2026-03-20). Merge and branch-off curves now render correctly
 
 ## Roadmap
 

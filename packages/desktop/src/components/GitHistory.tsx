@@ -174,6 +174,12 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     return max + 1
   }, [commits])
 
+  const commitLaneMap = useMemo(() => {
+    const map = new Map<string, number>()
+    commits.forEach(c => map.set(c.hash, c.lane))
+    return map
+  }, [commits])
+
   const svgWidth = Math.max(maxLane * LANE_WIDTH + 8, 40)
 
   // Parse ref labels
@@ -283,16 +289,35 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       )
     })
 
-    // Merge curves
+    // Merge curves — from mergeFrom lanes converging to this commit's lane
     commit.mergeFrom.forEach(fromLane => {
-      const fx = fromLane * LANE_WIDTH + LANE_WIDTH / 2
+      const x1 = fromLane * LANE_WIDTH + LANE_WIDTH / 2
+      const x2 = cx
+      const midY = ROW_HEIGHT / 2
       elements.push(
         React.createElement('path', {
           key: `merge-${fromLane}`,
-          d: `M ${fx} 0 C ${fx} ${cy} ${cx} ${cy} ${cx} ${cy}`,
-          stroke: getLaneColor(fromLane), strokeWidth: 1.5, fill: 'none', opacity: 0.6,
+          d: `M ${x1} 0 C ${x1} ${midY} ${x2} ${midY} ${x2} ${ROW_HEIGHT}`,
+          stroke: getLaneColor(fromLane), strokeWidth: 1.5, fill: 'none', opacity: 0.7,
         })
       )
+    })
+
+    // Branch-off curves — from this commit's lane to parent lanes in different positions
+    commit.parents.forEach((parentHash, pi) => {
+      const parentLane = commitLaneMap.get(parentHash)
+      if (parentLane !== undefined && parentLane !== commit.lane && !commit.mergeFrom.includes(parentLane)) {
+        const x1 = cx
+        const x2 = parentLane * LANE_WIDTH + LANE_WIDTH / 2
+        const midY = ROW_HEIGHT / 2
+        elements.push(
+          React.createElement('path', {
+            key: `branch-${pi}`,
+            d: `M ${x1} 0 C ${x1} ${midY} ${x2} ${midY} ${x2} ${ROW_HEIGHT}`,
+            stroke: commit.laneColor, strokeWidth: 1.5, fill: 'none', opacity: 0.7,
+          })
+        )
+      }
     })
 
     // Commit node
@@ -761,7 +786,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
             autoFocus: true,
             placeholder: 'Search commits...',
             style: {
-              width: '200px', padding: '3px 8px', background: '#0a0a0a', border: '1px solid var(--accent)',
+              width: '200px', padding: '3px 8px', background: 'var(--bg-app)', border: '1px solid var(--accent)',
               borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 'var(--text-xs)',
               outline: 'none', fontFamily: 'inherit', transition: 'width 200ms',
             },

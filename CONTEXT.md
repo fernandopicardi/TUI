@@ -24,7 +24,7 @@ Fully functional Windows MVP with 6 workspace tabs (Terminal, Files, Diff, Histo
 
 ## Next priority
 
-Mac build (electron-builder macOS target, platform shell detection, path handling). Cost tracker (parse Claude Code terminal output for token usage display).
+Prompts C, D, E running in parallel.
 
 ## Critical files to understand the project
 

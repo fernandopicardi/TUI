@@ -992,6 +992,26 @@ function registerIpcHandlers() {
     }
   })
 
+  // ── CLI agent detection ──
+  const CLI_AGENT_IDS = ['claude', 'codex', 'gemini', 'opencode', 'amp', 'cursor', 'cline', 'continue', 'aider']
+
+  ipcMain.handle('agents:detect-all', async () => {
+    const { execFile } = require('child_process')
+    const { promisify } = require('util')
+    const execFileAsync = promisify(execFile)
+
+    const results: Record<string, boolean> = {}
+    for (const agentId of CLI_AGENT_IDS) {
+      try {
+        await execFileAsync('where', [agentId], { timeout: 2000 })
+        results[agentId] = true
+      } catch {
+        results[agentId] = false
+      }
+    }
+    return JSON.parse(JSON.stringify(results))
+  })
+
   // ── Notifications ──
   ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
     try {
