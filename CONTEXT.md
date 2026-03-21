@@ -24,7 +24,7 @@ Fully functional Windows MVP with 6 workspace tabs (Terminal, Files, Diff, Histo
 
 ## Next priority
 
-Prompts C, D, E running in parallel.
+Prompts D, E running in parallel.
 
 ## Critical files to understand the project
 

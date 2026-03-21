@@ -44,10 +44,10 @@ Branch: main (direct)
 
 ## Agent slots (available for next session)
 
-### Agent 1 — [Not assigned]
-Branch: (TBD)
-Status: Not started
-Owns: (TBD)
+### Agent C — Multi-Provider + Toolbar Redesign + Global Terminal + Homepage
+Branch: agent-c/multi-provider-toolbar-home
+Status: In progress
+Owns: TitleBar.tsx, App.tsx, src/views/Home.tsx, src/data/providers.ts, src/types.ts (additive), electron/main.ts (new handlers only)
 
 ### Agent B — Settings Redesign + CLI Detection + Theme System + History Graph Fix
 Branch: agent-b/settings-cli-history

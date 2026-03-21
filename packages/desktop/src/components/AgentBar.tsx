@@ -146,7 +146,27 @@ const AgentBar: React.FC = () => {
         e.currentTarget.style.borderColor = 'var(--border-default)'
         e.currentTarget.style.color = 'var(--text-tertiary)'
       },
-    }, '+ agent')
+    }, '+ agent'),
+
+    // Global Terminal button
+    React.createElement('button', {
+      onClick: () => useStore.getState().openGlobalTerminalModal(),
+      title: 'Global terminal \u2014 access multiple projects',
+      style: {
+        padding: '6px 12px', background: 'transparent',
+        border: '1px dashed #fbbf2444', borderRadius: 'var(--radius-md)', color: 'var(--waiting)',
+        fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
+        flexShrink: 0, height: '44px',
+      },
+      onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = 'var(--waiting)'
+        e.currentTarget.style.background = 'rgba(251,191,36,0.05)'
+      },
+      onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = '#fbbf2444'
+        e.currentTarget.style.background = 'transparent'
+      },
+    }, '\u2295 Global'),
   )
 }
 

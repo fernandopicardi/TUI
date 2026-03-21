@@ -1,9 +1,16 @@
 // Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../hooks/useStore'
 import { AgentSession } from '../types'
+import { CLI_PROVIDERS, CliProvider, getProviderById, buildLaunchCommand as buildProviderCommand } from '../data/providers'
+
+// Re-export for backwards compatibility with Workspace.tsx
+export function buildLaunchCommand(model: string, mode: string): string {
+  const provider = CLI_PROVIDERS[0] // claude
+  return buildProviderCommand(provider, model || undefined, mode as any)
+}
 
 const CLAUDE_MODELS = [
   { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', badge: 'Most capable' },
@@ -17,38 +24,48 @@ const MODES = [
   { id: 'auto' as const, label: 'Auto-accept' },
 ]
 
-export function buildLaunchCommand(model: string, mode: string): string {
-  const parts = ['claude']
-  if (model !== 'claude-sonnet-4-5') parts.push('--model', model)
-  if (mode === 'plan') parts.push('--plan')
-  if (mode === 'auto') parts.push('--dangerously-skip-permissions')
-  return parts.join(' ')
-}
-
 interface Props {
   agent: AgentSession
   projectName: string
-  onLaunch: (config: { model: string; mode: 'normal' | 'plan' | 'auto'; initialPrompt?: string }) => void
+  onLaunch: (config: { model: string; mode: 'normal' | 'plan' | 'auto'; initialPrompt?: string; providerId?: string }) => void
 }
 
 const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => {
   const defaultModel = useStore(s => s.defaultModel)
   const defaultMode = useStore(s => s.defaultMode)
+  const [providerId, setProviderId] = useState(agent.providerId || 'claude')
   const [model, setModel] = useState(defaultModel || 'claude-sonnet-4-5')
+  const [customModel, setCustomModel] = useState('')
   const [mode, setMode] = useState<'normal' | 'plan' | 'auto'>(defaultMode || 'normal')
   const [initialPrompt, setInitialPrompt] = useState('')
+  const [detectedProviders, setDetectedProviders] = useState<Record<string, boolean>>({})
+  const [detecting, setDetecting] = useState(true)
+
+  // Detect CLI providers on mount
+  useEffect(() => {
+    window.runnio.agents.detectAll()
+      .then(results => { setDetectedProviders(results); setDetecting(false) })
+      .catch(() => setDetecting(false))
+  }, [])
+
+  const provider = getProviderById(providerId) || CLI_PROVIDERS[0]
+  const isClaude = providerId === 'claude'
+  const effectiveModel = isClaude ? model : customModel
+
+  const commandPreview = buildProviderCommand(provider, effectiveModel || undefined, mode)
 
   const handleLaunch = () => {
     onLaunch({
-      model,
+      model: effectiveModel,
       mode,
       initialPrompt: initialPrompt.trim() || undefined,
+      providerId,
     })
   }
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px',
-    background: '#0a0a0a', border: '1px solid var(--border-default)',
+    background: 'var(--bg-app)', border: '1px solid var(--border-default)',
     borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 'var(--text-base)',
     outline: 'none', boxSizing: 'border-box' as const, fontFamily: 'inherit',
   }
@@ -72,56 +89,115 @@ const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => 
       // Title
       React.createElement('div', {
         style: { fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' },
-      }, 'Launch Claude Code'),
+      }, 'Launch Agent'),
       React.createElement('div', {
         style: { fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginBottom: '24px', fontFamily: 'Consolas, monospace' },
       }, `${agent.branch} \u00B7 ${projectName}`),
 
-      // Model select
+      // Provider selector
+      React.createElement('div', { style: { marginBottom: '16px' } },
+        React.createElement('label', { style: labelStyle }, 'Provider'),
+        detecting
+          ? React.createElement('div', {
+              style: { padding: '8px 12px', color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' },
+            }, 'Detecting CLI agents...')
+          : React.createElement('div', {
+              style: { display: 'flex', flexWrap: 'wrap' as const, gap: '6px' },
+            },
+              ...CLI_PROVIDERS.map(p => {
+                const detected = detectedProviders[p.id] !== false
+                const isSelected = providerId === p.id
+                return React.createElement('button', {
+                  key: p.id,
+                  onClick: () => detected && setProviderId(p.id),
+                  style: {
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 12px',
+                    background: isSelected ? `${p.color}15` : 'transparent',
+                    border: `1px solid ${isSelected ? p.color + '66' : 'var(--border-default)'}`,
+                    borderRadius: '6px', cursor: detected ? 'pointer' : 'default',
+                    color: detected ? (isSelected ? p.color : 'var(--text-secondary)') : 'var(--text-disabled)',
+                    fontSize: '12px', transition: 'all 100ms',
+                    opacity: detected ? 1 : 0.5,
+                  },
+                  title: detected ? p.name : `${p.name} — not detected`,
+                },
+                  React.createElement('span', { style: { fontSize: '14px' } }, p.icon),
+                  React.createElement('span', null, p.name),
+                  !detected
+                    ? React.createElement('a', {
+                        href: '#',
+                        onClick: (e: React.MouseEvent) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(p.installUrl).catch(() => {})
+                          useStore.getState().showToast('Install URL copied', 'info')
+                        },
+                        style: { color: 'var(--accent)', fontSize: '10px', textDecoration: 'none' },
+                      }, 'Install \u2192')
+                    : null,
+                )
+              }),
+            ),
+      ),
+
+      // Model select (Claude) or free text (others)
       React.createElement('div', { style: { marginBottom: '16px' } },
         React.createElement('label', { style: labelStyle }, 'Model'),
-        React.createElement('select', {
-          value: model,
-          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value),
-          style: {
-            ...inputStyle, cursor: 'pointer', appearance: 'auto' as const,
-          },
-        },
-          ...CLAUDE_MODELS.map(m =>
-            React.createElement('option', { key: m.id, value: m.id },
-              `${m.label}  \u2014  ${m.badge}`)
-          ),
-        ),
+        isClaude
+          ? React.createElement('select', {
+              value: model,
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value),
+              style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
+            },
+              ...CLAUDE_MODELS.map(m =>
+                React.createElement('option', { key: m.id, value: m.id },
+                  `${m.label}  \u2014  ${m.badge}`)
+              ),
+            )
+          : React.createElement('input', {
+              type: 'text',
+              value: customModel,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => setCustomModel(e.target.value),
+              placeholder: 'Model name (optional)',
+              style: inputStyle,
+            }),
       ),
 
-      // Mode radio buttons
-      React.createElement('div', { style: { marginBottom: '16px' } },
-        React.createElement('label', { style: labelStyle }, 'Mode'),
-        React.createElement('div', {
-          style: { display: 'flex', gap: '16px' },
-        },
-          ...MODES.map(m =>
-            React.createElement('label', {
-              key: m.id,
-              style: {
-                display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-                color: mode === m.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontSize: 'var(--text-sm)',
-              },
+      // Mode radio buttons (only show if provider supports flags)
+      (provider.planFlag || provider.autoApproveFlag)
+        ? React.createElement('div', { style: { marginBottom: '16px' } },
+            React.createElement('label', { style: labelStyle }, 'Mode'),
+            React.createElement('div', {
+              style: { display: 'flex', gap: '16px' },
             },
-              React.createElement('input', {
-                type: 'radio', name: 'mode', value: m.id, checked: mode === m.id,
-                onChange: () => setMode(m.id),
-                style: { accentColor: 'var(--accent)' },
-              }),
-              m.label,
-            )
-          ),
-        ),
-      ),
+              ...MODES.filter(m => {
+                if (m.id === 'plan') return !!provider.planFlag
+                if (m.id === 'auto') return !!provider.autoApproveFlag
+                return true
+              }).map(m =>
+                React.createElement('label', {
+                  key: m.id,
+                  style: {
+                    display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                    color: mode === m.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: 'var(--text-sm)',
+                  },
+                },
+                  React.createElement('input', {
+                    type: 'radio', name: 'mode', value: m.id, checked: mode === m.id,
+                    onChange: () => setMode(m.id),
+                    style: { accentColor: 'var(--accent)' },
+                  }),
+                  m.label,
+                )
+              ),
+            ),
+          )
+        : null,
 
       // Initial prompt
-      React.createElement('div', { style: { marginBottom: '24px' } },
+      React.createElement('div', { style: { marginBottom: '16px' } },
         React.createElement('label', { style: labelStyle }, 'Initial prompt (optional)'),
         React.createElement('textarea', {
           value: initialPrompt,
@@ -135,17 +211,29 @@ const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => 
         }),
       ),
 
+      // Command preview
+      React.createElement('div', {
+        style: {
+          padding: '8px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)',
+          borderRadius: '6px', marginBottom: '20px', fontFamily: 'Consolas, monospace',
+          fontSize: '12px', color: 'var(--text-tertiary)',
+        },
+      },
+        React.createElement('span', { style: { color: 'var(--text-disabled)', marginRight: '6px' } }, 'Preview:'),
+        React.createElement('span', { style: { color: 'var(--text-secondary)' } }, commandPreview),
+      ),
+
       // Launch button
       React.createElement('button', {
         onClick: handleLaunch,
         style: {
-          width: '100%', height: '40px', background: 'var(--accent)', color: '#fff',
+          width: '100%', height: '40px', background: provider.color || 'var(--accent)', color: '#fff',
           border: 'none', borderRadius: '6px', fontSize: 'var(--text-base)',
           fontWeight: 500, cursor: 'pointer', transition: 'opacity 150ms',
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-      }, 'Launch agent'),
+      }, `Launch ${provider.name}`),
     ),
   )
 }

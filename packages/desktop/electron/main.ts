@@ -1012,6 +1012,102 @@ function registerIpcHandlers() {
     return JSON.parse(JSON.stringify(results))
   })
 
+  // ── Global Terminal ──
+  ipcMain.handle('terminal:create-global', async (_event, config: { workingDir: string; terminalId: string; command: string }) => {
+    if (terminalRegistry.has(config.terminalId)) {
+      const existing = terminalRegistry.get(config.terminalId)!
+      if (existing.isAlive) {
+        return { success: true, existed: true, buffer: existing.buffer }
+      }
+      terminalRegistry.delete(config.terminalId)
+    }
+
+    if (!nodePty) {
+      return { success: false, error: 'node-pty not available' }
+    }
+
+    try {
+      const pty = nodePty.spawn('cmd.exe', [], {
+        name: 'xterm-color',
+        cols: 80,
+        rows: 24,
+        cwd: normalizePath(config.workingDir),
+        env: process.env,
+        useConpty: true,
+      })
+
+      const entry = {
+        pty,
+        buffer: [] as string[],
+        isAlive: true,
+        simulated: false,
+        isClaudeReady: false,
+        pendingPrompt: null as string | null,
+        lastActivityAt: Date.now(),
+        lastMeaningfulActivityAt: Date.now(),
+        worktreePath: normalizePath(config.workingDir),
+      }
+
+      terminalRegistry.set(config.terminalId, entry)
+
+      pty.onData((data: string) => {
+        entry.lastActivityAt = Date.now()
+        const stripped = data
+          .replace(/\x1b\[[\?]?[0-9;]*[A-Za-z]/g, '')
+          .replace(/\x1b\][^\x07]*\x07/g, '')
+          .replace(/\x1b\][^\x1b]*\x1b\\/g, '')
+          .replace(/\x1b[()][0-9A-Za-z]/g, '')
+          .replace(/[\r\n\t\x07\x08]/g, '')
+          .trim()
+        if (stripped.length > 0) {
+          entry.lastMeaningfulActivityAt = Date.now()
+        }
+
+        entry.buffer.push(data)
+        if (entry.buffer.length > 1000) entry.buffer.shift()
+
+        if (!entry.isClaudeReady) {
+          const recentOutput = entry.buffer.slice(-10).join('')
+          const ready = CLAUDE_READY_SIGNALS.some(s => recentOutput.includes(s))
+          if (ready) {
+            entry.isClaudeReady = true
+            BrowserWindow.getAllWindows().forEach(win => {
+              if (!win.isDestroyed()) {
+                win.webContents.send('terminal:output', config.terminalId,
+                  '\x1b[33m[runnio]\x1b[0m Claude Code ready\r\n')
+              }
+            })
+            if (entry.pendingPrompt) {
+              const prompt = entry.pendingPrompt
+              entry.pendingPrompt = null
+              setTimeout(() => {
+                if (entry.isAlive && entry.pty) {
+                  const CHUNK_SIZE = 512
+                  for (let i = 0; i < prompt.length; i += CHUNK_SIZE) {
+                    entry.pty.write(prompt.slice(i, i + CHUNK_SIZE))
+                  }
+                  entry.pty.write('\r')
+                }
+              }, 500)
+            }
+          }
+        }
+
+        BrowserWindow.getAllWindows().forEach(win => {
+          if (!win.isDestroyed()) {
+            win.webContents.send('terminal:output', config.terminalId, data)
+          }
+        })
+      })
+
+      pty.onExit(() => { entry.isAlive = false })
+
+      return JSON.parse(JSON.stringify({ success: true, existed: false, buffer: [] }))
+    } catch (err: any) {
+      return JSON.parse(JSON.stringify({ success: false, error: err.message }))
+    }
+  })
+
   // ── Notifications ──
   ipcMain.on('notify', (_e, title: string, body: string, type: string) => {
     try {

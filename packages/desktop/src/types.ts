@@ -27,6 +27,7 @@ export interface AgentSession {
   source?: 'internal' | 'external'
   prUrl?: string
   prNumber?: number
+  providerId?: string            // defaults to 'claude' if not set
   hasLaunched: boolean          // false = show config panel, true = show terminal
   launchConfig?: {
     model: string
@@ -148,6 +149,7 @@ export interface RunnioAPI {
     getBuffer: (id: string) => Promise<string[]>
     isAlive: (id: string) => Promise<boolean>
     injectWhenReady: (id: string, prompt: string) => Promise<{ success: boolean; immediate?: boolean; queued?: boolean }>
+    createGlobal: (config: { workingDir: string; terminalId: string; command: string }) => Promise<{ success: boolean; existed?: boolean; buffer?: string[]; error?: string }>
   }
   files: {
     list: (rootPath: string) => Promise<FileEntry[]>

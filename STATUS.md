@@ -1,6 +1,6 @@
 # Runnio — Project Status
 
-> Last updated: 2026-03-20
+> Last updated: 2026-03-21
 > Codebase name: Runnio (renamed from agentflow/regent on 2026-03-20)
 
 ## Product Vision
@@ -13,7 +13,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 
 ## Current Version
 
-- **Version:** 0.1.3 (package.json) / v0.1.3 (GitHub Release)
+- **Version:** 0.1.4 (package.json) / v0.1.4 (GitHub Release)
 - **Stack:** Electron 28 + React 18 + Zustand 4 + xterm.js 5 + node-pty 1.1 + simple-git 3
 - **Build:** esbuild (3-target: main/preload/renderer) + electron-builder (NSIS installer + portable)
 - **Platform:** Windows only (Mac planned for simultaneous launch)
@@ -130,6 +130,10 @@ Renderer (React 18 + Zustand)
 7. ~~**Contrast/accessibility polish**~~ — Done (2026-03-20). Theme system added with Dark, Dark Navy, Light, System modes
 8. ~~**Settings redesign**~~ — Done (2026-03-20). 6-section left-nav layout with CLI detection
 9. ~~**History bezier curves**~~ — Done (2026-03-20). Merge and branch-off curves now render correctly
+10. ~~**Multi-provider support**~~ — Done (2026-03-21). Provider registry, launch panel selector, command preview
+11. ~~**Toolbar redesign**~~ — Done (2026-03-21). Toggle icons, back/forward nav, Home access
+12. ~~**Global Terminal**~~ — Done (2026-03-21). Multi-project directory access, context header injection
+13. ~~**Homepage**~~ — Done (2026-03-21). Active agents, projects overview, recent activity
 
 ## Roadmap
 

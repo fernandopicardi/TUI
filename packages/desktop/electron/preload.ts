@@ -76,6 +76,8 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('terminal:is-alive', id),
     injectWhenReady: (id: string, prompt: string) =>
       ipcRenderer.invoke('terminal:inject-when-ready', id, prompt),
+    createGlobal: (config: { workingDir: string; terminalId: string; command: string }) =>
+      ipcRenderer.invoke('terminal:create-global', config),
   },
   files: {
     list: (rootPath: string) =>

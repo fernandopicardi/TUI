@@ -1,5 +1,19 @@
 # Runnio Changelog
 
+## v0.1.4 — 2026-03-21
+
+### Added
+- Multi-provider support: Claude Code, Codex, Gemini, OpenCode, Amp, Aider, Continue, Cline
+- Provider selector in agent launch panel with live command preview
+- Toolbar redesign with toggle icons for file explorer, browser preview, changes panel
+- Global Terminal: access multiple project directories simultaneously
+- Homepage: active agents, projects overview, recent activity
+- Navigation history: back/forward arrows in toolbar
+
+### Changed
+- AgentLaunchPanel now shows detected providers only
+- TitleBar reorganized with functional icon toolbar
+
 ## v0.1.3 — 2026-03-20
 
 ### Added

@@ -11,7 +11,14 @@ export interface RunnioStore {
   projects: Project[]
   activeProjectId: string | null
   activeAgentId: string | null
+  activeView: 'home' | 'dashboard' | 'workspace'
+  navigationHistory: string[]
+  navigationIndex: number
   isContextPanelOpen: boolean
+  isRightPanelOpen: boolean
+  rightPanelTab: 'files' | 'changes' | 'info'
+  isBrowserPreviewOpen: boolean
+  isGlobalTerminalModalOpen: boolean
   isCreateAgentModalOpen: boolean
   isAddProjectModalOpen: boolean
   isSettingsOpen: boolean
@@ -45,6 +52,13 @@ export interface RunnioStore {
   theme: Theme
   setTheme: (theme: Theme) => void
 
+  // Navigation
+  navigateTo: (view: 'home' | 'dashboard' | 'workspace') => void
+  navigateBack: () => void
+  navigateForward: () => void
+  canNavigateBack: () => boolean
+  canNavigateForward: () => boolean
+
   // UI actions
   openAddProject: () => void
   closeAddProject: () => void
@@ -53,6 +67,10 @@ export interface RunnioStore {
   openSettings: () => void
   closeSettings: () => void
   toggleContextPanel: () => void
+  toggleRightPanel: (tab?: 'files' | 'changes' | 'info') => void
+  toggleBrowserPreview: () => void
+  openGlobalTerminalModal: () => void
+  closeGlobalTerminalModal: () => void
   openCommandPalette: () => void
   closeCommandPalette: () => void
   openQuickPrompt: () => void
@@ -80,7 +98,14 @@ export const useStore = create<RunnioStore>()(
       projects: [],
       activeProjectId: null,
       activeAgentId: null,
+      activeView: 'home' as 'home' | 'dashboard' | 'workspace',
+      navigationHistory: [] as string[],
+      navigationIndex: -1,
       isContextPanelOpen: false,
+      isRightPanelOpen: false,
+      rightPanelTab: 'files' as 'files' | 'changes' | 'info',
+      isBrowserPreviewOpen: false,
+      isGlobalTerminalModalOpen: false,
       isCreateAgentModalOpen: false,
       isAddProjectModalOpen: false,
       isSettingsOpen: false,
@@ -130,6 +155,7 @@ export const useStore = create<RunnioStore>()(
       setActiveProject: (projectId) => set({
         activeProjectId: projectId,
         activeAgentId: null,
+        activeView: projectId ? 'dashboard' : 'home',
       }),
 
       addAgent: (projectId, agent) => {
@@ -170,7 +196,20 @@ export const useStore = create<RunnioStore>()(
         })),
       })),
 
-      setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+      setActiveAgent: (agentId) => {
+        if (agentId) {
+          const s = get()
+          const newHistory = [...s.navigationHistory.slice(0, s.navigationIndex + 1), agentId]
+          set({
+            activeAgentId: agentId,
+            activeView: 'workspace',
+            navigationHistory: newHistory,
+            navigationIndex: newHistory.length - 1,
+          })
+        } else {
+          set({ activeAgentId: null, activeView: get().activeProjectId ? 'dashboard' : 'home' })
+        }
+      },
 
       setAgentLaunched: (agentId, config) => set(state => ({
         projects: state.projects.map(p => ({
@@ -187,6 +226,35 @@ export const useStore = create<RunnioStore>()(
       setDefaultMode: (mode) => set({ defaultMode: mode }),
       setTheme: (theme) => set({ theme }),
 
+      // Navigation
+      navigateTo: (view) => set({ activeView: view, activeAgentId: view === 'workspace' ? get().activeAgentId : null }),
+      navigateBack: () => {
+        const s = get()
+        if (s.navigationIndex > 0) {
+          const newIndex = s.navigationIndex - 1
+          const agentId = s.navigationHistory[newIndex]
+          set({ navigationIndex: newIndex, activeAgentId: agentId, activeView: 'workspace' })
+        } else {
+          set({ activeAgentId: null, activeView: s.activeProjectId ? 'dashboard' : 'home' })
+        }
+      },
+      navigateForward: () => {
+        const s = get()
+        if (s.navigationIndex < s.navigationHistory.length - 1) {
+          const newIndex = s.navigationIndex + 1
+          const agentId = s.navigationHistory[newIndex]
+          set({ navigationIndex: newIndex, activeAgentId: agentId, activeView: 'workspace' })
+        }
+      },
+      canNavigateBack: () => {
+        const s = get()
+        return s.navigationIndex > 0 || !!s.activeAgentId
+      },
+      canNavigateForward: () => {
+        const s = get()
+        return s.navigationIndex < s.navigationHistory.length - 1
+      },
+
       openAddProject: () => set({ isAddProjectModalOpen: true }),
       closeAddProject: () => set({ isAddProjectModalOpen: false }),
       openCreateAgent: () => set({ isCreateAgentModalOpen: true }),
@@ -194,6 +262,15 @@ export const useStore = create<RunnioStore>()(
       openSettings: () => set({ isSettingsOpen: true }),
       closeSettings: () => set({ isSettingsOpen: false }),
       toggleContextPanel: () => set(s => ({ isContextPanelOpen: !s.isContextPanelOpen })),
+      toggleRightPanel: (tab) => set(s => {
+        if (tab && s.isRightPanelOpen && s.rightPanelTab === tab) {
+          return { isRightPanelOpen: false }
+        }
+        return { isRightPanelOpen: true, rightPanelTab: tab || s.rightPanelTab }
+      }),
+      toggleBrowserPreview: () => set(s => ({ isBrowserPreviewOpen: !s.isBrowserPreviewOpen })),
+      openGlobalTerminalModal: () => set({ isGlobalTerminalModalOpen: true }),
+      closeGlobalTerminalModal: () => set({ isGlobalTerminalModalOpen: false }),
       openCommandPalette: () => set({ isCommandPaletteOpen: true }),
       closeCommandPalette: () => set({ isCommandPaletteOpen: false }),
       openQuickPrompt: () => set({ isQuickPromptOpen: true }),

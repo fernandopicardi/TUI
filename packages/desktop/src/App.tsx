@@ -16,6 +16,8 @@ import CommandPalette from './components/CommandPalette'
 import QuickPrompt from './components/QuickPrompt'
 import SettingsModal from './components/SettingsModal'
 import DeleteAgentModal from './components/DeleteAgentModal'
+import GlobalTerminalModal from './components/GlobalTerminalModal'
+import Home from './views/Home'
 import Welcome from './views/Welcome'
 import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
@@ -39,6 +41,7 @@ const App: React.FC = () => {
 
   const projects = useStore(s => s.projects)
   const activeAgentId = useStore(s => s.activeAgentId)
+  const activeView = useStore(s => s.activeView)
   const toasts = useStore(s => s.toasts)
   const isAddProjectModalOpen = useStore(s => s.isAddProjectModalOpen)
   const isCreateAgentModalOpen = useStore(s => s.isCreateAgentModalOpen)
@@ -46,6 +49,7 @@ const App: React.FC = () => {
   const isQuickPromptOpen = useStore(s => s.isQuickPromptOpen)
   const isSettingsOpen = useStore(s => s.isSettingsOpen)
   const isDeleteAgentModalOpen = useStore(s => s.isDeleteAgentModalOpen)
+  const isGlobalTerminalModalOpen = useStore(s => s.isGlobalTerminalModalOpen)
   const [preloadOk, setPreloadOk] = React.useState(false)
 
   // Apply saved theme on mount
@@ -83,6 +87,10 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); s.openQuickPrompt(); return }
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); s.toggleContextPanel(); return }
       if (e.ctrlKey && e.key === ',') { e.preventDefault(); s.openSettings(); return }
+      if (e.ctrlKey && e.key === 'h') { e.preventDefault(); s.setActiveAgent(null); s.navigateTo('home'); return }
+      if (e.ctrlKey && e.key === 'e') { e.preventDefault(); s.toggleRightPanel('files'); return }
+      if (e.ctrlKey && e.shiftKey && e.key === 'B') { e.preventDefault(); s.toggleBrowserPreview(); return }
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); s.toggleRightPanel('changes'); return }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); s.setActiveAgent(null); return }
       if (e.key === 'Escape') {
         s.closeAddProject()
@@ -91,6 +99,7 @@ const App: React.FC = () => {
         s.closeQuickPrompt()
         s.closeSettings()
         s.closeDeleteAgent()
+        s.closeGlobalTerminalModal()
         return
       }
     }
@@ -145,11 +154,21 @@ const App: React.FC = () => {
               React.createElement('main', {
                 style: { flex: 1, overflow: 'hidden', position: 'relative' as const },
               },
+                // Home view
+                React.createElement('div', {
+                  style: {
+                    position: 'absolute' as const, inset: 0,
+                    display: (!hasActiveAgent && activeView === 'home') ? 'block' : 'none',
+                    overflow: 'auto' as const,
+                  },
+                },
+                  React.createElement(Home)
+                ),
                 // Dashboard
                 React.createElement('div', {
                   style: {
                     position: 'absolute' as const, inset: 0,
-                    display: hasActiveAgent ? 'none' : 'block',
+                    display: (!hasActiveAgent && activeView !== 'home') ? 'block' : 'none',
                     overflow: 'auto' as const,
                   },
                 },
@@ -188,6 +207,7 @@ const App: React.FC = () => {
     isQuickPromptOpen ? React.createElement(QuickPrompt) : null,
     isSettingsOpen ? React.createElement(SettingsModal) : null,
     isDeleteAgentModalOpen ? React.createElement(DeleteAgentModal) : null,
+    isGlobalTerminalModalOpen ? React.createElement(GlobalTerminalModal) : null,
   )
 }
 
