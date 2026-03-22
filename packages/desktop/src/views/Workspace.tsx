@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useState, useMemo, useRef } from 'react'
 import { useStore } from '../hooks/useStore'
 import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
@@ -10,6 +10,7 @@ import WorkspaceNotes from '../components/WorkspaceNotes'
 import GitHistory from '../components/GitHistory'
 import UpgradeGate from '../components/UpgradeGate'
 import AgentLaunchPanel, { buildLaunchCommand } from '../components/AgentLaunchPanel'
+import SplitTerminalSelector from '../components/SplitTerminalSelector'
 
 type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
@@ -30,7 +31,20 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
   })
   const initPrompt = useStore(s => s.initPrompt)
   const isActive = useStore(s => s.activeAgentId === agentId)
+  const splitAgentId = useStore(s => s.splitPairs[agentId] ?? null)
   const [activeTab, setActiveTab] = useState<Tab>('terminal')
+  const [showSplitSelector, setShowSplitSelector] = useState(false)
+  const splitBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Resolve split agent details
+  const splitAgent = useStore(s => {
+    if (!splitAgentId) return null
+    for (const p of s.projects) {
+      const a = p.agents.find(ag => ag.id === splitAgentId)
+      if (a) return { agent: a, projectName: p.name }
+    }
+    return null
+  })
 
   const terminalId = useMemo(() => {
     if (!agent) return ''
@@ -54,6 +68,15 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     useStore.getState().openDeleteAgent(project.id, agent.id)
   }, [agent, project])
 
+  const handleSplitSelect = useCallback((selectedAgent: any) => {
+    useStore.getState().setSplitAgent(agentId, selectedAgent.id)
+    setShowSplitSelector(false)
+  }, [agentId])
+
+  const handleCloseSplit = useCallback(() => {
+    useStore.getState().clearSplit(agentId)
+  }, [agentId])
+
   if (!agent || !project) {
     return React.createElement('div', {
       style: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--text-base)' },
@@ -74,6 +97,17 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     : agent.status === 'waiting' ? 'var(--waiting)'
     : agent.status === 'done' ? 'var(--done)'
     : 'var(--text-disabled)'
+
+  const isSplit = !!splitAgent
+
+  // Split icon SVG (two columns)
+  const splitIcon = React.createElement('svg', {
+    width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none',
+    style: { display: 'block' },
+  },
+    React.createElement('rect', { x: 1, y: 1, width: 6, height: 14, rx: 1.5, stroke: 'currentColor', strokeWidth: 1.5 }),
+    React.createElement('rect', { x: 9, y: 1, width: 6, height: 14, rx: 1.5, stroke: 'currentColor', strokeWidth: 1.5 }),
+  )
 
   return React.createElement('div', {
     style: { display: 'flex', flexDirection: 'column' as const, height: '100%', backgroundColor: 'var(--bg-app)' },
@@ -124,6 +158,46 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
       ),
       React.createElement('div', { style: { flex: 1 } }),
+
+      // Split terminal button
+      agent.hasLaunched
+        ? React.createElement('button', {
+            ref: splitBtnRef,
+            onClick: () => {
+              if (isSplit) {
+                handleCloseSplit()
+              } else {
+                setShowSplitSelector(prev => !prev)
+              }
+            },
+            title: isSplit ? 'Close split view' : 'Split terminal',
+            style: {
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: isSplit ? 'rgba(99,102,241,0.12)' : 'none',
+              border: isSplit ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--text-disabled)',
+              borderRadius: 'var(--radius-sm)',
+              color: isSplit ? 'var(--accent)' : 'var(--text-secondary)',
+              padding: '3px 8px', cursor: 'pointer', fontSize: 'var(--text-xs)',
+              transition: 'all 120ms',
+            },
+            onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+              if (!isSplit) {
+                e.currentTarget.style.borderColor = 'var(--accent)'
+                e.currentTarget.style.color = 'var(--accent)'
+              }
+            },
+            onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+              if (!isSplit) {
+                e.currentTarget.style.borderColor = 'var(--text-disabled)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }
+            },
+          },
+            splitIcon,
+            isSplit ? 'Unsplit' : 'Split',
+          )
+        : null,
+
       React.createElement('button', {
         onClick: handleDelete,
         style: {
@@ -135,6 +209,16 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = '#f8717166' },
       }, 'Delete'),
     ),
+
+    // Split selector popover
+    showSplitSelector
+      ? React.createElement(SplitTerminalSelector, {
+          currentAgentId: agentId,
+          anchorRef: splitBtnRef as React.RefObject<HTMLElement>,
+          onSelect: handleSplitSelect,
+          onClose: () => setShowSplitSelector(false),
+        })
+      : null,
 
     // Launch panel (shown before first launch)
     !agent.hasLaunched
@@ -158,14 +242,148 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
 
     // Tab content (hidden until launched)
     agent.hasLaunched ? React.createElement('div', { style: { flex: 1, overflow: 'hidden', position: 'relative' as const } },
+      // Terminal tab — with split support
       React.createElement('div', {
-        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'block' : 'none' },
+        style: { position: 'absolute' as const, inset: 0, display: activeTab === 'terminal' ? 'flex' : 'none', flexDirection: 'row' as const },
       },
-        React.createElement(Terminal, {
-          id: terminalId,
-          worktreePath: agent.worktreePath,
-          initialPrompt: effectivePrompt,
-        })
+        // Left pane (current agent terminal)
+        React.createElement('div', {
+          style: {
+            flex: 1,
+            position: 'relative' as const,
+            minWidth: 0,
+            borderRight: isSplit ? '1px solid var(--border-default)' : 'none',
+          },
+        },
+          // Pane label (only when split)
+          isSplit
+            ? React.createElement('div', {
+                style: {
+                  position: 'absolute' as const, top: 0, left: 0, right: 0,
+                  height: '24px', zIndex: 2,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0 8px',
+                  backgroundColor: 'rgba(10,10,10,0.85)',
+                  backdropFilter: 'blur(4px)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  fontSize: '10px',
+                },
+              },
+                React.createElement('span', {
+                  style: { color: 'var(--text-secondary)', fontFamily: '"Cascadia Code", Consolas, monospace' },
+                }, agent.branch),
+                React.createElement('span', {
+                  style: {
+                    width: '5px', height: '5px', borderRadius: '50%', backgroundColor: statusColor,
+                  },
+                }),
+              )
+            : null,
+          React.createElement('div', {
+            style: {
+              position: 'absolute' as const, left: 0, right: 0,
+              top: isSplit ? '24px' : 0, bottom: 0,
+            },
+          },
+            React.createElement(Terminal, {
+              id: terminalId,
+              worktreePath: agent.worktreePath,
+              initialPrompt: effectivePrompt,
+            }),
+          ),
+        ),
+
+        // Right pane (split agent terminal)
+        isSplit && splitAgent
+          ? React.createElement('div', {
+              style: {
+                flex: 1,
+                position: 'relative' as const,
+                minWidth: 0,
+              },
+            },
+              // Split pane header
+              React.createElement('div', {
+                style: {
+                  position: 'absolute' as const, top: 0, left: 0, right: 0,
+                  height: '24px', zIndex: 2,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0 8px',
+                  backgroundColor: 'rgba(10,10,10,0.85)',
+                  backdropFilter: 'blur(4px)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  fontSize: '10px',
+                },
+              },
+                React.createElement('div', {
+                  style: { display: 'flex', alignItems: 'center', gap: '6px' },
+                },
+                  React.createElement('span', {
+                    style: { color: 'var(--text-secondary)', fontFamily: '"Cascadia Code", Consolas, monospace' },
+                  }, splitAgent.agent.branch),
+                  React.createElement('span', {
+                    style: { color: 'var(--text-disabled)', fontSize: '9px' },
+                  }, splitAgent.projectName),
+                ),
+                React.createElement('div', {
+                  style: { display: 'flex', alignItems: 'center', gap: '6px' },
+                },
+                  // Status dot
+                  React.createElement('span', {
+                    style: {
+                      width: '5px', height: '5px', borderRadius: '50%',
+                      backgroundColor:
+                        splitAgent.agent.status === 'working' ? 'var(--working)' :
+                        splitAgent.agent.status === 'waiting' ? 'var(--waiting)' :
+                        splitAgent.agent.status === 'done' ? 'var(--done)' :
+                        'var(--text-disabled)',
+                    },
+                  }),
+                  // Swap button
+                  React.createElement('button', {
+                    onClick: () => {
+                      // Swap: navigate to split agent and split with current
+                      useStore.getState().clearSplit(agentId)
+                      useStore.getState().setActiveAgent(splitAgent.agent.id)
+                      useStore.getState().setSplitAgent(splitAgent.agent.id, agentId)
+                    },
+                    title: 'Swap panes',
+                    style: {
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
+                      color: 'var(--text-disabled)', fontSize: '11px', lineHeight: 1,
+                      transition: 'color 100ms',
+                    },
+                    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--accent)' },
+                    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
+                  }, '\u21C4'),
+                  // Close split button
+                  React.createElement('button', {
+                    onClick: handleCloseSplit,
+                    title: 'Close split',
+                    style: {
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
+                      color: 'var(--text-disabled)', fontSize: '11px', lineHeight: 1,
+                      transition: 'color 100ms',
+                    },
+                    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--error)' },
+                    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
+                  }, '\u2715'),
+                ),
+              ),
+              // Split terminal
+              React.createElement('div', {
+                style: {
+                  position: 'absolute' as const, left: 0, right: 0,
+                  top: '24px', bottom: 0,
+                },
+              },
+                React.createElement(Terminal, {
+                  id: splitAgent.agent.terminalId,
+                  worktreePath: splitAgent.agent.worktreePath,
+                }),
+              ),
+            )
+          : null,
       ),
       React.createElement('div', {
         style: { position: 'absolute' as const, inset: 0, display: activeTab === 'files' ? 'flex' : 'none' },
