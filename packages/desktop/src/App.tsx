@@ -70,6 +70,8 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); s.toggleContextPanel(); return }
       if (e.ctrlKey && e.key === ',') { e.preventDefault(); s.openSettings(); return }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); s.setActiveAgent(null); return }
+      // Ctrl+\ — toggle split terminal selector (dispatched as custom event for Workspace to handle)
+      if (e.ctrlKey && e.key === '\\') { e.preventDefault(); window.dispatchEvent(new CustomEvent('runnio:toggle-split')); return }
       if (e.key === 'Escape') {
         s.closeAddProject()
         s.closeCreateAgent()

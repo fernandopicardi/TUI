@@ -10,6 +10,18 @@ interface Props {
   onClose: () => void
 }
 
+interface AgentWithProject extends AgentSession {
+  projectName: string
+  projectId: string
+}
+
+interface ProjectGroup {
+  projectId: string
+  projectName: string
+  isSameProject: boolean
+  agents: AgentWithProject[]
+}
+
 const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onSelect, onClose }) => {
   const projects = useStore(s => s.projects)
   const [search, setSearch] = useState('')
@@ -18,12 +30,20 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
   const panelRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
 
-  // Collect all other launched agents
-  const otherAgents: Array<AgentSession & { projectName: string }> = []
+  // Find current agent's project
+  const currentProjectId = (() => {
+    for (const p of projects) {
+      if (p.agents.some(a => a.id === currentAgentId)) return p.id
+    }
+    return null
+  })()
+
+  // Collect all other launched agents with project info
+  const otherAgents: AgentWithProject[] = []
   for (const p of projects) {
     for (const a of p.agents) {
       if (a.id !== currentAgentId && a.hasLaunched) {
-        otherAgents.push({ ...a, projectName: p.name })
+        otherAgents.push({ ...a, projectName: p.name, projectId: p.id })
       }
     }
   }
@@ -36,16 +56,46 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
       )
     : otherAgents
 
+  // Group by project, same project first
+  const grouped: ProjectGroup[] = (() => {
+    const map = new Map<string, ProjectGroup>()
+    for (const a of filtered) {
+      let group = map.get(a.projectId)
+      if (!group) {
+        group = {
+          projectId: a.projectId,
+          projectName: a.projectName,
+          isSameProject: a.projectId === currentProjectId,
+          agents: [],
+        }
+        map.set(a.projectId, group)
+      }
+      group.agents.push(a)
+    }
+    // Sort: same project first, then alphabetically
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.isSameProject && !b.isSameProject) return -1
+      if (!a.isSameProject && b.isSameProject) return 1
+      return a.projectName.localeCompare(b.projectName)
+    })
+  })()
+
+  // Flat list for keyboard navigation
+  const flatFiltered = grouped.flatMap(g => g.agents)
+
   // Clamp selected index
   useEffect(() => {
-    if (selectedIdx >= filtered.length) setSelectedIdx(Math.max(0, filtered.length - 1))
-  }, [filtered.length])
+    if (selectedIdx >= flatFiltered.length) setSelectedIdx(Math.max(0, flatFiltered.length - 1))
+  }, [flatFiltered.length])
 
   // Position popover below anchor
   useEffect(() => {
     if (anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect()
-      setPosition({ top: rect.bottom + 4, left: rect.left })
+      setPosition({
+        top: rect.bottom + 4,
+        left: Math.min(rect.right - 320, window.innerWidth - 340),
+      })
     }
   }, [anchorRef.current])
 
@@ -69,14 +119,14 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, filtered.length - 1)); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, flatFiltered.length - 1)); return }
     if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); return }
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (filtered[selectedIdx]) onSelect(filtered[selectedIdx])
+      if (flatFiltered[selectedIdx]) onSelect(flatFiltered[selectedIdx])
       return
     }
-  }, [filtered, selectedIdx, onSelect, onClose])
+  }, [flatFiltered, selectedIdx, onSelect, onClose])
 
   const statusDot = (status: string): React.CSSProperties => ({
     width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
@@ -91,6 +141,11 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
       'none',
   })
 
+  // Map flat index for a given agent
+  const getFlatIndex = (agent: AgentWithProject): number => {
+    return flatFiltered.findIndex(a => a.id === agent.id)
+  }
+
   if (!position) return null
 
   return React.createElement('div', {
@@ -99,9 +154,9 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
     style: {
       position: 'fixed' as const,
       top: position.top,
-      left: Math.min(position.left, window.innerWidth - 340),
+      left: position.left,
       width: '320px',
-      maxHeight: '380px',
+      maxHeight: '420px',
       backgroundColor: 'var(--bg-elevated)',
       border: '1px solid var(--border-default)',
       borderRadius: 'var(--radius-lg)',
@@ -162,8 +217,8 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
       }),
     ),
 
-    // Agent list
-    filtered.length === 0
+    // Agent list grouped by project
+    flatFiltered.length === 0
       ? React.createElement('div', {
           style: {
             padding: '24px 14px',
@@ -182,64 +237,99 @@ const SplitTerminalSelector: React.FC<Props> = ({ currentAgentId, anchorRef, onS
             padding: '4px',
           },
         },
-          ...filtered.map((agent, idx) => {
-            const isSelected = idx === selectedIdx
-            return React.createElement('button', {
-              key: agent.id,
-              onClick: () => onSelect(agent),
-              onMouseEnter: () => setSelectedIdx(idx),
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '8px 10px',
-                background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                textAlign: 'left' as const,
-                transition: 'background 80ms',
-                borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
-              },
-            },
-              // Status dot
-              React.createElement('span', { style: statusDot(agent.status) }),
-              // Agent info
+          ...grouped.flatMap((group, gi) => {
+            const elements: React.ReactElement[] = []
+
+            // Project section header
+            elements.push(
               React.createElement('div', {
-                style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' as const, gap: '1px' },
-              },
-                React.createElement('span', {
-                  style: {
-                    color: 'var(--text-primary)',
-                    fontSize: 'var(--text-sm)',
-                    fontFamily: '"Cascadia Code", Consolas, monospace',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap' as const,
-                  },
-                }, agent.branch),
-                React.createElement('span', {
-                  style: {
-                    color: 'var(--text-tertiary)',
-                    fontSize: '10px',
-                  },
-                }, agent.projectName),
-              ),
-              // Status label
-              React.createElement('span', {
+                key: `header-${group.projectId}`,
                 style: {
-                  fontSize: '10px',
-                  color:
-                    agent.status === 'working' ? 'var(--working)' :
-                    agent.status === 'waiting' ? 'var(--waiting)' :
-                    agent.status === 'done' ? 'var(--done)' :
-                    'var(--text-disabled)',
-                  flexShrink: 0,
-                  textTransform: 'capitalize' as const,
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: gi === 0 ? '6px 10px 4px' : '10px 10px 4px',
+                  fontSize: '10px', fontWeight: 600,
+                  color: 'var(--text-disabled)',
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.06em',
                 },
-              }, agent.status),
+              },
+                React.createElement('span', null, group.projectName),
+                group.isSameProject
+                  ? React.createElement('span', {
+                      style: {
+                        fontSize: '9px', padding: '0px 5px',
+                        borderRadius: '8px',
+                        background: 'rgba(99,102,241,0.1)',
+                        color: 'var(--accent)',
+                        fontWeight: 500,
+                        letterSpacing: '0',
+                        textTransform: 'none' as const,
+                      },
+                    }, 'current')
+                  : null,
+              )
             )
+
+            // Agents in this group
+            for (const agent of group.agents) {
+              const flatIdx = getFlatIndex(agent)
+              const isSelected = flatIdx === selectedIdx
+
+              elements.push(
+                React.createElement('button', {
+                  key: agent.id,
+                  onClick: () => onSelect(agent),
+                  onMouseEnter: () => setSelectedIdx(flatIdx),
+                  style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    width: '100%',
+                    padding: '7px 10px',
+                    background: isSelected ? 'var(--bg-hover)' : 'transparent',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    textAlign: 'left' as const,
+                    transition: 'background 80ms',
+                    borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                  },
+                },
+                  // Status dot
+                  React.createElement('span', { style: statusDot(agent.status) }),
+                  // Agent info
+                  React.createElement('div', {
+                    style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' as const, gap: '1px' },
+                  },
+                    React.createElement('span', {
+                      style: {
+                        color: 'var(--text-primary)',
+                        fontSize: 'var(--text-sm)',
+                        fontFamily: '"Cascadia Code", Consolas, monospace',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap' as const,
+                      },
+                    }, agent.branch),
+                  ),
+                  // Status label
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '10px',
+                      color:
+                        agent.status === 'working' ? 'var(--working)' :
+                        agent.status === 'waiting' ? 'var(--waiting)' :
+                        agent.status === 'done' ? 'var(--done)' :
+                        'var(--text-disabled)',
+                      flexShrink: 0,
+                      textTransform: 'capitalize' as const,
+                    },
+                  }, agent.status),
+                )
+              )
+            }
+
+            return elements
           })
         ),
 

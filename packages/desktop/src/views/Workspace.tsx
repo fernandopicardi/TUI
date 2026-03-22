@@ -59,6 +59,20 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     }
   }, [initPrompt, isActive])
 
+  // Listen for Ctrl+\ toggle-split event (only on active workspace)
+  React.useEffect(() => {
+    if (!isActive || !agent?.hasLaunched) return
+    const handler = () => {
+      if (splitAgentId) {
+        useStore.getState().clearSplit(agentId)
+      } else {
+        setShowSplitSelector(prev => !prev)
+      }
+    }
+    window.addEventListener('runnio:toggle-split', handler)
+    return () => window.removeEventListener('runnio:toggle-split', handler)
+  }, [isActive, agentId, splitAgentId, agent?.hasLaunched])
+
   const handleBack = useCallback(() => {
     useStore.getState().setActiveAgent(null)
   }, [])
@@ -112,53 +126,67 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
   return React.createElement('div', {
     style: { display: 'flex', flexDirection: 'column' as const, height: '100%', backgroundColor: 'var(--bg-app)' },
   },
-    // Header
+    // Row 1 — Navigation: back, breadcrumb, status, actions
     React.createElement('div', {
       style: {
-        display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', height: '40px',
-        borderBottom: '1px solid var(--border-default)', flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '0 16px', height: '36px',
+        borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       },
     },
+      // Back button
       React.createElement('button', {
         onClick: handleBack,
+        title: 'Back to Dashboard',
         style: {
-          background: 'none', border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-sm)',
-          color: 'var(--text-secondary)', padding: '2px 10px', cursor: 'pointer', fontSize: 'var(--text-sm)',
-          transition: 'all 100ms',
+          background: 'none', border: 'none', borderRadius: 'var(--radius-sm)',
+          color: 'var(--text-tertiary)', padding: '2px 6px', cursor: 'pointer', fontSize: 'var(--text-sm)',
+          transition: 'all 100ms', display: 'flex', alignItems: 'center',
         },
-        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-secondary)' },
-        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-disabled)' },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-primary)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-tertiary)' },
       }, '\u2190'),
-      React.createElement('span', {
-        style: { fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Consolas, monospace' },
-      }, agent.branch || 'detached'),
-      React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-sm)' } }, '\u00B7'),
-      React.createElement('span', { style: { fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' } }, project.name),
+      // Breadcrumb: Project > Branch
+      React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '6px' },
+      },
+        React.createElement('button', {
+          onClick: handleBack,
+          title: 'Back to project dashboard',
+          style: {
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)',
+            transition: 'color 100ms',
+          },
+          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--accent)' },
+          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-tertiary)' },
+        }, project.name),
+        React.createElement('span', {
+          style: { color: 'var(--text-disabled)', fontSize: '10px' },
+        }, '/'),
+        React.createElement('span', {
+          style: { fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: '"Cascadia Code", Consolas, monospace' },
+        }, agent.branch || 'detached'),
+      ),
       // Status badge
       React.createElement('span', {
         style: {
           display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: statusColor,
+          padding: '1px 8px', borderRadius: '10px',
+          background: agent.status === 'working' ? 'rgba(74,222,128,0.08)'
+            : agent.status === 'waiting' ? 'rgba(251,191,36,0.08)'
+            : agent.status === 'done' ? 'rgba(99,102,241,0.08)'
+            : 'transparent',
         },
       },
         React.createElement('span', {
           style: {
-            width: '6px', height: '6px', borderRadius: '50%', backgroundColor: statusColor,
+            width: '5px', height: '5px', borderRadius: '50%', backgroundColor: statusColor,
             animation: agent.status === 'working' ? 'pulse 2s infinite' : agent.status === 'waiting' ? 'pulseFast 1s infinite' : 'none',
           },
         }),
         agent.status,
       ),
-      // Tabs
-      React.createElement('div', { style: { display: 'flex', gap: '2px', marginLeft: '16px' } },
-        React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
-        React.createElement('button', { onClick: () => setActiveTab('files'), style: tabStyle('files') }, 'Files'),
-        React.createElement('button', { onClick: () => setActiveTab('diff'), style: tabStyle('diff') }, 'Diff'),
-        React.createElement('button', { onClick: () => setActiveTab('history'), style: tabStyle('history') }, 'History'),
-        React.createElement('button', { onClick: () => setActiveTab('pr'), style: tabStyle('pr') }, 'PR'),
-        React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
-      ),
       React.createElement('div', { style: { flex: 1 } }),
-
       // Split terminal button
       agent.hasLaunched
         ? React.createElement('button', {
@@ -170,13 +198,13 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
                 setShowSplitSelector(prev => !prev)
               }
             },
-            title: isSplit ? 'Close split view' : 'Split terminal',
+            title: isSplit ? 'Close split view (Ctrl+\\)' : 'Split terminal (Ctrl+\\)',
             style: {
               display: 'flex', alignItems: 'center', gap: '5px',
               background: isSplit ? 'rgba(99,102,241,0.12)' : 'none',
-              border: isSplit ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--text-disabled)',
+              border: isSplit ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--border-default)',
               borderRadius: 'var(--radius-sm)',
-              color: isSplit ? 'var(--accent)' : 'var(--text-secondary)',
+              color: isSplit ? 'var(--accent)' : 'var(--text-tertiary)',
               padding: '3px 8px', cursor: 'pointer', fontSize: 'var(--text-xs)',
               transition: 'all 120ms',
             },
@@ -188,8 +216,8 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
             },
             onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
               if (!isSplit) {
-                e.currentTarget.style.borderColor = 'var(--text-disabled)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.borderColor = 'var(--border-default)'
+                e.currentTarget.style.color = 'var(--text-tertiary)'
               }
             },
           },
@@ -197,17 +225,34 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
             isSplit ? 'Unsplit' : 'Split',
           )
         : null,
-
+      // Delete button
       React.createElement('button', {
         onClick: handleDelete,
+        title: 'Delete agent',
         style: {
-          background: 'none', border: '1px solid #f8717166', borderRadius: 'var(--radius-sm)',
-          color: 'var(--error)', padding: '2px 10px', cursor: 'pointer', fontSize: 'var(--text-sm)',
+          background: 'none', border: 'none', borderRadius: 'var(--radius-sm)',
+          color: 'var(--text-disabled)', padding: '2px 6px', cursor: 'pointer', fontSize: 'var(--text-sm)',
           transition: 'all 100ms',
         },
-        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--error)' },
-        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = '#f8717166' },
-      }, 'Delete'),
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--error)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
+      }, '\u2715'),
+    ),
+
+    // Row 2 — Tabs
+    React.createElement('div', {
+      style: {
+        display: 'flex', alignItems: 'center', padding: '0 16px', height: '32px',
+        borderBottom: '1px solid var(--border-default)', flexShrink: 0,
+        gap: '2px',
+      },
+    },
+      React.createElement('button', { onClick: () => setActiveTab('terminal'), style: tabStyle('terminal') }, 'Terminal'),
+      React.createElement('button', { onClick: () => setActiveTab('files'), style: tabStyle('files') }, 'Files'),
+      React.createElement('button', { onClick: () => setActiveTab('diff'), style: tabStyle('diff') }, 'Diff'),
+      React.createElement('button', { onClick: () => setActiveTab('history'), style: tabStyle('history') }, 'History'),
+      React.createElement('button', { onClick: () => setActiveTab('pr'), style: tabStyle('pr') }, 'PR'),
+      React.createElement('button', { onClick: () => setActiveTab('notes'), style: tabStyle('notes') }, 'Notes'),
     ),
 
     // Split selector popover
