@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Project, AgentSession, Toast } from '../types'
+import { Project, AgentSession, Toast, RunnioTask, TaskStatus } from '../types'
 import { canAddProject, canAddAgent, PLAN_FLAGS } from '../features'
 import { Theme } from '../styles/themes'
 
@@ -11,12 +11,13 @@ export interface RunnioStore {
   projects: Project[]
   activeProjectId: string | null
   activeAgentId: string | null
-  activeView: 'home' | 'dashboard' | 'workspace'
+  activeView: 'home' | 'dashboard' | 'workspace' | 'kanban' | 'global-history'
   navigationHistory: string[]
   navigationIndex: number
   isContextPanelOpen: boolean
   isRightPanelOpen: boolean
   rightPanelTab: 'files' | 'diff' | 'pr' | 'notes' | 'changes'
+  mainPanelTab: 'terminal' | 'history' | 'diff' | 'pr' | 'notes'
   isBrowserPreviewOpen: boolean
   isGlobalTerminalModalOpen: boolean
   isCreateAgentModalOpen: boolean
@@ -84,6 +85,8 @@ export interface RunnioStore {
   closeSettings: () => void
   toggleContextPanel: () => void
   toggleRightPanel: (tab?: 'files' | 'diff' | 'pr' | 'notes' | 'changes') => void
+  setMainPanelTab: (tab: 'terminal' | 'history' | 'diff' | 'pr' | 'notes') => void
+  openGlobalHistory: () => void
   toggleBrowserPreview: () => void
   openGlobalTerminalModal: () => void
   closeGlobalTerminalModal: () => void
@@ -109,6 +112,16 @@ export interface RunnioStore {
   removeSplitAgent: (agentId: string) => void
   clearSplit: () => void
 
+  // Tasks
+  tasks: RunnioTask[]
+  addTask: (task: RunnioTask) => void
+  updateTask: (taskId: string, updates: Partial<RunnioTask>) => void
+  moveTask: (taskId: string, status: TaskStatus) => void
+  removeTask: (taskId: string) => void
+  archiveDoneTasks: () => void
+  getTaskForAgent: (agentId: string) => RunnioTask | undefined
+  getTasksForProject: (projectId: string) => RunnioTask[]
+
   // Computed helpers
   getActiveProject: () => Project | null
   getActiveAgent: () => AgentSession | null
@@ -128,6 +141,7 @@ export const useStore = create<RunnioStore>()(
       isContextPanelOpen: false,
       isRightPanelOpen: false,
       rightPanelTab: 'files' as 'files' | 'diff' | 'pr' | 'notes' | 'changes',
+      mainPanelTab: 'terminal' as 'terminal' | 'history' | 'diff' | 'pr' | 'notes',
       isBrowserPreviewOpen: false,
       isGlobalTerminalModalOpen: false,
       isCreateAgentModalOpen: false,
@@ -244,6 +258,7 @@ export const useStore = create<RunnioStore>()(
           set({
             activeAgentId: agentId,
             activeView: 'workspace',
+            mainPanelTab: 'terminal',
             navigationHistory: newHistory,
             navigationIndex: newHistory.length - 1,
           })
@@ -310,7 +325,7 @@ export const useStore = create<RunnioStore>()(
       setNotifications: (v) => set({ notifications: v }),
 
       // Navigation
-      navigateTo: (view) => set({ activeView: view, activeAgentId: view === 'workspace' ? get().activeAgentId : null }),
+      navigateTo: (view) => set({ activeView: view as any, activeAgentId: view === 'workspace' ? get().activeAgentId : null }),
       navigateBack: () => {
         const s = get()
         if (s.navigationIndex > 0) {
@@ -351,6 +366,19 @@ export const useStore = create<RunnioStore>()(
         }
         return { isRightPanelOpen: true, rightPanelTab: tab || s.rightPanelTab }
       }),
+      setMainPanelTab: (tab) => set(s => {
+        // If toggling same tab, go back to terminal
+        if (s.mainPanelTab === tab && tab !== 'terminal') {
+          return { mainPanelTab: 'terminal' as const }
+        }
+        // Auto-close right panel when opening diff/pr/notes in main
+        const closeRight = tab === 'diff' || tab === 'pr' || tab === 'notes'
+        return {
+          mainPanelTab: tab,
+          isRightPanelOpen: closeRight ? false : s.isRightPanelOpen,
+        }
+      }),
+      openGlobalHistory: () => set({ activeView: 'global-history', activeAgentId: null }),
       toggleBrowserPreview: () => set(s => ({ isBrowserPreviewOpen: !s.isBrowserPreviewOpen })),
       openGlobalTerminalModal: () => set({ isGlobalTerminalModalOpen: true }),
       closeGlobalTerminalModal: () => set({ isGlobalTerminalModalOpen: false }),
@@ -392,6 +420,25 @@ export const useStore = create<RunnioStore>()(
       }),
       clearSplit: () => set({ isSplitMode: false, splitAgentIds: [] }),
 
+      // Tasks
+      tasks: [] as RunnioTask[],
+      addTask: (task) => set(s => ({ tasks: [...s.tasks, task] })),
+      updateTask: (taskId, updates) => set(s => ({
+        tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...updates, updatedAt: Date.now() } : t),
+      })),
+      moveTask: (taskId, status) => set(s => ({
+        tasks: s.tasks.map(t => t.id === taskId ? {
+          ...t, status, updatedAt: Date.now(),
+          activityLog: [...t.activityLog, { action: `Moved to ${status}`, timestamp: Date.now() }],
+        } : t),
+      })),
+      removeTask: (taskId) => set(s => ({ tasks: s.tasks.filter(t => t.id !== taskId) })),
+      archiveDoneTasks: () => set(s => ({
+        tasks: s.tasks.map(t => t.status === 'done' ? { ...t, archived: true, updatedAt: Date.now() } : t),
+      })),
+      getTaskForAgent: (agentId) => get().tasks.find(t => t.agentId === agentId && !t.archived),
+      getTasksForProject: (projectId) => get().tasks.filter(t => t.projectId === projectId && !t.archived),
+
       getActiveProject: () => {
         const s = get()
         return s.projects.find(p => p.id === s.activeProjectId) ?? null
@@ -423,6 +470,7 @@ export const useStore = create<RunnioStore>()(
         createWorktreeByDefault: state.createWorktreeByDefault,
         branchPattern: state.branchPattern,
         notifications: state.notifications,
+        tasks: state.tasks,
       }),
       // Migrate persisted agents that predate the hasLaunched field
       merge: (persisted: any, current: any) => {

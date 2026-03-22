@@ -74,6 +74,11 @@ Branch: fix-4/settings-functional
 Status: Complete — ready to merge
 Owns: SettingsModal.tsx, store/index.ts (settings state), Terminal.tsx (font/size from store), useAgentStatus.ts (refreshInterval from store), CreateAgentModal.tsx (branchPattern + createWorktreeByDefault from store)
 
+### Agent Fix-5 — Tasks and Kanban
+Branch: fix-5/tasks-kanban
+Status: Complete — ready to merge
+Owns: TasksPanel.tsx, KanbanBoard.tsx (new), types.ts (RunnioTask), store/index.ts (task state + actions), App.tsx (kanban route), CreateAgentModal.tsx (auto-create task), useAgentStatus.ts (task sync)
+
 ## Shared rules
 - Product name: Runnio (never agentflow, never regent)
 - Config file: runnio.config.json

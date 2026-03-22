@@ -1,5 +1,20 @@
 # Runnio Changelog
 
+## v0.1.9 — 2026-03-22
+
+### Added
+- **Task data model**: `RunnioTask` type with id, title, status (todo/in-progress/ready-for-review/in-review/done), source, projectId, agentId, activity log. Persisted in Zustand store.
+- **Kanban board**: 5-column view (To-do, In progress, Ready for review, In review, Done) with inline task creation, task detail modal (editable title/status, activity log, agent link), project filter, hide-done toggle, archive button for done column.
+- **Sidebar cascading view**: Compact task list organized by project with expand/collapse. Status icons with labels, click-to-navigate to agent workspace. "Show N completed" toggle for done tasks. "+ New task" button.
+- **Automatic task lifecycle**: Agent creation auto-creates linked task in "todo". Status polling syncs transitions: working→in-progress, waiting→ready-for-review, done→done. Activity log tracks all transitions with timestamps.
+- **Task store actions**: addTask, updateTask, moveTask, removeTask, archiveDoneTasks, getTaskForAgent, getTasksForProject. All persisted to localStorage.
+- **Kanban route**: New `activeView: 'kanban'` option. Clicking "Tasks" header in sidebar navigates to full Kanban board view.
+
+### Changed
+- **TasksPanel rewritten**: Was a read-only GitHub issues viewer. Now shows persistent Runnio tasks in cascading project-grouped view with status tracking.
+- **CreateAgentModal**: Auto-creates linked RunnioTask when agent is created.
+- **useAgentStatus**: Syncs agent status transitions to linked tasks automatically.
+
 ## v0.1.8 — 2026-03-22
 
 ### Fixed — Settings fully functional

@@ -77,6 +77,7 @@ Renderer (React 18 + Zustand)
 - **CSS:** Design tokens via CSS variables in `:root`. No external framework.
 - **State:** Zustand persists `projects`, `activeProjectId`, `activeAgentId`, `defaultModel`, `defaultMode`, `theme`, `terminalFont`, `terminalFontSize`, `refreshInterval`, `createWorktreeByDefault`, `branchPattern`, `notifications` to localStorage key `runnio-store`.
 - **Integration tokens:** GitHub token stored in `~/.runnio/config.json` via `settings:write-global` IPC. Read by PRPanel and Settings.
+- **Tasks:** `RunnioTask[]` persisted in Zustand store. Auto-created when agents are created, auto-synced via useAgentStatusWatcher. Statuses: todo → in-progress → ready-for-review → in-review → done. Sidebar shows cascading project-grouped view, Kanban board shows full 5-column view.
 - **React:** All `React.createElement()` — no JSX. esbuild bundles as IIFE for browser target.
 - **Feature flags:** Plan-based gating via `features.ts`. `UpgradeGate` component wraps premium features.
 

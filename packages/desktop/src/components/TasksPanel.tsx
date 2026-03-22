@@ -1,284 +1,202 @@
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStore } from '../store/index'
-import { CircleDot, Circle, Check, ArrowRight } from 'lucide-react'
+import { RunnioTask, TaskStatus } from '../types'
+import { CircleDot, Circle, CheckCircle, Eye, Clock, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 
-type FilterMode = 'all' | 'by-project' | 'by-agent'
-type TaskStatus = 'working' | 'waiting' | 'backlog' | 'done'
-
-interface TaskItem {
-  id: string
-  title: string
-  status: TaskStatus
-  projectName: string
-  projectId: string
-  agentBranch?: string
-  agentId?: string
-  url?: string
-  source: 'github'
+const STATUS_CONFIG: Record<TaskStatus, { Icon: typeof CircleDot; color: string; label: string }> = {
+  'todo':              { Icon: Circle,     color: 'var(--text-disabled)', label: 'todo' },
+  'in-progress':       { Icon: CircleDot,  color: 'var(--working)',       label: 'in-progress' },
+  'ready-for-review':  { Icon: Eye,        color: 'var(--waiting)',       label: 'review' },
+  'in-review':         { Icon: Clock,      color: '#a78bfa',             label: 'in-review' },
+  'done':              { Icon: CheckCircle, color: 'var(--working)',      label: 'done' },
 }
 
-const STATUS_ORDER: Record<TaskStatus, number> = { working: 0, waiting: 1, backlog: 2, done: 3 }
-
-const STATUS_ICON_MAP: Record<TaskStatus, { Icon: typeof CircleDot; color: string }> = {
-  working: { Icon: CircleDot, color: 'var(--working)' },
-  waiting: { Icon: Circle, color: 'var(--waiting)' },
-  backlog: { Icon: Circle, color: 'var(--text-disabled)' },
-  done: { Icon: Check, color: 'var(--working)' },
-}
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  working: 'In Progress',
-  waiting: 'Waiting',
-  backlog: 'Backlog',
-  done: 'Done',
+const STATUS_ORDER: Record<TaskStatus, number> = {
+  'in-progress': 0, 'ready-for-review': 1, 'in-review': 2, 'todo': 3, 'done': 4,
 }
 
 const TasksPanel: React.FC = () => {
   const projects = useStore(s => s.projects)
-  const [filter, setFilter] = useState<FilterMode>('all')
-  const [tasks, setTasks] = useState<TaskItem[]>([])
-  const [loading, setLoading] = useState(false)
-  const [hoveredTask, setHoveredTask] = useState<string | null>(null)
+  const tasks = useStore(s => s.tasks)
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(projects.map(p => p.id)))
+  const [showDone, setShowDone] = useState<Set<string>>(new Set())
 
-  // Fetch issues from all projects
-  useEffect(() => {
-    let cancelled = false
-    const fetchAll = async () => {
-      if (projects.length === 0) { setTasks([]); return }
-      setLoading(true)
-
-      const allTasks: TaskItem[] = []
-      const allAgents = projects.flatMap(p => p.agents.map(a => ({ ...a, projectName: p.name })))
-
-      for (const project of projects) {
-        try {
-          const result = await window.runnio?.github?.listIssues(project.rootPath)
-          if (!result?.success || cancelled) continue
-
-          for (const issue of result.issues) {
-            // Match issue to an agent by exact branch name
-            // Branch must exactly equal the issue number slug (e.g. "issue-42" or "42-fix-bug")
-            const issueNum = String(issue.id)
-            const matchedAgent = allAgents.find(a =>
-              a.projectId === project.id &&
-              a.branch === issueNum
-            ) ?? allAgents.find(a =>
-              a.projectId === project.id && (
-                a.branch === `issue-${issueNum}` ||
-                a.branch.startsWith(`${issueNum}-`) ||
-                a.branch.endsWith(`-${issueNum}`)
-              )
-            )
-
-            let status: TaskStatus = 'backlog'
-            if (issue.state === 'closed') {
-              status = 'done'
-            } else if (matchedAgent) {
-              status = matchedAgent.status === 'working' ? 'working'
-                : matchedAgent.status === 'waiting' ? 'waiting'
-                : matchedAgent.status === 'done' ? 'done'
-                : 'backlog'
-            }
-
-            allTasks.push({
-              id: `gh-${project.id}-${issue.id}`,
-              title: issue.title,
-              status,
-              projectName: project.name,
-              projectId: project.id,
-              agentBranch: matchedAgent?.branch,
-              agentId: matchedAgent?.id,
-              url: issue.url,
-              source: 'github',
-            })
-          }
-        } catch { /* silent */ }
-      }
-
-      if (!cancelled) {
-        setTasks(allTasks)
-        setLoading(false)
-      }
-    }
-
-    fetchAll()
-    return () => { cancelled = true }
-  }, [projects])
-
-  const sortedTasks = [...tasks].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status])
-
-  const handleOpenAgent = (agentId: string) => {
-    useStore.getState().setActiveAgent(agentId)
-  }
-
-  const pillStyle = (active: boolean): React.CSSProperties => ({
-    padding: '4px 10px', fontSize: '11px', border: 'none',
-    borderRadius: '10px', cursor: 'pointer', transition: 'all 100ms',
-    background: active ? 'var(--accent)' : 'var(--bg-hover)',
-    color: active ? '#fff' : 'var(--text-secondary)',
-  })
-
-  const renderTask = (task: TaskItem) => {
-    const icon = STATUS_ICON_MAP[task.status]
-    const isHovered = hoveredTask === task.id
-
-    return React.createElement('div', {
-      key: task.id,
-      style: {
-        display: 'flex', flexDirection: 'column' as const, gap: '3px',
-        padding: '8px 12px', borderRadius: 'var(--radius-md)',
-        background: isHovered ? 'var(--bg-hover)' : 'transparent',
-        transition: 'background 100ms', cursor: task.agentId ? 'pointer' : 'default',
-      },
-      onMouseEnter: () => setHoveredTask(task.id),
-      onMouseLeave: () => setHoveredTask(null),
-      onClick: () => { if (task.agentId) handleOpenAgent(task.agentId) },
-      title: task.title,
-    },
-      React.createElement('div', {
-        style: { display: 'flex', alignItems: 'center', gap: '8px' },
-      },
-        React.createElement('span', {
-          style: { color: icon.color, flexShrink: 0, width: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-        }, React.createElement(icon.Icon, { size: 12 })),
-        React.createElement('span', {
-          style: {
-            flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-primary)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-          },
-        }, task.title),
-        isHovered && task.agentId
-          ? React.createElement('span', {
-              style: { fontSize: '10px', color: 'var(--accent)', flexShrink: 0 },
-            }, 'Open agent ', React.createElement(ArrowRight, { size: 10 }))
-          : null,
-      ),
-      (task.agentBranch || task.projectName)
-        ? React.createElement('div', {
-            style: {
-              display: 'flex', gap: '6px', paddingLeft: '22px',
-              fontSize: '10px', color: 'var(--text-tertiary)',
-            },
-          },
-            task.agentBranch
-              ? React.createElement('span', {
-                  style: { fontFamily: 'Consolas, monospace' },
-                }, task.agentBranch)
-              : null,
-            task.agentBranch && task.projectName
-              ? React.createElement('span', null, '\u00B7')
-              : null,
-            React.createElement('span', null, task.projectName),
-          )
-        : null,
-    )
-  }
-
-  const renderGrouped = (groupKey: 'projectName' | 'agentBranch') => {
-    const groups = new Map<string, TaskItem[]>()
-    for (const task of sortedTasks) {
-      const key = groupKey === 'agentBranch'
-        ? (task.agentBranch || 'Unassigned')
-        : task.projectName
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(task)
-    }
-
-    const entries = Array.from(groups.entries())
-    if (groupKey === 'agentBranch') {
-      entries.sort((a, b) => {
-        if (a[0] === 'Unassigned') return 1
-        if (b[0] === 'Unassigned') return -1
-        return a[0].localeCompare(b[0])
-      })
-    }
-
-    return entries.map(([groupName, groupTasks]) =>
-      React.createElement('div', { key: groupName },
-        React.createElement('div', {
-          style: {
-            fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const,
-            letterSpacing: '0.08em', padding: '12px 12px 4px', fontWeight: 600,
-          },
-        }, groupName),
-        ...groupTasks.map(renderTask),
-      )
-    )
-  }
-
-  const renderByStatus = () => {
-    const statusGroups: TaskStatus[] = ['working', 'waiting', 'backlog', 'done']
-    return statusGroups.map(status => {
-      const statusTasks = sortedTasks.filter(t => t.status === status)
-      if (statusTasks.length === 0) return null
-
-      return React.createElement('div', { key: status },
-        React.createElement('div', {
-          style: {
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '12px 12px 6px',
-          },
-        },
-          React.createElement('span', {
-            style: { fontSize: '11px', fontWeight: 600, color: STATUS_ICON_MAP[status].color },
-          }, STATUS_LABELS[status]),
-          React.createElement('div', {
-            style: { flex: 1, height: '1px', background: 'var(--border-subtle)' },
-          }),
-          React.createElement('span', {
-            style: { fontSize: '10px', color: 'var(--text-disabled)' },
-          }, statusTasks.length),
-        ),
-        ...statusTasks.map(renderTask),
-      )
+  const toggleProject = (pid: string) => {
+    setExpandedProjects(prev => {
+      const next = new Set(prev)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
+      return next
     })
   }
 
+  const toggleShowDone = (pid: string) => {
+    setShowDone(prev => {
+      const next = new Set(prev)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
+      return next
+    })
+  }
+
+  const handleTaskClick = (task: RunnioTask) => {
+    if (task.agentId) {
+      useStore.getState().setActiveAgent(task.agentId)
+    }
+  }
+
+  const handleNewTask = () => {
+    // Navigate to kanban view where tasks can be managed
+    useStore.getState().navigateTo('kanban')
+  }
+
   return React.createElement('div', {
-    style: {
-      display: 'flex', flexDirection: 'column' as const, height: '100%', overflow: 'hidden',
-    },
+    style: { display: 'flex', flexDirection: 'column' as const, height: '100%', overflow: 'hidden' },
   },
-    // Filter pills
+    // Header
     React.createElement('div', {
-      style: { display: 'flex', gap: '4px', padding: '8px 12px' },
+      style: { padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
     },
       React.createElement('button', {
-        onClick: () => setFilter('all'),
-        style: pillStyle(filter === 'all'),
-      }, 'All'),
-      React.createElement('button', {
-        onClick: () => setFilter('by-project'),
-        style: pillStyle(filter === 'by-project'),
-      }, 'By project'),
-      React.createElement('button', {
-        onClick: () => setFilter('by-agent'),
-        style: pillStyle(filter === 'by-agent'),
-      }, 'By agent'),
+        onClick: () => useStore.getState().navigateTo('kanban'),
+        style: {
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const,
+          letterSpacing: '0.08em', fontWeight: 600, transition: 'color 100ms',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--accent)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-tertiary)' },
+        title: 'Open Kanban board',
+      }, 'Tasks'),
+      React.createElement('span', {
+        style: { fontSize: 'var(--text-xs)', color: 'var(--text-disabled)' },
+      }, `${tasks.filter(t => !t.archived).length}`),
     ),
 
-    // Tasks list
+    // Cascading list by project
     React.createElement('div', {
-      style: { flex: 1, overflowY: 'auto' as const, padding: '0 4px' },
+      style: { flex: 1, overflowY: 'auto' as const, padding: '0 8px' },
     },
-      loading
-        ? React.createElement('div', {
-            style: { padding: '24px', textAlign: 'center' as const, color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' },
-          }, 'Loading issues...')
-        : tasks.length === 0
-          ? React.createElement('div', {
-              style: { padding: '24px', textAlign: 'center' as const, color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', lineHeight: '1.6' },
+      ...projects.map(project => {
+        const projectTasks = tasks
+          .filter(t => t.projectId === project.id && !t.archived)
+          .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status])
+        const activeTasks = projectTasks.filter(t => t.status !== 'done')
+        const doneTasks = projectTasks.filter(t => t.status === 'done')
+        const isExpanded = expandedProjects.has(project.id)
+        const isDoneShown = showDone.has(project.id)
+
+        if (projectTasks.length === 0) return null
+
+        return React.createElement('div', { key: project.id, style: { marginBottom: '4px' } },
+          // Project header
+          React.createElement('button', {
+            onClick: () => toggleProject(project.id),
+            style: {
+              display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+              padding: '4px 8px', background: 'transparent', border: 'none',
+              cursor: 'pointer', borderRadius: 'var(--radius-sm)', transition: 'background 100ms',
             },
-              React.createElement('div', { style: { marginBottom: '8px' } }, 'No tasks found'),
-              React.createElement('div', { style: { fontSize: '10px', color: 'var(--text-disabled)' } },
-                'Tasks are pulled from GitHub Issues for projects with a remote.'),
-            )
-          : filter === 'all'
-            ? renderByStatus()
-            : filter === 'by-project'
-              ? renderGrouped('projectName')
-              : renderGrouped('agentBranch'),
+            onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
+            onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
+          },
+            React.createElement(isExpanded ? ChevronDown : ChevronRight, { size: 11, color: 'var(--text-disabled)' }),
+            React.createElement('span', {
+              style: { fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontWeight: 600, flex: 1, textAlign: 'left' as const },
+            }, project.name),
+            React.createElement('span', {
+              style: { fontSize: '10px', color: 'var(--text-disabled)' },
+            }, `${activeTasks.length}`),
+          ),
+
+          // Tasks
+          isExpanded
+            ? React.createElement('div', { style: { paddingLeft: '4px' } },
+                ...activeTasks.map(task => {
+                  const cfg = STATUS_CONFIG[task.status]
+                  return React.createElement('button', {
+                    key: task.id,
+                    onClick: () => handleTaskClick(task),
+                    style: {
+                      display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                      padding: '4px 8px', background: 'transparent', border: 'none',
+                      cursor: task.agentId ? 'pointer' : 'default', borderRadius: 'var(--radius-sm)',
+                      transition: 'background 100ms', textAlign: 'left' as const,
+                    },
+                    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
+                    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
+                  },
+                    React.createElement(cfg.Icon, { size: 11, color: cfg.color }),
+                    React.createElement('span', {
+                      style: { fontSize: '11px', color: 'var(--text-disabled)', width: '65px', flexShrink: 0 },
+                    }, cfg.label),
+                    React.createElement('span', {
+                      style: {
+                        flex: 1, fontSize: '12px', color: 'var(--text-primary)',
+                        fontFamily: 'Consolas, monospace', overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                      },
+                    }, task.title),
+                  )
+                }),
+                // Show done link
+                doneTasks.length > 0
+                  ? React.createElement('button', {
+                      onClick: () => toggleShowDone(project.id),
+                      style: {
+                        display: 'block', width: '100%', padding: '3px 8px', background: 'none',
+                        border: 'none', cursor: 'pointer', fontSize: '10px', color: 'var(--text-disabled)',
+                        textAlign: 'left' as const,
+                      },
+                    }, isDoneShown ? 'Hide completed' : `Show ${doneTasks.length} completed`)
+                  : null,
+                // Done tasks (if shown)
+                isDoneShown
+                  ? doneTasks.map(task =>
+                      React.createElement('div', {
+                        key: task.id,
+                        style: {
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '3px 8px', opacity: 0.5,
+                        },
+                      },
+                        React.createElement(CheckCircle, { size: 11, color: 'var(--working)' }),
+                        React.createElement('span', {
+                          style: {
+                            flex: 1, fontSize: '12px', color: 'var(--text-disabled)',
+                            fontFamily: 'Consolas, monospace', textDecoration: 'line-through',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+                          },
+                        }, task.title),
+                      )
+                    )
+                  : null,
+              )
+            : null,
+        )
+      }),
+    ),
+
+    // New task button
+    React.createElement('div', { style: { padding: '8px' } },
+      React.createElement('button', {
+        onClick: handleNewTask,
+        style: {
+          width: '100%', padding: '6px', backgroundColor: 'transparent',
+          border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
+          fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.borderColor = 'var(--accent)'
+          e.currentTarget.style.color = 'var(--accent)'
+        },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.currentTarget.style.borderColor = 'var(--border-default)'
+          e.currentTarget.style.color = 'var(--text-tertiary)'
+        },
+      }, React.createElement(Plus, { size: 12 }), 'New task'),
     ),
   )
 }

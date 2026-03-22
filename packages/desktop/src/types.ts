@@ -2,6 +2,28 @@
 
 // ── Task types ──
 
+export type TaskStatus = 'todo' | 'in-progress' | 'ready-for-review' | 'in-review' | 'done'
+export type TaskSource = 'runnio' | 'github' | 'linear' | 'jira' | 'asana' | 'notion'
+
+export interface RunnioTask {
+  id: string
+  title: string
+  status: TaskStatus
+  source: TaskSource
+  projectId: string
+  agentId?: string
+  providerId?: string
+  initialPrompt?: string
+  externalId?: string
+  externalUrl?: string
+  prUrl?: string
+  createdAt: number
+  updatedAt: number
+  isAutomatic: boolean          // true = auto-created from agent lifecycle
+  archived?: boolean
+  activityLog: { action: string; timestamp: number }[]
+}
+
 export interface GitHubIssue {
   id: string
   title: string

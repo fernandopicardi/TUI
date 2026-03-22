@@ -36,6 +36,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Clone repository | Done | 3-step modal (choose/clone/cloning) with progress animation |
 | Plugin detection | Done | Auto-detect agency-os/bmad/generic, re-polls every 10s while plugin=raw |
 | Cost tracker | Not implemented | tokenUsage field exists in AgentSession type but zero UI or data collection |
+| Task system | Done | RunnioTask type, Zustand-persisted store, sidebar cascading view, Kanban board (5 columns), automatic agent-task lifecycle sync, task detail modal, inline creation, activity log |
 
 ### Workspace Layout
 

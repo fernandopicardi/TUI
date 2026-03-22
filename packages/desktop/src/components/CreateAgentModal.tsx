@@ -60,7 +60,8 @@ const CreateAgentModal: React.FC = () => {
 
     const agentId = `${activeProject.id}-${branchName.replace(/\//g, '-')}`
 
-    useStore.getState().addAgent(activeProject.id, {
+    const store = useStore.getState()
+    store.addAgent(activeProject.id, {
       id: agentId,
       projectId: activeProject.id,
       branch: branchName,
@@ -70,8 +71,23 @@ const CreateAgentModal: React.FC = () => {
       isTerminalAlive: false,
     })
 
-    useStore.getState().setActiveAgent(agentId)
-    useStore.getState().showToast(`Agent "${branchName}" created`, 'success')
+    // Auto-create linked task
+    const now = Date.now()
+    store.addTask({
+      id: `task-${agentId}`,
+      title: branchName,
+      status: 'todo',
+      source: 'runnio',
+      projectId: activeProject.id,
+      agentId,
+      createdAt: now,
+      updatedAt: now,
+      isAutomatic: true,
+      activityLog: [{ action: 'Created with agent', timestamp: now }],
+    })
+
+    store.setActiveAgent(agentId)
+    store.showToast(`Agent "${branchName}" created`, 'success')
     setCreating(false)
     onClose()
   }, [input, createWorktree, activeProject, onClose, storeBranchPattern])

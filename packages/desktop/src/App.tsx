@@ -17,10 +17,14 @@ import QuickPrompt from './components/QuickPrompt'
 import SettingsModal from './components/SettingsModal'
 import DeleteAgentModal from './components/DeleteAgentModal'
 import GlobalTerminalModal from './components/GlobalTerminalModal'
+import ErrorBoundary from './components/ErrorBoundary'
 import Home from './views/Home'
 import Welcome from './views/Welcome'
 import Dashboard from './views/Dashboard'
 import Workspace from './views/Workspace'
+import SplitTerminalView from './components/SplitTerminalView'
+import KanbanBoard from './components/KanbanBoard'
+import GlobalHistory from './views/GlobalHistory'
 
 const App: React.FC = () => {
   const [hydrated, setHydrated] = React.useState(false)
@@ -50,6 +54,7 @@ const App: React.FC = () => {
   const isSettingsOpen = useStore(s => s.isSettingsOpen)
   const isDeleteAgentModalOpen = useStore(s => s.isDeleteAgentModalOpen)
   const isGlobalTerminalModalOpen = useStore(s => s.isGlobalTerminalModalOpen)
+  const isSplitMode = useStore(s => s.isSplitMode)
   const [preloadOk, setPreloadOk] = React.useState(false)
 
   // Apply saved theme on mount
@@ -87,12 +92,17 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); s.openQuickPrompt(); return }
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); s.toggleContextPanel(); return }
       if (e.ctrlKey && e.key === ',') { e.preventDefault(); s.openSettings(); return }
+      if (e.ctrlKey && e.shiftKey && e.key === 'H') { e.preventDefault(); s.openGlobalHistory(); return }
       if (e.ctrlKey && e.key === 'h') { e.preventDefault(); s.setActiveAgent(null); s.navigateTo('home'); return }
+      if (e.ctrlKey && e.key === 'd') { e.preventDefault(); s.setMainPanelTab('diff'); return }
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); s.toggleRightPanel('files'); return }
+      if (e.ctrlKey && e.shiftKey && e.key === 'N') { e.preventDefault(); s.setMainPanelTab('notes'); return }
       if (e.ctrlKey && e.shiftKey && e.key === 'B') { e.preventDefault(); s.toggleBrowserPreview(); return }
       if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); s.toggleRightPanel('changes'); return }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); s.setActiveAgent(null); return }
+      if (e.ctrlKey && e.key === '\\') { e.preventDefault(); s.toggleSplitMode(); return }
       if (e.key === 'Escape') {
+        if (s.isSplitMode) { s.clearSplit(); return }
         s.closeAddProject()
         s.closeCreateAgent()
         s.closeCommandPalette()
@@ -108,12 +118,25 @@ const App: React.FC = () => {
   }, [])
 
   const hasProjects = projects.length > 0
-  const hasActiveAgent = !!activeAgentId
   const activeProject = useStore(s => s.projects.find(p => p.id === s.activeProjectId))
   const projectName = activeProject?.name
-  const allAgents = projects.flatMap(p => p.agents)
+  const allAgents = projects.flatMap(p => p.agents.filter(a => !a.archived))
 
-  return React.createElement('div', {
+  // Guard: clear stale activeAgentId that points to a non-existent or archived agent
+  // This prevents the black screen where all views have display:none
+  useEffect(() => {
+    if (!hydrated) return
+    const s = useStore.getState()
+    if (s.activeAgentId && !allAgents.some(a => a.id === s.activeAgentId)) {
+      console.error('[runnio] Clearing stale activeAgentId:', s.activeAgentId)
+      s.setActiveAgent(null)
+    }
+  }, [hydrated, allAgents, activeAgentId])
+
+  const hasActiveAgent = !!activeAgentId && allAgents.some(a => a.id === activeAgentId)
+
+  return React.createElement(ErrorBoundary, null,
+  React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column' as const, height: '100vh',
       backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)',
@@ -168,19 +191,47 @@ const App: React.FC = () => {
                 React.createElement('div', {
                   style: {
                     position: 'absolute' as const, inset: 0,
-                    display: (!hasActiveAgent && activeView !== 'home') ? 'block' : 'none',
+                    display: (!hasActiveAgent && activeView === 'dashboard') ? 'block' : 'none',
                     overflow: 'auto' as const,
                   },
                 },
                   React.createElement(Dashboard)
                 ),
+                // Kanban board
+                React.createElement('div', {
+                  style: {
+                    position: 'absolute' as const, inset: 0,
+                    display: (!hasActiveAgent && activeView === 'kanban') ? 'flex' : 'none',
+                    flexDirection: 'column' as const,
+                  },
+                },
+                  React.createElement(KanbanBoard)
+                ),
+                // Global History
+                React.createElement('div', {
+                  style: {
+                    position: 'absolute' as const, inset: 0,
+                    display: activeView === 'global-history' ? 'flex' : 'none',
+                    flexDirection: 'column' as const,
+                  },
+                },
+                  React.createElement(GlobalHistory)
+                ),
+                // Split terminal view
+                isSplitMode
+                  ? React.createElement('div', {
+                      style: { position: 'absolute' as const, inset: 0, zIndex: 10 },
+                    },
+                      React.createElement(SplitTerminalView)
+                    )
+                  : null,
                 // Workspaces — keep ALL mounted to preserve terminal sessions
                 ...allAgents.map(agent =>
                   React.createElement('div', {
                     key: agent.id,
                     style: {
                       position: 'absolute' as const, inset: 0,
-                      display: agent.id === activeAgentId ? 'flex' : 'none',
+                      display: (!isSplitMode && agent.id === activeAgentId) ? 'flex' : 'none',
                       flexDirection: 'column' as const,
                     },
                   },
@@ -208,7 +259,7 @@ const App: React.FC = () => {
     isSettingsOpen ? React.createElement(SettingsModal) : null,
     isDeleteAgentModalOpen ? React.createElement(DeleteAgentModal) : null,
     isGlobalTerminalModalOpen ? React.createElement(GlobalTerminalModal) : null,
-  )
+  ))
 }
 
 export default App
