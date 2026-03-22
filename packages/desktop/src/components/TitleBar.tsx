@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
-import { Zap, Command, FolderOpen, Globe, Menu, Settings, ArrowLeft, ArrowRight, Minus, Square, X } from 'lucide-react'
+import { Zap, Command, FolderOpen, Globe, GitCompareArrows, GitBranch, Settings, ArrowLeft, ArrowRight, Minus, Square, X } from 'lucide-react'
 
 declare const __RUNNIO_DEV__: string
 
@@ -20,7 +20,7 @@ const ToolbarIcon: React.FC<ToolbarIconProps> = ({ label, shortcut, icon, isActi
       width: '28px', height: '28px', borderRadius: '6px',
       background: isActive ? 'var(--bg-elevated)' : 'transparent',
       border: 'none', cursor: 'pointer',
-      color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+      color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'color 100ms, background 100ms',
       padding: '6px',
@@ -176,6 +176,13 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
         isActive: isRightPanelOpen && rightPanelTab === 'files',
         onClick: () => useStore.getState().toggleRightPanel('files'),
       }),
+      // Diff toggle
+      React.createElement(ToolbarIcon, {
+        label: 'Diff', shortcut: 'Ctrl+D',
+        icon: React.createElement(GitCompareArrows, { size: 15 }),
+        isActive: isRightPanelOpen && rightPanelTab === 'diff',
+        onClick: () => useStore.getState().toggleRightPanel('diff'),
+      }),
       // Browser preview toggle
       React.createElement(ToolbarIcon, {
         label: 'Browser Preview', shortcut: 'Ctrl+Shift+B',
@@ -186,7 +193,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       // Changes panel toggle
       React.createElement(ToolbarIcon, {
         label: 'Changes', shortcut: 'Ctrl+Shift+C',
-        icon: React.createElement(Menu, { size: 15 }),
+        icon: React.createElement(GitBranch, { size: 15 }),
         isActive: isRightPanelOpen && rightPanelTab === 'changes',
         onClick: () => useStore.getState().toggleRightPanel('changes'),
       }),

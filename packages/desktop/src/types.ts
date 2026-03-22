@@ -34,6 +34,9 @@ export interface AgentSession {
     mode: 'normal' | 'plan' | 'auto'
     initialPrompt?: string
   }
+  archived?: boolean
+  archivedAt?: number
+  detectedUrl?: string
 }
 
 export interface Project {
@@ -129,6 +132,9 @@ export interface RunnioAPI {
     watchProjectWorktrees: (projectId: string, rootPath: string) => Promise<{ success: boolean }>
     unwatchProjectWorktrees: (projectId: string) => void
     onProjectWorktreesChanged: (cb: (projectId: string, worktrees: WorktreeData[]) => void) => () => void
+    workingStatus: (worktreePath: string) => Promise<{ modified: string[]; staged: string[]; untracked: string[]; deleted: string[] }>
+    stageAll: (worktreePath: string) => Promise<{ success: boolean; error?: string }>
+    commitChanges: (worktreePath: string, message: string) => Promise<{ success: boolean; error?: string }>
   }
   agents: {
     getStatus: (worktreePath: string) => Promise<AgentStatusValue>
@@ -171,6 +177,13 @@ export interface RunnioAPI {
     readProject: (rootPath: string) => Promise<Record<string, any>>
     writeProject: (rootPath: string, data: Record<string, any>) => Promise<{ success: boolean }>
     testGithub: (token: string) => Promise<{ success: boolean; login?: string; avatar?: string }>
+  }
+  clipboard: {
+    readText: () => string
+    writeText: (text: string) => void
+  }
+  shell: {
+    openPath: (fullPath: string) => Promise<string>
   }
   notify: (title: string, body: string, type: string) => void
   window: {

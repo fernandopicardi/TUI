@@ -8,7 +8,7 @@ Runnio is a Windows Electron desktop app that orchestrates multiple Claude Code 
 
 ## Current state in one line
 
-Fully functional Windows MVP with 6 workspace tabs (Terminal, Files, Diff, History, PR, Notes), broadcast prompts, MCP manager, settings, feature flags system, pre-launch config panel, syntax highlighting, tasks panel with GitHub Issues, QA-verified and contrast-audited.
+Fully functional Windows MVP with terminal-focused workspace (Terminal + History main tabs), collapsible right panel (Files, Diff, PR, Notes, Changes), browser preview with localhost detection, broadcast prompts, MCP manager, settings, feature flags system, pre-launch config panel, syntax highlighting, tasks panel with GitHub Issues, QA-verified and contrast-audited.
 
 ## What NOT to do
 

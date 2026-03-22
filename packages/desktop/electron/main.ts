@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
 
-import { app, BrowserWindow, Menu, ipcMain, dialog, Notification } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, dialog, Notification, shell } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
 import {
@@ -896,6 +896,41 @@ function registerIpcHandlers() {
     }
   })
 
+  ipcMain.handle('git:working-status', async (_e, worktreePath: string) => {
+    try {
+      const git = simpleGit(normalizePath(worktreePath))
+      const status = await git.status()
+      return JSON.parse(JSON.stringify({
+        modified: status.modified,
+        staged: [...status.staged],
+        untracked: status.not_added,
+        deleted: status.deleted,
+      }))
+    } catch {
+      return { modified: [], staged: [], untracked: [], deleted: [] }
+    }
+  })
+
+  ipcMain.handle('git:stage-all', async (_e, worktreePath: string) => {
+    try {
+      const git = simpleGit(normalizePath(worktreePath))
+      await git.add('.')
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('git:commit-changes', async (_e, worktreePath: string, message: string) => {
+    try {
+      const git = simpleGit(normalizePath(worktreePath))
+      await git.commit(message)
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
   ipcMain.handle('git:get-avatar', async (_e, email: string) => {
     try {
       const { createHash } = require('crypto')
@@ -1134,6 +1169,16 @@ function registerIpcHandlers() {
       new Notification({ title, body, silent: type === 'info' }).show()
     } catch (err) {
       console.error('[runnio] notification error:', err)
+    }
+  })
+
+  // ── Shell ──
+  ipcMain.handle('shell:open-path', async (_e, fullPath: string) => {
+    try {
+      return await shell.openPath(fullPath)
+    } catch (err) {
+      console.error('[runnio] shell:open-path error:', err)
+      return String(err)
     }
   })
 

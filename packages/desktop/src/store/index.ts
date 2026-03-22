@@ -16,7 +16,7 @@ export interface RunnioStore {
   navigationIndex: number
   isContextPanelOpen: boolean
   isRightPanelOpen: boolean
-  rightPanelTab: 'files' | 'changes' | 'info'
+  rightPanelTab: 'files' | 'diff' | 'pr' | 'notes' | 'changes'
   isBrowserPreviewOpen: boolean
   isGlobalTerminalModalOpen: boolean
   isCreateAgentModalOpen: boolean
@@ -69,7 +69,7 @@ export interface RunnioStore {
   openSettings: () => void
   closeSettings: () => void
   toggleContextPanel: () => void
-  toggleRightPanel: (tab?: 'files' | 'changes' | 'info') => void
+  toggleRightPanel: (tab?: 'files' | 'diff' | 'pr' | 'notes' | 'changes') => void
   toggleBrowserPreview: () => void
   openGlobalTerminalModal: () => void
   closeGlobalTerminalModal: () => void
@@ -113,7 +113,7 @@ export const useStore = create<RunnioStore>()(
       navigationIndex: -1,
       isContextPanelOpen: false,
       isRightPanelOpen: false,
-      rightPanelTab: 'files' as 'files' | 'changes' | 'info',
+      rightPanelTab: 'files' as 'files' | 'diff' | 'pr' | 'notes' | 'changes',
       isBrowserPreviewOpen: false,
       isGlobalTerminalModalOpen: false,
       isCreateAgentModalOpen: false,

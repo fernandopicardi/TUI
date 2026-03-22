@@ -64,10 +64,10 @@ Branch: fix-2/git-history-deep
 Status: Complete — ready to merge
 Owns: GitHistory.tsx, gitGraph.ts, main.ts (git:commit-files handler)
 
-### Agent 4 — [Not assigned]
-Branch: (TBD)
-Status: Not started
-Owns: (TBD)
+### Agent Fix-3 — Right Panel + Workspace Redesign
+Branch: fix-3/right-panel-workspace
+Status: Complete — ready to merge
+Owns: Workspace.tsx, RightPanel.tsx (new), TitleBar.tsx, store/index.ts (right panel state), main.ts (git stage/commit handlers), preload.ts (git stage/commit methods), types.ts (detectedUrl, git IPC types)
 
 ## Shared rules
 - Product name: Runnio (never agentflow, never regent)

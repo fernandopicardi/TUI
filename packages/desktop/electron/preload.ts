@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, clipboard } from 'electron'
 
 contextBridge.exposeInMainWorld('runnio', {
   dialog: {
@@ -41,6 +41,12 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.on('git:project-worktrees-changed', handler)
       return () => { ipcRenderer.removeListener('git:project-worktrees-changed', handler) }
     },
+    workingStatus: (worktreePath: string) =>
+      ipcRenderer.invoke('git:working-status', worktreePath),
+    stageAll: (worktreePath: string) =>
+      ipcRenderer.invoke('git:stage-all', worktreePath),
+    commitChanges: (worktreePath: string, message: string) =>
+      ipcRenderer.invoke('git:commit-changes', worktreePath, message),
   },
   agents: {
     getStatus: (worktreePath: string) =>
@@ -110,6 +116,13 @@ contextBridge.exposeInMainWorld('runnio', {
   },
   notify: (title: string, body: string, type: string) =>
     ipcRenderer.send('notify', title, body, type),
+  clipboard: {
+    readText: () => clipboard.readText(),
+    writeText: (text: string) => clipboard.writeText(text),
+  },
+  shell: {
+    openPath: (fullPath: string) => ipcRenderer.invoke('shell:open-path', fullPath),
+  },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),

@@ -1,5 +1,21 @@
 # Runnio Changelog
 
+## v0.1.7 — 2026-03-22
+
+### Added
+- **Right Panel**: Collapsible 420px side panel in workspace with Files, Diff, PR, Notes, and Changes tabs. Controlled by toolbar toggle buttons. Smooth CSS transition (200ms ease-out).
+- **Changes tab**: Real-time git status view with modified/staged/untracked/deleted file lists, "Stage All" and "Commit" buttons with inline message input. Auto-refreshes every 5s.
+- **Browser preview**: Split terminal view (60/40) with iframe preview when localhost URL detected. URL bar with manual navigation. Toggleable via toolbar button.
+- **Localhost detection**: Terminal output scanned for localhost/127.0.0.1 URL patterns. Detected URL shown as pill in workspace header. Click to open preview.
+- **Info bar**: 28px bar below tabs showing provider icon, model name, and project name. Provides persistent agent context.
+- **Toolbar Diff toggle**: New GitCompareArrows icon in toolbar to open right panel on Diff tab.
+- **Git IPC handlers**: `git:working-status` (modified/staged/untracked/deleted), `git:stage-all`, `git:commit-changes` via simple-git.
+
+### Changed
+- **Workspace restructured**: Terminal and History are now the only main tabs. Files, Diff, PR, Notes moved to the collapsible right panel. Terminal gets the full workspace width when panel is closed.
+- **Toolbar icons**: Active state now uses `var(--accent)` color instead of `var(--text-primary)`. Changes icon uses GitBranch instead of Menu.
+- **Store rightPanelTab type**: Expanded from `'files' | 'changes' | 'info'` to `'files' | 'diff' | 'pr' | 'notes' | 'changes'`.
+
 ## v0.1.6 — 2026-03-22
 
 ### Fixed

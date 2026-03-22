@@ -37,16 +37,25 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Plugin detection | Done | Auto-detect agency-os/bmad/generic, re-polls every 10s while plugin=raw |
 | Cost tracker | Not implemented | tokenUsage field exists in AgentSession type but zero UI or data collection |
 
-### Workspace Tabs (6 tabs)
+### Workspace Layout
+
+| Area | Status | Details |
+|------|--------|---------|
+| Terminal (main) | Done | xterm.js + FitAddon, always-mounted, fills workspace width. Split view with browser preview (60/40) |
+| History (main) | Done | SVG bezier graph, agent detection, virtual scroll. Second main tab |
+| Right Panel | Done | Collapsible 420px side panel with Files, Diff, PR, Notes, Changes tabs. Toolbar toggles |
+| Info Bar | Done | 28px bar: provider icon + model name + project name |
+| Browser Preview | Done | Localhost URL detection, iframe preview, URL bar, split terminal view |
+
+### Right Panel Tabs (5 tabs)
 
 | Tab | Status | Details |
 |-----|--------|---------|
-| Terminal | Done | xterm.js + FitAddon, Ctrl+V paste with dedup, right-click paste, auto-resize |
 | Files | Done | Recursive tree with git status (M/A/D/?), click-to-read viewer, 500 file limit, binary detection |
-| Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh on tab switch, 5s polling, 2000 line cap, syntax highlighting via highlight.js. No synchronized scrolling. |
-| History | Done | SVG bezier graph with proper merge/branch-off curves (converge at commit dot, S-curve control points). Agent detection via email + Co-Authored-By + branch matching. Agent diamond nodes, provider-colored avatars, human initials fallback. People mode with Agents/Contributors swimlanes. Detail panel with agent/human/merge badges, file stats (+X -Y), avatar groups. Virtual scroll (36px rows, 500 commit cap). |
+| Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh, 5s polling, 2000 line cap, syntax highlighting |
 | PR | Done | 3-step flow (files/form/done), inline GitHub token input with validation, real GitHub API calls |
 | Notes | Done | Per-branch localStorage, auto-save with 1s debounce |
+| Changes | Done | Real-time git status, Stage All + Commit buttons, inline commit message, 5s polling |
 
 ### UI Components (17 components)
 
