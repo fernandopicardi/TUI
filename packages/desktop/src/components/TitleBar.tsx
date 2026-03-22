@@ -1,18 +1,18 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
+import { Zap, Command, FolderOpen, Globe, Menu, Settings, ArrowLeft, ArrowRight, Minus, Square, X } from 'lucide-react'
 
 declare const __RUNNIO_DEV__: string
 
 interface ToolbarIconProps {
   label: string
   shortcut: string
-  icon: string
+  icon: React.ReactElement
   isActive?: boolean
   onClick: () => void
-  fontSize?: string
 }
 
-const ToolbarIcon: React.FC<ToolbarIconProps> = ({ label, shortcut, icon, isActive, onClick, fontSize }) => {
+const ToolbarIcon: React.FC<ToolbarIconProps> = ({ label, shortcut, icon, isActive, onClick }) => {
   return React.createElement('button', {
     onClick,
     title: `${label} (${shortcut})`,
@@ -21,7 +21,6 @@ const ToolbarIcon: React.FC<ToolbarIconProps> = ({ label, shortcut, icon, isActi
       background: isActive ? 'var(--bg-elevated)' : 'transparent',
       border: 'none', cursor: 'pointer',
       color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
-      fontSize: fontSize || '14px',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'color 100ms, background 100ms',
       padding: '6px',
@@ -124,7 +123,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
           width: '24px', height: '24px', borderRadius: '4px',
           background: 'transparent', border: 'none', cursor: canBack ? 'pointer' : 'default',
           color: canBack ? 'var(--text-secondary)' : 'var(--text-disabled)',
-          fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 100ms', opacity: canBack ? 1 : 0.4,
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -133,7 +132,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.style.background = 'transparent'
         },
-      }, '\u2190'),
+      }, React.createElement(ArrowLeft, { size: 14 })),
       React.createElement('button', {
         onClick: () => useStore.getState().navigateForward(),
         disabled: !canForward,
@@ -142,7 +141,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
           width: '24px', height: '24px', borderRadius: '4px',
           background: 'transparent', border: 'none', cursor: canForward ? 'pointer' : 'default',
           color: canForward ? 'var(--text-secondary)' : 'var(--text-disabled)',
-          fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 100ms', opacity: canForward ? 1 : 0.4,
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -151,7 +150,7 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.style.background = 'transparent'
         },
-      }, '\u2192'),
+      }, React.createElement(ArrowRight, { size: 14 })),
     ),
 
     // Right — toolbar icons + window controls
@@ -160,39 +159,41 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
     },
       // Quick Prompt
       React.createElement(ToolbarIcon, {
-        label: 'Quick Prompt', shortcut: 'Ctrl+Space', icon: '\u26A1',
+        label: 'Quick Prompt', shortcut: 'Ctrl+Space',
+        icon: React.createElement(Zap, { size: 16 }),
         onClick: () => useStore.getState().openQuickPrompt(),
       }),
       // Command Palette
       React.createElement(ToolbarIcon, {
-        label: 'Command Palette', shortcut: 'Ctrl+K', icon: '\u2318',
-        fontSize: '13px',
+        label: 'Command Palette', shortcut: 'Ctrl+K',
+        icon: React.createElement(Command, { size: 15 }),
         onClick: () => useStore.getState().openCommandPalette(),
       }),
       // File explorer toggle
       React.createElement(ToolbarIcon, {
-        label: 'File Explorer', shortcut: 'Ctrl+E', icon: '\uD83D\uDCC1',
-        fontSize: '13px',
+        label: 'File Explorer', shortcut: 'Ctrl+E',
+        icon: React.createElement(FolderOpen, { size: 15 }),
         isActive: isRightPanelOpen && rightPanelTab === 'files',
         onClick: () => useStore.getState().toggleRightPanel('files'),
       }),
       // Browser preview toggle
       React.createElement(ToolbarIcon, {
-        label: 'Browser Preview', shortcut: 'Ctrl+Shift+B', icon: '\uD83C\uDF10',
-        fontSize: '13px',
+        label: 'Browser Preview', shortcut: 'Ctrl+Shift+B',
+        icon: React.createElement(Globe, { size: 15 }),
         isActive: isBrowserPreviewOpen,
         onClick: () => useStore.getState().toggleBrowserPreview(),
       }),
       // Changes panel toggle
       React.createElement(ToolbarIcon, {
-        label: 'Changes', shortcut: 'Ctrl+Shift+C', icon: '\u2630',
-        fontSize: '13px',
+        label: 'Changes', shortcut: 'Ctrl+Shift+C',
+        icon: React.createElement(Menu, { size: 15 }),
         isActive: isRightPanelOpen && rightPanelTab === 'changes',
         onClick: () => useStore.getState().toggleRightPanel('changes'),
       }),
       // Settings
       React.createElement(ToolbarIcon, {
-        label: 'Settings', shortcut: 'Ctrl+,', icon: '\u2699',
+        label: 'Settings', shortcut: 'Ctrl+,',
+        icon: React.createElement(Settings, { size: 16 }),
         onClick: () => useStore.getState().openSettings(),
       }),
 
@@ -200,9 +201,9 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
 
       // Window controls
       ...[
-        { action: 'minimize', color: '#fbbf24' },
-        { action: 'maximize', color: '#4ade80' },
-        { action: 'close', color: '#f87171' },
+        { action: 'minimize', color: '#fbbf24', icon: Minus },
+        { action: 'maximize', color: '#4ade80', icon: Square },
+        { action: 'close', color: '#f87171', icon: X },
       ].map((btn) =>
         React.createElement('button', {
           key: btn.action,

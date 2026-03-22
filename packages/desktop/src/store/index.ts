@@ -117,7 +117,7 @@ export const useStore = create<RunnioStore>()(
       initPrompt: null,
       defaultModel: 'claude-sonnet-4-5',
       defaultMode: 'normal' as 'normal' | 'plan' | 'auto',
-      theme: 'dark' as Theme,
+      theme: 'dark-navy' as Theme,
 
       addProject: (projectData) => {
         const state = get()

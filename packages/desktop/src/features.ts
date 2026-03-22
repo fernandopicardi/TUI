@@ -145,14 +145,19 @@ export const PLAN_FLAGS: Record<Plan, FeatureFlags> = {
   },
 }
 
-// Development mode: set RUNNIO_DEV=true to bypass all feature gates
-// In production, all users start on free plan until billing is connected
-// Note: process.env.RUNNIO_DEV is replaced at build time by esbuild define
+// DELIBERATE PRODUCT DECISION (2026-03-21):
+// Default plan is 'pro' for ALL users until a real billing system is implemented.
+// We are in beta — locking users out of core features (Git History, PR flow, Notes,
+// MCP manager, broadcast prompts) before billing exists is the wrong default.
+// When billing is ready, change 'pro' back to 'free' below.
+//
+// RUNNIO_DEV=true bumps to 'business' to unlock team features during development.
+// Note: __RUNNIO_DEV__ is replaced at build time by esbuild define.
 declare const __RUNNIO_DEV__: string
 export const CURRENT_PLAN: Plan =
   (typeof __RUNNIO_DEV__ !== 'undefined' && __RUNNIO_DEV__ === 'true')
-    ? 'enterprise'
-    : 'free'
+    ? 'business'
+    : 'pro'
 
 export function getFlags(): FeatureFlags {
   return PLAN_FLAGS[CURRENT_PLAN]

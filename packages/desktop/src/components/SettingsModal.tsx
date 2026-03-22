@@ -2,19 +2,20 @@ import * as React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useStore } from '../store/index'
 import { Theme, applyTheme } from '../styles/themes'
+import { Sparkles, Target, Gem, Hexagon, Zap, SquareCode, Circle, Play, Palette, X, Check } from 'lucide-react'
 
 type Section = 'general' | 'agents' | 'integrations' | 'repository' | 'interface' | 'account'
 
 const CLI_AGENTS = [
-  { id: 'claude', name: 'Claude Code', icon: '\u2733', installCmd: 'npm install -g @anthropic-ai/claude-code', docs: 'https://docs.anthropic.com/claude-code' },
-  { id: 'codex', name: 'Codex', icon: '\u25CE', installCmd: 'npm install -g @openai/codex', docs: 'https://github.com/openai/codex' },
-  { id: 'gemini', name: 'Gemini CLI', icon: '\u25C8', installCmd: 'npm install -g @google/gemini-cli', docs: 'https://github.com/google-gemini/gemini-cli' },
-  { id: 'opencode', name: 'OpenCode', icon: '\u2B21', installCmd: 'npm install -g opencode-ai', docs: 'https://opencode.ai' },
-  { id: 'amp', name: 'Amp', icon: '\u26A1', installCmd: '', docs: 'https://ampcode.com' },
-  { id: 'cursor', name: 'Cursor', icon: '\u25FB', installCmd: '', docs: 'https://cursor.com' },
-  { id: 'cline', name: 'Cline', icon: '\u25D1', installCmd: 'npm install -g cline', docs: 'https://github.com/cline/cline' },
-  { id: 'continue', name: 'Continue', icon: '\u25B7', installCmd: '', docs: 'https://continue.dev' },
-  { id: 'aider', name: 'Aider', icon: '\u25E7', installCmd: 'pip install aider-chat', docs: 'https://aider.chat' },
+  { id: 'claude', name: 'Claude Code', Icon: Sparkles, installCmd: 'npm install -g @anthropic-ai/claude-code', docs: 'https://docs.anthropic.com/claude-code' },
+  { id: 'codex', name: 'Codex', Icon: Target, installCmd: 'npm install -g @openai/codex', docs: 'https://github.com/openai/codex' },
+  { id: 'gemini', name: 'Gemini CLI', Icon: Gem, installCmd: 'npm install -g @google/gemini-cli', docs: 'https://github.com/google-gemini/gemini-cli' },
+  { id: 'opencode', name: 'OpenCode', Icon: Hexagon, installCmd: 'npm install -g opencode-ai', docs: 'https://opencode.ai' },
+  { id: 'amp', name: 'Amp', Icon: Zap, installCmd: '', docs: 'https://ampcode.com' },
+  { id: 'cursor', name: 'Cursor', Icon: SquareCode, installCmd: '', docs: 'https://cursor.com' },
+  { id: 'cline', name: 'Cline', Icon: Circle, installCmd: 'npm install -g cline', docs: 'https://github.com/cline/cline' },
+  { id: 'continue', name: 'Continue', Icon: Play, installCmd: '', docs: 'https://continue.dev' },
+  { id: 'aider', name: 'Aider', Icon: Palette, installCmd: 'pip install aider-chat', docs: 'https://aider.chat' },
 ]
 
 const SECTIONS: { id: Section; label: string }[] = [
@@ -304,8 +305,8 @@ const SettingsModal: React.FC = () => {
                 },
               },
                 React.createElement('span', {
-                  style: { fontSize: '16px', width: '24px', textAlign: 'center' as const },
-                }, agent.icon),
+                  style: { width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+                }, React.createElement(agent.Icon, { size: 16 })),
                 React.createElement('span', {
                   style: { flex: 1, color: 'var(--text-primary)', fontSize: 'var(--text-sm)' },
                 }, agent.name),
@@ -611,7 +612,9 @@ const SettingsModal: React.FC = () => {
                 color: testResult.success ? 'var(--working)' : 'var(--error)',
                 fontSize: 'var(--text-sm)', marginBottom: '8px',
               },
-            }, testResult.success ? '\u2713 Connected as @' + (testResult.login || '') : '\u2717 Authentication failed')
+            }, testResult.success
+              ? React.createElement(React.Fragment, null, React.createElement(Check, { size: 12, style: { display: 'inline' } }), ' Connected as @' + (testResult.login || ''))
+              : React.createElement(React.Fragment, null, React.createElement(X, { size: 12, style: { display: 'inline' } }), ' Authentication failed'))
           : null,
         React.createElement('div', {
           style: { display: 'flex', justifyContent: 'flex-end' },
@@ -682,7 +685,7 @@ const SettingsModal: React.FC = () => {
           },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-primary)' },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)' },
-        }, '\u00D7'),
+        }, React.createElement(X, { size: 18 })),
       ),
 
       // Body: left nav + content

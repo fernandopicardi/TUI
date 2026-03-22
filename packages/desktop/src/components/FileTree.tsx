@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FileEntry } from '../types'
 import { useHighlightedCode, ensureSyntaxTheme } from '../hooks/useSyntaxHighlight'
+import { FileCode, FileJson, FileText, File, ChevronRight, Folder, RefreshCw, X } from 'lucide-react'
 
 interface Props {
   worktreePath: string
@@ -14,11 +15,11 @@ const GIT_STATUS_COLORS: Record<string, string> = {
   '?': 'var(--text-tertiary)',
 }
 
-const FILE_ICONS: Record<string, string> = {
-  ts: '\u25A0', tsx: '\u25A0', js: '\u25A0', jsx: '\u25A0',
-  json: '\u25C7', md: '\u25CB', yml: '\u25CB', yaml: '\u25CB',
-  css: '\u25C6', html: '\u25C6', svg: '\u25C6',
-  default: '\u25AB',
+const FILE_ICON_MAP: Record<string, typeof FileCode> = {
+  ts: FileCode, tsx: FileCode, js: FileCode, jsx: FileCode,
+  json: FileJson, md: FileText, yml: FileText, yaml: FileText,
+  css: FileCode, html: FileCode, svg: FileCode,
+  default: File,
 }
 
 const HighlightedFileContent: React.FC<{ content: string; filename: string }> = ({ content, filename }) => {
@@ -29,7 +30,7 @@ const HighlightedFileContent: React.FC<{ content: string; filename: string }> = 
       margin: 0, padding: '12px', fontSize: 'var(--text-sm)',
       fontFamily: 'Consolas, "Cascadia Code", monospace',
       color: 'var(--text-primary)', whiteSpace: 'pre-wrap' as const,
-      lineHeight: '1.5', background: '#0a0a0a',
+      lineHeight: '1.5', background: 'var(--bg-app)',
       minHeight: '100%',
     },
     dangerouslySetInnerHTML: { __html: highlighted },
@@ -85,7 +86,8 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
 
   const getFileIcon = (name: string) => {
     const ext = name.split('.').pop()?.toLowerCase() || ''
-    return FILE_ICONS[ext] || FILE_ICONS.default
+    const IconComponent = FILE_ICON_MAP[ext] || FILE_ICON_MAP.default
+    return React.createElement(IconComponent, { size: 12 })
   }
 
   // Collect changed files recursively
@@ -137,9 +139,9 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
         },
           React.createElement('span', {
-            style: { fontSize: '9px', width: '10px', color: 'var(--text-disabled)', transition: 'transform 100ms', transform: isExpanded ? 'rotate(90deg)' : 'none' },
-          }, '\u25B6'),
-          React.createElement('span', { style: { color: 'var(--accent)', fontSize: '10px' } }, '\u25A0'),
+            style: { width: '10px', color: 'var(--text-disabled)', transition: 'transform 100ms', transform: isExpanded ? 'rotate(90deg)' : 'none', display: 'flex', alignItems: 'center' },
+          }, React.createElement(ChevronRight, { size: 10 })),
+          React.createElement('span', { style: { color: 'var(--accent)', display: 'flex', alignItems: 'center' } }, React.createElement(Folder, { size: 12 })),
           React.createElement('span', {
             style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
           }, entry.name),
@@ -169,7 +171,7 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)' },
       onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { if (!isSelected) e.currentTarget.style.background = 'transparent' },
     },
-      React.createElement('span', { style: { fontSize: '9px', color: 'var(--text-disabled)', width: '10px' } }, getFileIcon(entry.name)),
+      React.createElement('span', { style: { color: 'var(--text-disabled)', width: '12px', display: 'flex', alignItems: 'center' } }, getFileIcon(entry.name)),
       React.createElement('span', {
         style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
       }, entry.name),
@@ -241,7 +243,7 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
           },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)' },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
-        }, '\u21BB'),
+        }, React.createElement(RefreshCw, { size: 12 })),
       ),
       // Tree
       React.createElement('div', {
@@ -280,7 +282,7 @@ const FileTree: React.FC<Props> = ({ worktreePath }) => {
               },
               onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)' },
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
-            }, '\u00D7'),
+            }, React.createElement(X, { size: 12 })),
           ),
           // File content
           React.createElement('div', {

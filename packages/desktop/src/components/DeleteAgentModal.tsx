@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { useStore } from '../store/index'
+import { Check } from 'lucide-react'
 
 const DeleteAgentModal: React.FC = () => {
   const target = useStore(s => s.deleteAgentTarget)
@@ -93,7 +94,7 @@ const DeleteAgentModal: React.FC = () => {
               backgroundColor: removeWorktree ? 'var(--accent)' : 'transparent',
               color: removeWorktree ? '#fff' : 'transparent',
             },
-          }, '\u2713'),
+          }, React.createElement(Check, { size: 11 })),
           'Also remove worktree from disk',
         ),
 
@@ -109,7 +110,7 @@ const DeleteAgentModal: React.FC = () => {
               backgroundColor: deleteBranch ? 'var(--accent)' : 'transparent',
               color: deleteBranch ? '#fff' : 'transparent',
             },
-          }, '\u2713'),
+          }, React.createElement(Check, { size: 11 })),
           'Also delete branch',
         ),
       ),

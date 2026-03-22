@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useEffect } from 'react'
+import { Diamond, Check, AlertTriangle, X } from 'lucide-react'
 
 interface Props {
   message: string
@@ -9,9 +10,9 @@ interface Props {
 }
 
 const COLORS = {
-  info: { bg: 'var(--bg-selected)', border: 'var(--accent)', icon: '\u25C6' },
-  success: { bg: '#0d1a0d', border: 'var(--working)', icon: '\u2713' },
-  warning: { bg: '#1a1a0d', border: 'var(--waiting)', icon: '\u26A0' },
+  info: { bg: 'var(--bg-selected)', border: 'var(--accent)', Icon: Diamond },
+  success: { bg: '#0d1a0d', border: 'var(--working)', Icon: Check },
+  warning: { bg: '#1a1a0d', border: 'var(--waiting)', Icon: AlertTriangle },
 }
 
 const Toast: React.FC<Props> = ({ message, type = 'info', onDismiss, index = 0 }) => {
@@ -32,18 +33,21 @@ const Toast: React.FC<Props> = ({ message, type = 'info', onDismiss, index = 0 }
       animation: 'slideInRight 0.2s ease-out',
     },
   },
-    React.createElement('span', { style: { color: c.border, fontSize: '14px' } }, c.icon),
+    React.createElement('span', {
+      style: { color: c.border, display: 'flex', alignItems: 'center' },
+    }, React.createElement(c.Icon, { size: 14 })),
     React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)', flex: 1 } }, message),
     React.createElement('button', {
       onClick: onDismiss,
       style: {
         marginLeft: 'auto', background: 'none', border: 'none',
-        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '16px', lineHeight: '1',
-        transition: 'color 100ms',
+        color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: '1',
+        transition: 'color 100ms', display: 'flex', alignItems: 'center',
+        padding: '2px',
       },
       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-primary)' },
       onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)' },
-    }, '\u00D7')
+    }, React.createElement(X, { size: 14 }))
   )
 }
 

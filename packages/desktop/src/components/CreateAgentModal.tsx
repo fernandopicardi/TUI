@@ -106,7 +106,7 @@ const CreateAgentModal: React.FC = () => {
           },
           autoFocus: true,
           style: {
-            width: '100%', padding: '10px 14px', backgroundColor: '#0a0a0a',
+            width: '100%', padding: '10px 14px', backgroundColor: 'var(--bg-app)',
             border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
             fontSize: 'var(--text-md)', outline: 'none', fontFamily: 'Consolas, monospace',
             boxSizing: 'border-box',

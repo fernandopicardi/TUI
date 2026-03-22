@@ -4,6 +4,7 @@ import { useStore } from '../store/index'
 import AgentStatusBadge from './AgentStatusBadge'
 import TasksPanel from './TasksPanel'
 import { getFlags } from '../features'
+import { PlusCircle, X, AlertTriangle, Hexagon, ArrowRight, Settings } from 'lucide-react'
 
 type SidebarTab = 'projects' | 'tasks'
 
@@ -95,7 +96,7 @@ const Sidebar: React.FC = () => {
                   // Actions (visible on hover)
                   React.createElement('div', {
                     style: {
-                      display: 'flex', gap: '4px',
+                      display: 'flex', gap: '4px', alignItems: 'center',
                       opacity: hoveredProject === project.id ? 1 : 0,
                       transition: 'opacity 100ms',
                     },
@@ -108,12 +109,12 @@ const Sidebar: React.FC = () => {
                       },
                       style: {
                         background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
-                        fontSize: 'var(--text-xs)', padding: '0 2px', transition: 'color 100ms',
+                        padding: '0 2px', transition: 'color 100ms', display: 'flex', alignItems: 'center',
                       },
                       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--accent)' },
                       onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-tertiary)' },
                       title: 'New agent',
-                    }, '\u2295'),
+                    }, React.createElement(PlusCircle, { size: 12 })),
                     React.createElement('button', {
                       onClick: (e: React.MouseEvent) => {
                         e.stopPropagation()
@@ -126,12 +127,12 @@ const Sidebar: React.FC = () => {
                       },
                       style: {
                         background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
-                        fontSize: 'var(--text-xs)', padding: '0 2px', transition: 'color 100ms',
+                        padding: '0 2px', transition: 'color 100ms', display: 'flex', alignItems: 'center',
                       },
                       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--error)' },
                       onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-tertiary)' },
                       title: 'Remove project',
-                    }, '\u00D7'),
+                    }, React.createElement(X, { size: 12 })),
                   )
                 ),
 
@@ -164,13 +165,15 @@ const Sidebar: React.FC = () => {
                       style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)', width: '12px', flexShrink: 0 },
                     }, prefix),
                     isWaiting
-                      ? React.createElement('span', { style: { color: 'var(--waiting)', fontSize: 'var(--text-xs)', flexShrink: 0 } }, '\u26A0')
+                      ? React.createElement('span', {
+                          style: { color: 'var(--waiting)', flexShrink: 0, display: 'flex', alignItems: 'center' },
+                        }, React.createElement(AlertTriangle, { size: 12 }))
                       : React.createElement(AgentStatusBadge, { status: agent.status }),
                     isExternal
                       ? React.createElement('span', {
-                          style: { color: 'var(--text-tertiary)', fontSize: '9px', flexShrink: 0 },
+                          style: { color: 'var(--text-tertiary)', flexShrink: 0, display: 'flex', alignItems: 'center' },
                           title: 'Created outside Runnio',
-                        }, '\u2B21')
+                        }, React.createElement(Hexagon, { size: 9 }))
                       : null,
                     React.createElement('span', {
                       style: {
@@ -202,8 +205,8 @@ const Sidebar: React.FC = () => {
               React.createElement('span', null, `${count} / ${maxProjects} projects`),
               count >= maxProjects
                 ? React.createElement('span', {
-                    style: { fontSize: '11px', color: 'var(--accent)', cursor: 'pointer' },
-                  }, 'Upgrade \u2192')
+                    style: { fontSize: '11px', color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' },
+                  }, 'Upgrade ', React.createElement(ArrowRight, { size: 11 }))
                 : null
             )
           })(),
@@ -236,17 +239,17 @@ const Sidebar: React.FC = () => {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       },
     },
-      React.createElement('span', { style: { fontSize: '10px', color: 'var(--text-disabled)' } }, 'v0.1.1'),
+      React.createElement('span', { style: { fontSize: '10px', color: 'var(--text-disabled)' } }, 'v0.1.4'),
       React.createElement('button', {
         onClick: () => useStore.getState().openSettings(),
         title: 'Settings (Ctrl+,)',
         style: {
           background: 'none', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer',
-          fontSize: '14px', padding: '0', transition: 'color 100ms',
+          padding: '0', transition: 'color 100ms', display: 'flex', alignItems: 'center',
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-secondary)' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
-      }, '\u2699'),
+      }, React.createElement(Settings, { size: 14 })),
     )
   )
 }

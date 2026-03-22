@@ -1,5 +1,22 @@
 # Runnio Changelog
 
+## v0.1.5 — 2026-03-21
+
+### Added
+- Lucide React icon library — all emojis/unicode UI icons replaced with consistent SVG icons throughout
+- Icon sizing standard: 16px inline, 18px toolbar, 20px primary actions
+
+### Changed
+- Default theme changed from Dark (#0a0a0a) to Dark Navy (#0d1117) for better contrast and usability
+- Default plan changed from 'free' to 'pro' for all users until billing system is implemented (deliberate beta decision)
+- DEV mode now unlocks 'business' tier instead of 'enterprise' (team features in dev, pro features for all users)
+- All hardcoded #0a0a0a background colors replaced with CSS variables or Dark Navy values
+- Terminal xterm.js theme updated to Dark Navy colors
+- Sidebar version bumped to v0.1.4
+
+### Fixed
+- UpgradeGate no longer blocks Git History, PR flow, Notes, MCP manager, and broadcast prompts for non-paying users
+
 ## v0.1.4 — 2026-03-21
 
 ### Added

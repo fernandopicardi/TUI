@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../store/index'
+import { Search, CircleDot, AlertTriangle, Check, Circle, Diamond, Plus, Settings, Zap } from 'lucide-react'
 
 interface PaletteItem {
   id: string
-  icon: string
+  icon: React.ReactElement
   label: string
   sublabel: string
   action: () => void
@@ -28,10 +29,10 @@ const CommandPalette: React.FC = () => {
 
     allAgents.forEach(agent => {
       const projectName = projects.find(p => p.id === agent.projectId)?.name || ''
-      const statusIcon = agent.status === 'working' ? '\u25CF'
-        : agent.status === 'waiting' ? '\u26A0'
-        : agent.status === 'done' ? '\u2713'
-        : '\u25CB'
+      const statusIcon = agent.status === 'working' ? React.createElement(CircleDot, { size: 14 })
+        : agent.status === 'waiting' ? React.createElement(AlertTriangle, { size: 14 })
+        : agent.status === 'done' ? React.createElement(Check, { size: 14 })
+        : React.createElement(Circle, { size: 14 })
       list.push({
         id: `agent-${agent.id}`,
         icon: statusIcon,
@@ -44,7 +45,7 @@ const CommandPalette: React.FC = () => {
     projects.forEach(p => {
       list.push({
         id: `proj-${p.id}`,
-        icon: '\u25C6',
+        icon: React.createElement(Diamond, { size: 14 }),
         label: p.name,
         sublabel: `${p.agents.length} agent(s) \u2014 ${p.plugin}`,
         action: () => { useStore.getState().setActiveProject(p.id); onClose() },
@@ -52,19 +53,19 @@ const CommandPalette: React.FC = () => {
     })
 
     list.push({
-      id: 'add-project', icon: '+', label: 'Add project', sublabel: 'Open local folder or clone',
+      id: 'add-project', icon: React.createElement(Plus, { size: 14 }), label: 'Add project', sublabel: 'Open local folder or clone',
       action: () => { useStore.getState().openAddProject(); onClose() },
     })
     list.push({
-      id: 'new-agent', icon: '+', label: 'New agent', sublabel: 'Create agent in active project',
+      id: 'new-agent', icon: React.createElement(Plus, { size: 14 }), label: 'New agent', sublabel: 'Create agent in active project',
       action: () => { useStore.getState().openCreateAgent(); onClose() },
     })
     list.push({
-      id: 'settings', icon: '\u2699', label: 'Settings', sublabel: 'Ctrl+,',
+      id: 'settings', icon: React.createElement(Settings, { size: 14 }), label: 'Settings', sublabel: 'Ctrl+,',
       action: () => { useStore.getState().openSettings(); onClose() },
     })
     list.push({
-      id: 'quick-prompt', icon: '\u26A1', label: 'Quick Prompt', sublabel: 'Ctrl+Space',
+      id: 'quick-prompt', icon: React.createElement(Zap, { size: 14 }), label: 'Quick Prompt', sublabel: 'Ctrl+Space',
       action: () => { useStore.getState().openQuickPrompt(); onClose() },
     })
 
@@ -103,7 +104,7 @@ const CommandPalette: React.FC = () => {
       React.createElement('div', {
         style: { padding: '12px 16px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', gap: '10px' },
       },
-        React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-md)' } }, '\u2315'),
+        React.createElement('span', { style: { color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' } }, React.createElement(Search, { size: 16 })),
         React.createElement('input', {
           ref: inputRef, value: query,
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value),
@@ -136,7 +137,7 @@ const CommandPalette: React.FC = () => {
                 onMouseEnter: () => setSelectedIdx(i),
               },
                 React.createElement('span', {
-                  style: { fontSize: 'var(--text-md)', width: '20px', textAlign: 'center' as const, color: 'var(--text-secondary)' },
+                  style: { width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' },
                 }, item.icon),
                 React.createElement('div', { style: { flex: 1 } },
                   React.createElement('div', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)' } }, item.label),

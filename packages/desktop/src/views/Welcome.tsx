@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useStore } from '../hooks/useStore'
+import { ArrowRight } from 'lucide-react'
 
 const Welcome: React.FC = () => {
   const projects = useStore(s => s.projects)
@@ -116,7 +117,7 @@ const Welcome: React.FC = () => {
                       : null,
                   ),
                 ),
-                React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' } }, 'open \u2192')
+                React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '2px' } }, 'open ', React.createElement(ArrowRight, { size: 12 }))
               )
             })
           )

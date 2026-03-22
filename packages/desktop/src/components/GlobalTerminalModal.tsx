@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useStore } from '../store/index'
 import { CLI_PROVIDERS, getProviderById, buildLaunchCommand } from '../data/providers'
+import { X } from 'lucide-react'
 
 const GlobalTerminalModal: React.FC = () => {
   const projects = useStore(s => s.projects)
@@ -180,7 +181,7 @@ const GlobalTerminalModal: React.FC = () => {
           },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
-        }, '\u00D7'),
+        }, React.createElement(X, { size: 16 })),
       ),
 
       // Content

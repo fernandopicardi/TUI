@@ -54,6 +54,11 @@ Branch: agent-b/settings-cli-history
 Status: Complete — ready to merge
 Owns: SettingsModal.tsx, src/utils/gitGraph.ts, src/styles/ (theme tokens), electron/main.ts (CLI detection handlers only)
 
+### Agent Fix-1 — Foundation: Icons, Theme, Plan Gates
+Branch: fix-1/foundation-icons-theme
+Status: Complete — ready to merge
+Owns: All component files (icon replacements), index.html (CSS vars), features.ts (plan default), themes.ts, store/index.ts (theme default)
+
 ### Agent 3 — [Not assigned]
 Branch: (TBD)
 Status: Not started

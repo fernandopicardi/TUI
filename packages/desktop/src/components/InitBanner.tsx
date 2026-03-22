@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Diamond } from 'lucide-react'
 
 interface Props {
   onSelect: (template: string) => void
@@ -23,7 +24,7 @@ const InitBanner: React.FC<Props> = ({ onSelect }) => {
     },
       React.createElement('div', {
         style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500, marginBottom: '6px' },
-      }, '\u25C6 This project has no Runnio structure yet'),
+      }, React.createElement(Diamond, { size: 14, style: { display: 'inline', verticalAlign: 'middle', marginRight: '6px' } }), 'This project has no Runnio structure yet'),
       React.createElement('div', {
         style: { color: 'var(--text-secondary)', fontSize: 'var(--text-base)', lineHeight: '1.5' },
       }, 'Pick a template below to start a Claude Code session that will analyze the project and set up the right structure automatically.')

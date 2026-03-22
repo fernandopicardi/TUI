@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { MCPServerEntry } from '../types'
+import { Server, ChevronDown, ChevronRight, X, Diamond } from 'lucide-react'
 
 interface Props {
   worktreePath: string
@@ -61,7 +62,7 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px',
-    background: '#0a0a0a', border: '1px solid var(--border-default)',
+    background: 'var(--bg-app)', border: '1px solid var(--border-default)',
     borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 'var(--text-base)',
     outline: 'none', boxSizing: 'border-box', fontFamily: 'Consolas, monospace',
   }
@@ -78,7 +79,7 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
       onMouseEnter: () => setHoveredServer(s.name),
       onMouseLeave: () => setHoveredServer(null),
     },
-      React.createElement('span', { style: { color: 'var(--accent)', fontSize: '10px' } }, '\u25C9'),
+      React.createElement('span', { style: { color: 'var(--accent)', display: 'flex', alignItems: 'center' } }, React.createElement(Server, { size: 10 })),
       React.createElement('span', {
         style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontFamily: 'Consolas, monospace', flex: 1 },
       }, s.name),
@@ -98,7 +99,7 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
             },
             onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--error)' },
             onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
-          }, '\u00D7')
+          }, React.createElement(X, { size: 12 }))
         : null,
     )
   )
@@ -123,10 +124,10 @@ const MCPPanel: React.FC<Props> = ({ worktreePath }) => {
       React.createElement('span', {
         style: { display: 'flex', alignItems: 'center', gap: '8px' },
       },
-        React.createElement('span', { style: { color: 'var(--accent)' } }, '\u25C6'),
+        React.createElement('span', { style: { color: 'var(--accent)', display: 'flex', alignItems: 'center' } }, React.createElement(Diamond, { size: 12 })),
         `MCP Servers${servers.length > 0 ? ` (${servers.length})` : ''}`
       ),
-      React.createElement('span', { style: { fontSize: '10px' } }, isExpanded ? '\u25BC' : '\u25B6')
+      React.createElement('span', { style: { display: 'flex', alignItems: 'center' } }, isExpanded ? React.createElement(ChevronDown, { size: 12 }) : React.createElement(ChevronRight, { size: 12 }))
     ),
 
     isExpanded

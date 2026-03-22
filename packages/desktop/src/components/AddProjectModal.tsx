@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState, useCallback } from 'react'
 import { useStore } from '../store/index'
+import { FolderOpen, Download, ArrowLeft } from 'lucide-react'
 
 function generateProjectId(rootPath: string): string {
   return btoa(rootPath).replace(/[^a-z0-9]/gi, '').slice(0, 12)
@@ -166,7 +167,7 @@ const AddProjectModal: React.FC = () => {
                 (e.currentTarget).style.background = 'var(--bg-elevated)'
               },
             },
-              React.createElement('span', { style: { fontSize: '24px' } }, '\uD83D\uDCC1'),
+              React.createElement('span', { style: { color: 'var(--text-secondary)' } }, React.createElement(FolderOpen, { size: 24 })),
               React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500 } }, 'Local folder'),
               React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: '11px' } }, 'Already cloned')
             ),
@@ -186,7 +187,7 @@ const AddProjectModal: React.FC = () => {
                 (e.currentTarget).style.background = 'var(--bg-elevated)'
               },
             },
-              React.createElement('span', { style: { fontSize: '24px' } }, '\u2B07'),
+              React.createElement('span', { style: { color: 'var(--text-secondary)' } }, React.createElement(Download, { size: 24 })),
               React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500 } }, 'Clone repo'),
               React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: '11px' } }, 'Download from GitHub')
             )
@@ -215,7 +216,7 @@ const AddProjectModal: React.FC = () => {
                 React.createElement('button', {
                   onClick: handlePickDir,
                   style: { padding: '8px 12px', background: 'var(--bg-hover)', border: '1px solid var(--border-default)', borderRadius: '6px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '14px' },
-                }, '\uD83D\uDCC1')
+                }, React.createElement(FolderOpen, { size: 16 }))
               )
             ),
             React.createElement('div', null,
@@ -232,7 +233,7 @@ const AddProjectModal: React.FC = () => {
               React.createElement('button', {
                 onClick: () => setStep('choose'),
                 style: { padding: '8px 16px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
-              }, '\u2190 Back'),
+              }, React.createElement(ArrowLeft, { size: 12 }), ' Back'),
               React.createElement('button', {
                 onClick: handleClone, disabled: !canClone,
                 style: {

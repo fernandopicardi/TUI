@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { hasFeature } from '../features'
 import type { FeatureFlags, Plan } from '../features'
+import { Lock } from 'lucide-react'
 
 const PLAN_LABELS: Record<Plan, string> = {
   free: 'Free',
@@ -114,7 +115,7 @@ const UpgradeGate: React.FC<UpgradeGateProps> = ({ feature, children, fallback }
         fontSize: '20px',
         color: 'var(--text-tertiary)',
       },
-    }, '\u{1F512}'),
+    }, React.createElement(Lock, { size: 20 })),
 
     // Plan badge
     React.createElement('div', {

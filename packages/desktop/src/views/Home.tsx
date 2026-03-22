@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '../hooks/useStore'
 import { AgentSession, GitCommitData } from '../types'
+import { Diamond, Circle, ArrowRight } from 'lucide-react'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -209,7 +210,7 @@ const Home: React.FC = () => {
                     fontSize: '14px',
                     color: workingCount > 0 ? 'var(--working)' : 'var(--text-tertiary)',
                   },
-                }, workingCount > 0 ? '\u25C6' : '\u25CB'),
+                }, workingCount > 0 ? React.createElement(Diamond, { size: 14 }) : React.createElement(Circle, { size: 14 })),
                 // Name + plugin
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                   React.createElement('div', {
@@ -253,7 +254,7 @@ const Home: React.FC = () => {
                 // Arrow
                 React.createElement('span', {
                   style: { color: 'var(--text-disabled)', fontSize: '12px' },
-                }, '\u2192'),
+                }, React.createElement(ArrowRight, { size: 12 })),
               )
             }),
           )

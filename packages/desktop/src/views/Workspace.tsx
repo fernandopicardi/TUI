@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useCallback, useState, useMemo } from 'react'
 import { useStore } from '../hooks/useStore'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
 import PRPanel from '../components/PRPanel'
@@ -94,7 +95,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-secondary)' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-disabled)' },
-      }, '\u2190'),
+      }, React.createElement(ArrowLeft, { size: 14 })),
       React.createElement('span', {
         style: { fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'Consolas, monospace' },
       }, agent.branch || 'detached'),
@@ -133,7 +134,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--error)' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = '#f8717166' },
-      }, 'Delete'),
+      }, React.createElement(Trash2, { size: 12 }), ' Delete'),
     ),
 
     // Launch panel (shown before first launch)

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
 import AgentStatusBadge from './AgentStatusBadge'
+import { AlertTriangle, Plus, Globe } from 'lucide-react'
 
 const AgentBar: React.FC = () => {
   const projects = useStore(s => s.projects)
@@ -39,10 +40,11 @@ const AgentBar: React.FC = () => {
           padding: '4px 12px', background: 'var(--accent)', border: 'none',
           borderRadius: 'var(--radius-sm)', color: '#fff',
           fontSize: 'var(--text-xs)', cursor: 'pointer', transition: 'opacity 100ms',
+          display: 'flex', alignItems: 'center', gap: '4px',
         },
         onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
         onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-      }, '+ New agent')
+      }, React.createElement(Plus, { size: 12 }), 'New agent')
     )
   }
 
@@ -67,8 +69,8 @@ const AgentBar: React.FC = () => {
         : null,
       waiting > 0
         ? React.createElement('span', { style: { color: 'var(--waiting)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '4px' } },
-            React.createElement('span', { style: { width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--waiting)', animation: 'pulseFast 1s infinite' } }),
-            `\u26A0 ${waiting} waiting`)
+            React.createElement(AlertTriangle, { size: 10 }),
+            `${waiting} waiting`)
         : null,
       working === 0 && waiting === 0
         ? React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' } }, `${allAgents.length} idle`)
@@ -136,7 +138,7 @@ const AgentBar: React.FC = () => {
         padding: '6px 12px', background: 'transparent',
         border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)',
         fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
-        flexShrink: 0, height: '44px',
+        flexShrink: 0, height: '44px', display: 'flex', alignItems: 'center', gap: '4px',
       },
       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.borderColor = 'var(--accent)'
@@ -146,7 +148,7 @@ const AgentBar: React.FC = () => {
         e.currentTarget.style.borderColor = 'var(--border-default)'
         e.currentTarget.style.color = 'var(--text-tertiary)'
       },
-    }, '+ agent'),
+    }, React.createElement(Plus, { size: 12 }), 'agent'),
 
     // Global Terminal button
     React.createElement('button', {
@@ -156,7 +158,7 @@ const AgentBar: React.FC = () => {
         padding: '6px 12px', background: 'transparent',
         border: '1px dashed #fbbf2444', borderRadius: 'var(--radius-md)', color: 'var(--waiting)',
         fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 150ms',
-        flexShrink: 0, height: '44px',
+        flexShrink: 0, height: '44px', display: 'flex', alignItems: 'center', gap: '4px',
       },
       onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.borderColor = 'var(--waiting)'
@@ -166,7 +168,7 @@ const AgentBar: React.FC = () => {
         e.currentTarget.style.borderColor = '#fbbf2444'
         e.currentTarget.style.background = 'transparent'
       },
-    }, '\u2295 Global'),
+    }, React.createElement(Globe, { size: 12 }), 'Global'),
   )
 }
 

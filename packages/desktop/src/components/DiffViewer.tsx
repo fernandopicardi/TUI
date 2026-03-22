@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { highlightCode, ensureSyntaxTheme } from '../hooks/useSyntaxHighlight'
+import { Check, RefreshCw, Minus as MinusIcon } from 'lucide-react'
 
 interface Props {
   worktreePath: string
@@ -164,7 +165,7 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
     return React.createElement('div', {
       style: { height: '100%', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: '8px' },
     },
-      React.createElement('span', { style: { fontSize: '24px', color: 'var(--working)' } }, '\u2713'),
+      React.createElement('span', { style: { color: 'var(--working)', display: 'flex', alignItems: 'center' } }, React.createElement(Check, { size: 24 })),
       React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)' } }, 'No changes in this workspace'),
       React.createElement('span', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' } }, 'All files are up to date'),
       React.createElement('button', {
@@ -287,7 +288,7 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
           transition: 'color 150ms',
         },
         title: 'Refresh diff',
-      }, '\u21BB'),
+      }, React.createElement(RefreshCw, { size: 12 })),
     ),
     // Diff content — side by side with line numbers and highlights
     diffResult
@@ -304,7 +305,7 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
               style: {
                 padding: '4px 8px', borderBottom: '1px solid var(--border-default)',
                 fontSize: 'var(--text-xs)', color: '#f85149',
-                position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a', zIndex: 1,
+                position: 'sticky' as const, top: 0, backgroundColor: 'var(--bg-app)', zIndex: 1,
               },
             }, '\u2212 Original (HEAD)'),
             React.createElement('div', {
@@ -321,7 +322,7 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
               style: {
                 padding: '4px 8px', borderBottom: '1px solid var(--border-default)',
                 fontSize: 'var(--text-xs)', color: '#3fb950',
-                position: 'sticky' as const, top: 0, backgroundColor: '#0a0a0a', zIndex: 1,
+                position: 'sticky' as const, top: 0, backgroundColor: 'var(--bg-app)', zIndex: 1,
               },
             }, '+ Modified'),
             React.createElement('div', {

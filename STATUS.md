@@ -13,7 +13,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 
 ## Current Version
 
-- **Version:** 0.1.4 (package.json) / v0.1.4 (GitHub Release)
+- **Version:** 0.1.5 (package.json) / v0.1.5 (GitHub Release)
 - **Stack:** Electron 28 + React 18 + Zustand 4 + xterm.js 5 + node-pty 1.1 + simple-git 3
 - **Build:** esbuild (3-target: main/preload/renderer) + electron-builder (NSIS installer + portable)
 - **Platform:** Windows only (Mac planned for simultaneous launch)
@@ -134,6 +134,9 @@ Renderer (React 18 + Zustand)
 11. ~~**Toolbar redesign**~~ — Done (2026-03-21). Toggle icons, back/forward nav, Home access
 12. ~~**Global Terminal**~~ — Done (2026-03-21). Multi-project directory access, context header injection
 13. ~~**Homepage**~~ — Done (2026-03-21). Active agents, projects overview, recent activity
+14. ~~**Lucide React icons**~~ — Done (2026-03-21). All emojis replaced with Lucide SVG icons
+15. ~~**Dark Navy default theme**~~ — Done (2026-03-21). CSS variables and store default updated
+16. ~~**Pro plan default**~~ — Done (2026-03-21). All features unlocked by default until billing exists
 
 ## Roadmap
 

@@ -54,7 +54,7 @@ const App: React.FC = () => {
 
   // Apply saved theme on mount
   useEffect(() => {
-    const savedTheme = (useStore.getState().theme as Theme) ?? 'dark'
+    const savedTheme = (useStore.getState().theme as Theme) ?? 'dark-navy'
     applyTheme(savedTheme)
 
     if (savedTheme === 'system') {

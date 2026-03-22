@@ -31,8 +31,8 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
     const init = async () => {
       const xterm = new XTerm({
         theme: {
-          background: '#0a0a0a',
-          foreground: '#f0f0f0',
+          background: '#0d1117',
+          foreground: '#e6edf3',
           cursor: '#6366f1',
           selectionBackground: '#6366f133',
           black: '#1a1a1a',
@@ -166,7 +166,7 @@ const Terminal: React.FC<Props> = ({ id, worktreePath, openCommand = 'claude', i
     ref: containerRef,
     style: {
       width: '100%', height: '100%', minHeight: '200px',
-      backgroundColor: '#0a0a0a', padding: '4px',
+      backgroundColor: '#0d1117', padding: '4px',
     },
   })
 }

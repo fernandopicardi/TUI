@@ -1,3 +1,4 @@
+import { Check, X as XIcon } from 'lucide-react'
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useStore } from '../store/index'
@@ -110,7 +111,7 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px',
-    background: '#0a0a0a', border: '1px solid var(--border-default)',
+    background: 'var(--bg-app)', border: '1px solid var(--border-default)',
     borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 'var(--text-base)',
     fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   }
@@ -177,7 +178,9 @@ const PRPanel: React.FC<Props> = ({ worktreePath, branch }) => {
                 color: tokenTestResult.success ? 'var(--working)' : 'var(--error)',
                 fontSize: 'var(--text-sm)',
               },
-            }, tokenTestResult.success ? `\u2713 Connected as @${tokenTestResult.login}` : '\u2717 Invalid token. Check scopes and try again.')
+            }, tokenTestResult.success
+              ? React.createElement(React.Fragment, null, React.createElement(Check, { size: 12, style: { display: 'inline', verticalAlign: 'middle' } }), ` Connected as @${tokenTestResult.login}`)
+              : React.createElement(React.Fragment, null, React.createElement(XIcon, { size: 12, style: { display: 'inline', verticalAlign: 'middle' } }), ' Invalid token. Check scopes and try again.'))
           : null,
 
         React.createElement('div', {

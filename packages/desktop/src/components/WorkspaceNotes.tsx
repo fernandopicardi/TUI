@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Check } from 'lucide-react'
 
 interface Props {
   branch: string
@@ -49,7 +50,7 @@ const WorkspaceNotes: React.FC<Props> = ({ branch, rootPath }) => {
       elapsed !== null
         ? React.createElement('span', {
             style: { color: 'var(--working)', fontSize: 'var(--text-xs)' },
-          }, elapsed < 2 ? 'saved \u2713' : `saved ${elapsed}s ago \u2713`)
+          }, elapsed < 2 ? React.createElement(React.Fragment, null, 'saved ', React.createElement(Check, { size: 10 })) : React.createElement(React.Fragment, null, `saved ${elapsed}s ago `, React.createElement(Check, { size: 10 })))
         : null
     ),
     React.createElement('textarea', {

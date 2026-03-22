@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../store/index'
 import { PROMPT_TEMPLATES } from '../data/promptTemplates'
 import { hasFeature } from '../features'
+import { Zap, AlertTriangle, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react'
 
 const HISTORY_KEY = 'runnio:prompt-history'
 const MAX_HISTORY = 20
@@ -129,7 +130,7 @@ const QuickPrompt: React.FC = () => {
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' },
       },
-        React.createElement('span', { style: { color: 'var(--accent)', fontSize: 'var(--text-base)' } }, '\u26A1'),
+        React.createElement('span', { style: { color: 'var(--accent)', display: 'flex', alignItems: 'center' } }, React.createElement(Zap, { size: 16 })),
         React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 } }, 'Quick Prompt'),
       ),
 
@@ -162,7 +163,7 @@ const QuickPrompt: React.FC = () => {
             getTargetCount() > 1
               ? React.createElement('div', {
                   style: { color: 'var(--waiting)', fontSize: 'var(--text-xs)' },
-                }, `\u26A0 Sends to ${getTargetCount()} agents simultaneously`)
+                }, React.createElement(AlertTriangle, { size: 10 }), ` Sends to ${getTargetCount()} agents simultaneously`)
               : null,
           )
         : React.createElement('div', {
@@ -212,9 +213,9 @@ const QuickPrompt: React.FC = () => {
       React.createElement('div', {
         style: { display: 'flex', gap: '16px', marginTop: '8px', justifyContent: 'flex-end' },
       },
-        React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' } }, '\u21B5 Send'),
+        React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '2px' } }, React.createElement(CornerDownLeft, { size: 10 }), ' Send'),
         React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' } }, 'Esc Close'),
-        React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' } }, '\u2191\u2193 History'),
+        React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '2px' } }, React.createElement(ArrowUp, { size: 10 }), React.createElement(ArrowDown, { size: 10 }), ' History'),
       )
     )
   )

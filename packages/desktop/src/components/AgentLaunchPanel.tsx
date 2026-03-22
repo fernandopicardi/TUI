@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useStore } from '../hooks/useStore'
 import { AgentSession } from '../types'
 import { CLI_PROVIDERS, CliProvider, getProviderById, buildLaunchCommand as buildProviderCommand } from '../data/providers'
+import { ArrowRight } from 'lucide-react'
 
 // Re-export for backwards compatibility with Workspace.tsx
 export function buildLaunchCommand(model: string, mode: string): string {
@@ -122,7 +123,7 @@ const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => 
                   },
                   title: detected ? p.name : `${p.name} — not detected`,
                 },
-                  React.createElement('span', { style: { fontSize: '14px' } }, p.icon),
+                  React.createElement('span', { style: { display: 'flex', alignItems: 'center' } }, React.createElement(p.Icon, { size: 14 })),
                   React.createElement('span', null, p.name),
                   !detected
                     ? React.createElement('a', {
@@ -134,7 +135,7 @@ const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => 
                           useStore.getState().showToast('Install URL copied', 'info')
                         },
                         style: { color: 'var(--accent)', fontSize: '10px', textDecoration: 'none' },
-                      }, 'Install \u2192')
+                      }, 'Install ', React.createElement(ArrowRight, { size: 10 }))
                     : null,
                 )
               }),

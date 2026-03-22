@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useStore } from '../store/index'
+import { CircleDot, Circle, Check, ArrowRight } from 'lucide-react'
 
 type FilterMode = 'all' | 'by-project' | 'by-agent'
 type TaskStatus = 'working' | 'waiting' | 'backlog' | 'done'
@@ -19,11 +20,11 @@ interface TaskItem {
 
 const STATUS_ORDER: Record<TaskStatus, number> = { working: 0, waiting: 1, backlog: 2, done: 3 }
 
-const STATUS_ICON: Record<TaskStatus, { symbol: string; color: string }> = {
-  working: { symbol: '\u25CF', color: 'var(--working)' },
-  waiting: { symbol: '\u25D1', color: 'var(--waiting)' },
-  backlog: { symbol: '\u25CB', color: 'var(--text-disabled)' },
-  done: { symbol: '\u2713', color: 'var(--working)' },
+const STATUS_ICON_MAP: Record<TaskStatus, { Icon: typeof CircleDot; color: string }> = {
+  working: { Icon: CircleDot, color: 'var(--working)' },
+  waiting: { Icon: Circle, color: 'var(--waiting)' },
+  backlog: { Icon: Circle, color: 'var(--text-disabled)' },
+  done: { Icon: Check, color: 'var(--working)' },
 }
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -119,7 +120,7 @@ const TasksPanel: React.FC = () => {
   })
 
   const renderTask = (task: TaskItem) => {
-    const icon = STATUS_ICON[task.status]
+    const icon = STATUS_ICON_MAP[task.status]
     const isHovered = hoveredTask === task.id
 
     return React.createElement('div', {
@@ -139,8 +140,8 @@ const TasksPanel: React.FC = () => {
         style: { display: 'flex', alignItems: 'center', gap: '8px' },
       },
         React.createElement('span', {
-          style: { color: icon.color, fontSize: '12px', flexShrink: 0, width: '14px', textAlign: 'center' as const },
-        }, icon.symbol),
+          style: { color: icon.color, flexShrink: 0, width: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        }, React.createElement(icon.Icon, { size: 12 })),
         React.createElement('span', {
           style: {
             flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-primary)',
@@ -150,7 +151,7 @@ const TasksPanel: React.FC = () => {
         isHovered && task.agentId
           ? React.createElement('span', {
               style: { fontSize: '10px', color: 'var(--accent)', flexShrink: 0 },
-            }, 'Open agent \u2192')
+            }, 'Open agent ', React.createElement(ArrowRight, { size: 10 }))
           : null,
       ),
       (task.agentBranch || task.projectName)
@@ -220,7 +221,7 @@ const TasksPanel: React.FC = () => {
           },
         },
           React.createElement('span', {
-            style: { fontSize: '11px', fontWeight: 600, color: STATUS_ICON[status].color },
+            style: { fontSize: '11px', fontWeight: 600, color: STATUS_ICON_MAP[status].color },
           }, STATUS_LABELS[status]),
           React.createElement('div', {
             style: { flex: 1, height: '1px', background: 'var(--border-subtle)' },

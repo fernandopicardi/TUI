@@ -24,7 +24,12 @@ Fully functional Windows MVP with 6 workspace tabs (Terminal, Files, Diff, Histo
 
 ## Next priority
 
-Prompts D, E running in parallel.
+Fix-1 (Foundation) complete. Prompts D, E running in parallel.
+
+## Default state
+- **Theme:** Dark Navy is the default for new users. The old Dark theme (#0a0a0a) is still available in settings.
+- **Plan:** All users default to 'pro' plan (not 'free') until billing is implemented. RUNNIO_DEV=true gives 'business' tier.
+- **Icons:** All functional UI icons use lucide-react SVG components. The ◆ diamond in the TitleBar logo is the only exception (brand identity).
 
 ## Critical files to understand the project
 

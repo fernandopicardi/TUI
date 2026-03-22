@@ -1,11 +1,14 @@
 // Copyright (c) 2026 Runnio. All rights reserved. Proprietary and confidential.
 
+import { Sparkles, Target, Gem, Hexagon, Zap, Palette, Play, Circle, type LucideIcon } from 'lucide-react'
+
 export interface CliProvider {
   id: string
   name: string
   command: string
   args?: string[]
   icon: string
+  Icon: LucideIcon
   color: string
   installUrl: string
   modelFlag?: string
@@ -19,6 +22,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Claude Code',
     command: 'claude',
     icon: '\u2733',
+    Icon: Sparkles,
     color: '#d97706',
     installUrl: 'https://docs.anthropic.com/claude-code',
     modelFlag: '--model',
@@ -30,6 +34,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Codex',
     command: 'codex',
     icon: '\u25CE',
+    Icon: Target,
     color: '#10b981',
     installUrl: 'https://github.com/openai/codex',
     autoApproveFlag: '--approval-mode full-auto',
@@ -39,6 +44,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Gemini CLI',
     command: 'gemini',
     icon: '\u25C8',
+    Icon: Gem,
     color: '#3b82f6',
     installUrl: 'https://github.com/google-gemini/gemini-cli',
   },
@@ -47,6 +53,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'OpenCode',
     command: 'opencode',
     icon: '\u2B21',
+    Icon: Hexagon,
     color: '#8b5cf6',
     installUrl: 'https://opencode.ai',
   },
@@ -55,6 +62,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Amp',
     command: 'amp',
     icon: '\u26A1',
+    Icon: Zap,
     color: '#f59e0b',
     installUrl: 'https://ampcode.com',
   },
@@ -63,6 +71,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Aider',
     command: 'aider',
     icon: '\u25E7',
+    Icon: Palette,
     color: '#06b6d4',
     installUrl: 'https://aider.chat',
   },
@@ -71,6 +80,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Continue',
     command: 'continue',
     icon: '\u25B7',
+    Icon: Play,
     color: '#6366f1',
     installUrl: 'https://continue.dev',
   },
@@ -79,6 +89,7 @@ export const CLI_PROVIDERS: CliProvider[] = [
     name: 'Cline',
     command: 'cline',
     icon: '\u25D1',
+    Icon: Circle,
     color: '#ec4899',
     installUrl: 'https://github.com/cline/cline',
   },
