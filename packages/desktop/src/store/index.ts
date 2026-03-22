@@ -50,9 +50,23 @@ export interface RunnioStore {
   setDefaultModel: (model: string) => void
   setDefaultMode: (mode: 'normal' | 'plan' | 'auto') => void
 
-  // Theme
+  // Theme + terminal appearance
   theme: Theme
   setTheme: (theme: Theme) => void
+  terminalFont: string
+  terminalFontSize: number
+  setTerminalFont: (font: string) => void
+  setTerminalFontSize: (size: number) => void
+
+  // App settings (persisted)
+  refreshInterval: number
+  createWorktreeByDefault: boolean
+  branchPattern: string
+  notifications: boolean
+  setRefreshInterval: (ms: number) => void
+  setCreateWorktreeByDefault: (v: boolean) => void
+  setBranchPattern: (pattern: string) => void
+  setNotifications: (v: boolean) => void
 
   // Navigation
   navigateTo: (view: 'home' | 'dashboard' | 'workspace') => void
@@ -130,6 +144,12 @@ export const useStore = create<RunnioStore>()(
       defaultModel: '',
       defaultMode: 'normal' as 'normal' | 'plan' | 'auto',
       theme: 'dark-navy' as Theme,
+      terminalFont: 'Consolas',
+      terminalFontSize: 13,
+      refreshInterval: 2000,
+      createWorktreeByDefault: true,
+      branchPattern: 'runnio/{branch}',
+      notifications: true,
 
       addProject: (projectData) => {
         const state = get()
@@ -282,6 +302,12 @@ export const useStore = create<RunnioStore>()(
       setDefaultModel: (model) => set({ defaultModel: model }),
       setDefaultMode: (mode) => set({ defaultMode: mode }),
       setTheme: (theme) => set({ theme }),
+      setTerminalFont: (font) => set({ terminalFont: font }),
+      setTerminalFontSize: (size) => set({ terminalFontSize: size }),
+      setRefreshInterval: (ms) => set({ refreshInterval: ms }),
+      setCreateWorktreeByDefault: (v) => set({ createWorktreeByDefault: v }),
+      setBranchPattern: (pattern) => set({ branchPattern: pattern }),
+      setNotifications: (v) => set({ notifications: v }),
 
       // Navigation
       navigateTo: (view) => set({ activeView: view, activeAgentId: view === 'workspace' ? get().activeAgentId : null }),
@@ -391,6 +417,12 @@ export const useStore = create<RunnioStore>()(
         defaultModel: state.defaultModel,
         defaultMode: state.defaultMode,
         theme: state.theme,
+        terminalFont: state.terminalFont,
+        terminalFontSize: state.terminalFontSize,
+        refreshInterval: state.refreshInterval,
+        createWorktreeByDefault: state.createWorktreeByDefault,
+        branchPattern: state.branchPattern,
+        notifications: state.notifications,
       }),
       // Migrate persisted agents that predate the hasLaunched field
       merge: (persisted: any, current: any) => {

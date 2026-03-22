@@ -69,6 +69,11 @@ Branch: fix-3/right-panel-workspace
 Status: Complete — ready to merge
 Owns: Workspace.tsx, RightPanel.tsx (new), TitleBar.tsx, store/index.ts (right panel state), main.ts (git stage/commit handlers), preload.ts (git stage/commit methods), types.ts (detectedUrl, git IPC types)
 
+### Agent Fix-4 — Settings Fully Functional
+Branch: fix-4/settings-functional
+Status: Complete — ready to merge
+Owns: SettingsModal.tsx, store/index.ts (settings state), Terminal.tsx (font/size from store), useAgentStatus.ts (refreshInterval from store), CreateAgentModal.tsx (branchPattern + createWorktreeByDefault from store)
+
 ## Shared rules
 - Product name: Runnio (never agentflow, never regent)
 - Config file: runnio.config.json

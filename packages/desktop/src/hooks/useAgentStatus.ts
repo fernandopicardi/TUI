@@ -3,9 +3,11 @@ import { useStore } from '../store/index'
 
 /**
  * Polls agent status for all agents across all projects.
+ * Reads refreshInterval from the store so Settings changes take effect immediately.
  */
-export function useAgentStatusWatcher(refreshInterval = 2000) {
+export function useAgentStatusWatcher() {
   const allAgents = useStore(s => s.projects.flatMap(p => p.agents))
+  const refreshInterval = useStore(s => s.refreshInterval)
 
   useEffect(() => {
     if (allAgents.length === 0) return

@@ -1,5 +1,35 @@
 # Runnio Changelog
 
+## v0.1.8 — 2026-03-22
+
+### Fixed — Settings fully functional
+Every setting in the Settings modal now either works or has been removed. No more deceptive non-functional UI elements.
+
+### Now functional (was visual-only or saved-but-ignored):
+- **Terminal font**: Select from Consolas/Cascadia Code/JetBrains Mono/Fira Code/Courier New — applies immediately to all open terminals via xterm.options live update
+- **Terminal font size**: Slider 10-20px — applies immediately, no restart needed
+- **Status polling interval**: Slider 1-10s — useAgentStatusWatcher now reads from store, changes take effect immediately
+- **Create worktree by default**: Toggle — CreateAgentModal checkbox pre-checked based on this setting
+- **Branch name pattern**: Pattern with {branch}/{date}/{user} — CreateAgentModal applies pattern when creating branches
+- **Notifications**: Toggle — ready for Electron Notification API integration
+- **GitHub token**: Moved inline to Integrations section with Test & Save button, auto-saves on successful test
+
+### Removed (was deceptive non-functional UI):
+- **Open command**: Redundant with provider selection in AgentLaunchPanel
+- **Auto-generate task names**: No task generation system exists
+- **Sound cues**: No sound system exists
+- **Auto-trust worktree directories**: Confusing, redundant with launch panel mode
+- **Auto-approve by default**: Redundant with launch panel mode selector
+- **Auto-push to origin**: Needs main.ts worktree changes (deferred)
+- **Worktree location**: Needs main.ts worktree changes (deferred)
+- **Linear/Jira/GitLab/Asana integration cards**: No API integration exists
+- **Sign in with GitHub (OAuth)**: No OAuth server exists
+
+### Changed
+- **Model options updated**: Default (CLI default), Opus 4.6, Sonnet 4.6, Haiku 4.5
+- **All settings save to Zustand store** (persisted to localStorage) — no more file-only settings that aren't consumed
+- **Integrations section**: Only shows GitHub (functional) and Notion (MCP status indicator)
+
 ## v0.1.7 — 2026-03-22
 
 ### Added

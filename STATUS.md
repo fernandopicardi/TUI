@@ -64,7 +64,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | GitHistory | ~900 | Done — Code/People modes, SVG graph with proper bezier curves, agent detection (email + body + branch), provider avatars, avatar groups, enhanced detail panel with badges and file stats |
 | PRPanel | 342 | Done — GitHub API, inline token setup |
 | DiffViewer | 306 | Done — LCS diff, file tabs, polling |
-| SettingsModal | ~500 | Done — 6-section left-nav: General, Agents (CLI detection), Integrations, Repository, Interface (theme), Account |
+| SettingsModal | ~530 | Done — 6-section left-nav. All settings functional or removed. General: model/mode/polling/worktree/notifications. Agents: CLI detection. Integrations: GitHub token + Notion MCP. Repository: branch pattern. Interface: theme + terminal font/size (live apply). Account: GitHub status + dev mode |
 | FileTree | 292 | Done — Tree + viewer, git status, filter |
 | MCPPanel | 288 | Done — Reads/writes real ~/.claude/settings.json and .claude/settings.json |
 | AddProjectModal | 256 | Done — Local folder or clone |

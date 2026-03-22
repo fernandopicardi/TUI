@@ -75,7 +75,8 @@ Renderer (React 18 + Zustand)
 - **Prompt injection:** `terminal:inject-when-ready` queues prompt until Claude Code outputs a readiness signal (7 patterns), then writes to PTY with 500ms delay.
 - **IPC safety:** All IPC returns wrapped in `JSON.parse(JSON.stringify())`. All paths through `normalizePath()`.
 - **CSS:** Design tokens via CSS variables in `:root`. No external framework.
-- **State:** Zustand persists `projects`, `activeProjectId`, `activeAgentId` to localStorage key `runnio-store`.
+- **State:** Zustand persists `projects`, `activeProjectId`, `activeAgentId`, `defaultModel`, `defaultMode`, `theme`, `terminalFont`, `terminalFontSize`, `refreshInterval`, `createWorktreeByDefault`, `branchPattern`, `notifications` to localStorage key `runnio-store`.
+- **Integration tokens:** GitHub token stored in `~/.runnio/config.json` via `settings:write-global` IPC. Read by PRPanel and Settings.
 - **React:** All `React.createElement()` — no JSX. esbuild bundles as IIFE for browser target.
 - **Feature flags:** Plan-based gating via `features.ts`. `UpgradeGate` component wraps premium features.
 

@@ -3,8 +3,10 @@ import { useState, useCallback } from 'react'
 import { useStore } from '../store/index'
 
 const CreateAgentModal: React.FC = () => {
+  const storeCreateWorktreeDefault = useStore(s => s.createWorktreeByDefault)
+  const storeBranchPattern = useStore(s => s.branchPattern)
   const [input, setInput] = useState('')
-  const [createWorktree, setCreateWorktree] = useState(true)
+  const [createWorktree, setCreateWorktree] = useState(storeCreateWorktreeDefault)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,8 +25,15 @@ const CreateAgentModal: React.FC = () => {
   }
 
   const handleCreate = useCallback(async () => {
-    const branchName = input.trim()
-    if (!branchName || !activeProject) return
+    const rawInput = input.trim()
+    if (!rawInput || !activeProject) return
+
+    // Apply branch pattern from settings
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const branchName = storeBranchPattern
+      .replace('{branch}', rawInput)
+      .replace('{date}', today)
+      .replace('{user}', 'dev')
 
     if (!isValidBranch(branchName)) {
       setError(`"${branchName}" is not a valid branch name.`)
@@ -65,7 +74,7 @@ const CreateAgentModal: React.FC = () => {
     useStore.getState().showToast(`Agent "${branchName}" created`, 'success')
     setCreating(false)
     onClose()
-  }, [input, createWorktree, activeProject, onClose])
+  }, [input, createWorktree, activeProject, onClose, storeBranchPattern])
 
   if (!activeProject) return null
 

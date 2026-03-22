@@ -1,8 +1,35 @@
+// ── Settings Audit (fix-4/settings-functional) ──────────────────────────────
+//
+// WORKS — saves AND app behavior changes:
+//   defaultModel        → store, read by AgentLaunchPanel
+//   defaultMode         → store, read by AgentLaunchPanel
+//   theme               → store + applyTheme, immediate
+//   githubToken         → global settings file, read by PRPanel
+//   terminalFont        → store, read by Terminal.tsx (live apply via xterm.options)
+//   terminalFontSize    → store, read by Terminal.tsx (live apply via xterm.options)
+//   refreshInterval     → store, read by useAgentStatusWatcher hook
+//   createWorktreeByDefault → store, read by CreateAgentModal
+//   branchPattern       → store, read by CreateAgentModal
+//   notifications       → store, read by useAgentStatusWatcher (Electron Notification API)
+//
+// REMOVED — was visual-only or saved but nothing consumed:
+//   openCommand         → redundant with provider system in AgentLaunchPanel
+//   autoGenerateTaskNames → no task generation system exists
+//   soundCues           → no sound system exists
+//   autoTrustWorktrees  → confusing UX, redundant with launch panel mode selector
+//   autoApproveByDefault → redundant with launch panel mode selector
+//   autoPush            → needs main.ts worktree creation changes (deferred)
+//   worktreeLocation    → needs main.ts worktree creation changes (deferred)
+//   Linear/Jira/GitLab/Asana integration cards → no API integration
+//   Sign in with GitHub (OAuth) → no OAuth server
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
 import * as React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useStore } from '../store/index'
 import { Theme, applyTheme } from '../styles/themes'
-import { Sparkles, Target, Gem, Hexagon, Zap, SquareCode, Circle, Play, Palette, X, Check } from 'lucide-react'
+import { Sparkles, Target, Gem, Hexagon, Zap, SquareCode, Circle, Play, Palette, X, Check, ExternalLink, Copy } from 'lucide-react'
 
 type Section = 'general' | 'agents' | 'integrations' | 'repository' | 'interface' | 'account'
 
@@ -12,7 +39,6 @@ const CLI_AGENTS = [
   { id: 'gemini', name: 'Gemini CLI', Icon: Gem, installCmd: 'npm install -g @google/gemini-cli', docs: 'https://github.com/google-gemini/gemini-cli' },
   { id: 'opencode', name: 'OpenCode', Icon: Hexagon, installCmd: 'npm install -g opencode-ai', docs: 'https://opencode.ai' },
   { id: 'amp', name: 'Amp', Icon: Zap, installCmd: '', docs: 'https://ampcode.com' },
-  { id: 'cursor', name: 'Cursor', Icon: SquareCode, installCmd: '', docs: 'https://cursor.com' },
   { id: 'cline', name: 'Cline', Icon: Circle, installCmd: 'npm install -g cline', docs: 'https://github.com/cline/cline' },
   { id: 'continue', name: 'Continue', Icon: Play, installCmd: '', docs: 'https://continue.dev' },
   { id: 'aider', name: 'Aider', Icon: Palette, installCmd: 'pip install aider-chat', docs: 'https://aider.chat' },
@@ -27,36 +53,27 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: 'account', label: 'Account' },
 ]
 
-const INTEGRATIONS = [
-  { id: 'github', name: 'GitHub', connected: false },
-  { id: 'linear', name: 'Linear', connected: false },
-  { id: 'jira', name: 'Jira', connected: false },
-  { id: 'gitlab', name: 'GitLab', connected: false },
-  { id: 'asana', name: 'Asana', connected: false },
-  { id: 'notion', name: 'Notion', connected: false, badge: 'via MCP' },
-]
+declare const __RUNNIO_DEV__: string
 
 const SettingsModal: React.FC = () => {
   const [activeSection, setActiveSection] = useState<Section>('general')
-  const activeProject = useStore(s => s.getActiveProject())
 
   const onClose = useCallback(() => {
     useStore.getState().closeSettings()
   }, [])
 
-  // General settings
-  const [openCommand, setOpenCommand] = useState('claude')
-  const [refreshInterval, setRefreshInterval] = useState(3000)
+  // Store-backed settings (live)
   const defaultModel = useStore(s => s.defaultModel)
   const defaultMode = useStore(s => s.defaultMode)
-  const [autoGenerateTaskNames, setAutoGenerateTaskNames] = useState(false)
-  const [createWorktreeByDefault, setCreateWorktreeByDefault] = useState(true)
-  const [autoTrustWorktrees, setAutoTrustWorktrees] = useState(true)
-  const [autoApproveByDefault, setAutoApproveByDefault] = useState(false)
-  const [notifications, setNotifications] = useState(true)
-  const [soundCues, setSoundCues] = useState(false)
+  const theme = useStore(s => s.theme)
+  const terminalFont = useStore(s => s.terminalFont)
+  const terminalFontSize = useStore(s => s.terminalFontSize)
+  const refreshInterval = useStore(s => s.refreshInterval)
+  const createWorktreeByDefault = useStore(s => s.createWorktreeByDefault)
+  const branchPattern = useStore(s => s.branchPattern)
+  const notifications = useStore(s => s.notifications)
 
-  // GitHub settings
+  // GitHub settings (file-backed)
   const [githubToken, setGithubToken] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; login?: string } | null>(null)
@@ -67,33 +84,14 @@ const SettingsModal: React.FC = () => {
   const [detecting, setDetecting] = useState(false)
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null)
 
-  // Repository settings
-  const [branchPattern, setBranchPattern] = useState('runnio/{branch}')
-  const [autoPush, setAutoPush] = useState(true)
-  const [worktreeLocation, setWorktreeLocation] = useState('sibling')
-
-  // Theme
-  const theme = useStore(s => s.theme)
-
-  // Load settings on mount
+  // Load file-backed settings on mount
   useEffect(() => {
     window.runnio.settings.readGlobal().then((data) => {
-      if (data.openCommand) setOpenCommand(data.openCommand)
-      if (data.refreshInterval) setRefreshInterval(data.refreshInterval)
       if (data.githubToken) setGithubToken(data.githubToken)
-      if (data.branchPattern) setBranchPattern(data.branchPattern)
-      if (data.autoPush !== undefined) setAutoPush(data.autoPush)
-      if (data.worktreeLocation) setWorktreeLocation(data.worktreeLocation)
-      if (data.notifications !== undefined) setNotifications(data.notifications)
-      if (data.soundCues !== undefined) setSoundCues(data.soundCues)
-      if (data.autoGenerateTaskNames !== undefined) setAutoGenerateTaskNames(data.autoGenerateTaskNames)
-      if (data.createWorktreeByDefault !== undefined) setCreateWorktreeByDefault(data.createWorktreeByDefault)
-      if (data.autoTrustWorktrees !== undefined) setAutoTrustWorktrees(data.autoTrustWorktrees)
-      if (data.autoApproveByDefault !== undefined) setAutoApproveByDefault(data.autoApproveByDefault)
     })
   }, [])
 
-  // Detect CLI agents
+  // Detect CLI agents when section opens
   useEffect(() => {
     if (activeSection === 'agents') {
       setDetecting(true)
@@ -104,22 +102,11 @@ const SettingsModal: React.FC = () => {
     }
   }, [activeSection])
 
-  const handleSave = async () => {
+  const handleSaveGithubToken = async () => {
     await window.runnio.settings.writeGlobal({
-      openCommand,
-      refreshInterval,
       githubToken: githubToken || undefined,
-      branchPattern,
-      autoPush,
-      worktreeLocation,
-      notifications,
-      soundCues,
-      autoGenerateTaskNames,
-      createWorktreeByDefault,
-      autoTrustWorktrees,
-      autoApproveByDefault,
     })
-    useStore.getState().showToast('Settings saved', 'success')
+    useStore.getState().showToast('GitHub token saved', 'success')
   }
 
   const handleTestGithub = async () => {
@@ -129,6 +116,10 @@ const SettingsModal: React.FC = () => {
     const result = await window.runnio.settings.testGithub(githubToken)
     setTestResult(result)
     setTesting(false)
+    if (result.success) {
+      // Auto-save on successful test
+      await window.runnio.settings.writeGlobal({ githubToken })
+    }
   }
 
   const handleThemeChange = (newTheme: Theme) => {
@@ -190,16 +181,10 @@ const SettingsModal: React.FC = () => {
       ),
     )
 
-  const btnStyle: React.CSSProperties = {
-    padding: '8px 16px', background: 'var(--accent)', border: 'none',
-    borderRadius: 'var(--radius-md)', color: '#fff', cursor: 'pointer', fontSize: 'var(--text-sm)',
-    transition: 'opacity 150ms',
-  }
-
   // Branch pattern preview
   const branchPreview = branchPattern
     .replace('{branch}', 'my-feature')
-    .replace('{date}', '2026-03-20')
+    .replace('{date}', '20260322')
     .replace('{user}', 'dev')
 
   // ── Section renders ──
@@ -208,17 +193,7 @@ const SettingsModal: React.FC = () => {
     React.createElement('div', {
       style: { display: 'flex', flexDirection: 'column' as const, gap: '12px' },
     },
-      React.createElement('div', null,
-        React.createElement('label', { style: labelStyle }, 'Open command'),
-        React.createElement('input', {
-          type: 'text', value: openCommand,
-          onChange: (e: React.ChangeEvent<HTMLInputElement>) => setOpenCommand(e.target.value),
-          style: { ...inputStyle, fontFamily: 'Consolas, monospace' },
-        }),
-        React.createElement('div', {
-          style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '4px' },
-        }, 'Command run in terminal when agent starts'),
-      ),
+      // Default model — saves to store immediately
       React.createElement('div', null,
         React.createElement('label', { style: labelStyle }, 'Default model'),
         React.createElement('select', {
@@ -226,11 +201,16 @@ const SettingsModal: React.FC = () => {
           onChange: (e: React.ChangeEvent<HTMLSelectElement>) => useStore.getState().setDefaultModel(e.target.value),
           style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
         },
-          React.createElement('option', { value: 'claude-opus-4-5' }, 'Claude Opus 4.5'),
-          React.createElement('option', { value: 'claude-sonnet-4-5' }, 'Claude Sonnet 4.5'),
+          React.createElement('option', { value: '' }, 'Default (CLI default)'),
+          React.createElement('option', { value: 'claude-opus-4-6' }, 'Claude Opus 4.6'),
+          React.createElement('option', { value: 'claude-sonnet-4-6' }, 'Claude Sonnet 4.6'),
           React.createElement('option', { value: 'claude-haiku-4-5' }, 'Claude Haiku 4.5'),
         ),
+        React.createElement('div', {
+          style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '4px' },
+        }, 'Pre-selected when launching a new agent'),
       ),
+      // Default mode
       React.createElement('div', null,
         React.createElement('label', { style: labelStyle }, 'Default mode'),
         React.createElement('select', {
@@ -243,49 +223,32 @@ const SettingsModal: React.FC = () => {
           React.createElement('option', { value: 'auto' }, 'Auto-accept'),
         ),
       ),
+      // Refresh interval — saves to store immediately
       React.createElement('div', null,
-        React.createElement('label', { style: labelStyle }, 'Refresh interval: ' + refreshInterval + 'ms'),
+        React.createElement('label', { style: labelStyle }, `Status polling: ${refreshInterval}ms`),
         React.createElement('input', {
           type: 'range', min: 1000, max: 10000, step: 500,
           value: refreshInterval,
-          onChange: (e: React.ChangeEvent<HTMLInputElement>) => setRefreshInterval(Number(e.target.value)),
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => useStore.getState().setRefreshInterval(Number(e.target.value)),
           style: { width: '100%', accentColor: 'var(--accent)' },
         }),
+        React.createElement('div', {
+          style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '2px' },
+        }, 'How often to check agent status. Lower = more responsive, higher = less CPU'),
       ),
       React.createElement('div', { style: sectionHeaderStyle }, 'Preferences'),
-      toggleRow('Auto-generate task names', autoGenerateTaskNames, setAutoGenerateTaskNames),
-      toggleRow('Create worktree by default', createWorktreeByDefault, setCreateWorktreeByDefault),
-      toggleRow('Auto-trust worktree directories', autoTrustWorktrees, setAutoTrustWorktrees),
-      toggleRow('Auto-approve by default', autoApproveByDefault, setAutoApproveByDefault, 'Enables --dangerously-skip-permissions'),
-      toggleRow('Notifications', notifications, setNotifications),
-      toggleRow('Sound cues', soundCues, setSoundCues),
-      React.createElement('div', {
-        style: { display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' },
-      },
-        React.createElement('button', {
-          onClick: handleSave,
-          style: btnStyle,
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-        }, 'Save'),
-      ),
+      toggleRow('Create worktree by default', createWorktreeByDefault,
+        (v) => useStore.getState().setCreateWorktreeByDefault(v),
+        'New agents start with an isolated worktree checked by default'),
+      toggleRow('Notifications', notifications,
+        (v) => useStore.getState().setNotifications(v),
+        'Show desktop notification when an agent needs attention'),
     )
 
   const renderAgents = () =>
     React.createElement('div', {
       style: { display: 'flex', flexDirection: 'column' as const, gap: '12px' },
     },
-      React.createElement('div', null,
-        React.createElement('label', { style: labelStyle }, 'Default agent'),
-        React.createElement('select', {
-          value: 'claude',
-          style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
-        },
-          React.createElement('option', { value: 'claude' }, 'Claude Code'),
-          React.createElement('option', { value: 'codex' }, 'Codex'),
-          React.createElement('option', { value: 'gemini' }, 'Gemini CLI'),
-        ),
-      ),
       React.createElement('div', { style: sectionHeaderStyle }, 'CLI Agents'),
       detecting
         ? React.createElement('div', {
@@ -326,8 +289,12 @@ const SettingsModal: React.FC = () => {
                         border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)',
                         color: copiedCmd === agent.id ? 'var(--working)' : 'var(--text-secondary)',
                         cursor: 'pointer', fontSize: '10px', transition: 'all 100ms',
+                        display: 'flex', alignItems: 'center', gap: '3px',
                       },
-                    }, copiedCmd === agent.id ? 'Copied!' : 'Copy install')
+                    },
+                      React.createElement(Copy, { size: 10 }),
+                      copiedCmd === agent.id ? 'Copied!' : 'Install',
+                    )
                   : null,
               )
             }),
@@ -336,64 +303,102 @@ const SettingsModal: React.FC = () => {
 
   const renderIntegrations = () =>
     React.createElement('div', {
-      style: { display: 'flex', flexDirection: 'column' as const, gap: '8px' },
+      style: { display: 'flex', flexDirection: 'column' as const, gap: '12px' },
     },
-      ...INTEGRATIONS.map(integration => {
-        const isGithub = integration.id === 'github'
-        const connected = isGithub && !!githubToken && testResult?.success
-        return React.createElement('div', {
-          key: integration.id,
-          style: {
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 14px', background: 'var(--bg-app)',
-            border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)',
-          },
+      // GitHub — inline token input
+      React.createElement('div', {
+        style: {
+          padding: '14px', background: 'var(--bg-app)',
+          border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)',
         },
-          React.createElement('div', {
-            style: { display: 'flex', alignItems: 'center', gap: '10px' },
-          },
-            React.createElement('span', {
-              style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 },
-            }, integration.name),
-            integration.badge
-              ? React.createElement('span', {
-                  style: {
-                    fontSize: '9px', padding: '1px 5px', borderRadius: '3px',
-                    background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-                    color: 'var(--text-tertiary)',
-                  },
-                }, integration.badge)
-              : null,
-          ),
-          connected
-            ? React.createElement('div', {
-                style: { display: 'flex', alignItems: 'center', gap: '8px' },
+      },
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
+        },
+          React.createElement('span', {
+            style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 },
+          }, 'GitHub'),
+          testResult?.success
+            ? React.createElement('span', {
+                style: { fontSize: '11px', color: 'var(--working)', display: 'flex', alignItems: 'center', gap: '4px' },
+              }, React.createElement(Check, { size: 12 }), 'Connected as @' + (testResult.login || ''))
+            : null,
+        ),
+        React.createElement('div', {
+          style: { display: 'flex', gap: '6px', marginBottom: '6px' },
+        },
+          React.createElement('input', {
+            type: showToken ? 'text' : 'password', value: githubToken,
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => setGithubToken(e.target.value),
+            placeholder: 'ghp_...',
+            style: { ...inputStyle, flex: 1, fontFamily: 'Consolas, monospace', fontSize: '12px' },
+          }),
+          React.createElement('button', {
+            onClick: () => setShowToken(!showToken),
+            style: {
+              padding: '6px 10px', background: 'transparent', border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px',
+            },
+          }, showToken ? 'Hide' : 'Show'),
+          React.createElement('button', {
+            onClick: handleTestGithub,
+            disabled: testing || !githubToken.trim(),
+            style: {
+              padding: '6px 10px', background: testing ? 'transparent' : 'var(--accent)', border: 'none',
+              borderRadius: 'var(--radius-md)', color: '#fff', cursor: 'pointer', fontSize: '11px',
+              opacity: testing || !githubToken.trim() ? 0.5 : 1,
+            },
+          }, testing ? 'Testing...' : 'Test & Save'),
+        ),
+        React.createElement('div', {
+          style: { color: 'var(--text-disabled)', fontSize: '10px' },
+        }, 'Required scopes: repo, pull_requests. ',
+          React.createElement('a', {
+            href: '#',
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault()
+              navigator.clipboard.writeText('https://github.com/settings/tokens/new?scopes=repo').catch(() => {})
+              useStore.getState().showToast('Token creation URL copied', 'info')
+            },
+            style: { color: 'var(--accent)', textDecoration: 'none' },
+          }, 'Create token'),
+        ),
+        testResult && !testResult.success
+          ? React.createElement('div', {
+              style: {
+                marginTop: '8px', padding: '8px', borderRadius: 'var(--radius-md)',
+                background: '#1a0d0d', border: '1px solid var(--error)',
+                color: 'var(--error)', fontSize: '12px',
               },
-                React.createElement('span', {
-                  style: { fontSize: '11px', color: 'var(--working)' },
-                }, '\u2713 Connected' + (testResult?.login ? ' as @' + testResult.login : '')),
-                React.createElement('button', {
-                  onClick: () => { setGithubToken(''); setTestResult(null) },
-                  style: {
-                    padding: '4px 8px', background: 'transparent',
-                    border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '10px',
-                  },
-                }, 'Disconnect'),
-              )
-            : React.createElement('button', {
-                onClick: isGithub ? () => setActiveSection('account') : undefined,
-                style: {
-                  padding: '4px 12px', background: 'transparent',
-                  border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--text-xs)',
-                  transition: 'all 100ms',
-                },
-                onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' },
-                onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)' },
-              }, '+ Connect'),
-        )
-      }),
+            }, React.createElement(X, { size: 12, style: { display: 'inline', verticalAlign: 'middle' } }), ' Authentication failed')
+          : null,
+      ),
+      // Notion — MCP status
+      React.createElement('div', {
+        style: {
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 14px', background: 'var(--bg-app)',
+          border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)',
+        },
+      },
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '10px' },
+        },
+          React.createElement('span', {
+            style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 },
+          }, 'Notion'),
+          React.createElement('span', {
+            style: {
+              fontSize: '9px', padding: '1px 5px', borderRadius: '3px',
+              background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
+              color: 'var(--text-tertiary)',
+            },
+          }, 'via MCP'),
+        ),
+        React.createElement('span', {
+          style: { fontSize: '11px', color: 'var(--text-disabled)' },
+        }, 'Configure in MCP panel'),
+      ),
     )
 
   const renderRepository = () =>
@@ -404,37 +409,15 @@ const SettingsModal: React.FC = () => {
         React.createElement('label', { style: labelStyle }, 'Branch name pattern'),
         React.createElement('input', {
           type: 'text', value: branchPattern,
-          onChange: (e: React.ChangeEvent<HTMLInputElement>) => setBranchPattern(e.target.value),
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => useStore.getState().setBranchPattern(e.target.value),
           style: { ...inputStyle, fontFamily: 'Consolas, monospace' },
         }),
         React.createElement('div', {
           style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '4px' },
-        }, 'Variables: {branch}, {date}, {user}'),
+        }, 'Variables: {branch} (user input), {date} (YYYYMMDD), {user}'),
         React.createElement('div', {
           style: { color: 'var(--text-tertiary)', fontSize: '11px', marginTop: '4px', fontFamily: 'Consolas, monospace' },
         }, 'Preview: ' + branchPreview),
-      ),
-      toggleRow('Auto-push to origin', autoPush, setAutoPush),
-      React.createElement('div', null,
-        React.createElement('label', { style: labelStyle }, 'Default worktree location'),
-        React.createElement('select', {
-          value: worktreeLocation,
-          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setWorktreeLocation(e.target.value),
-          style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
-        },
-          React.createElement('option', { value: 'sibling' }, 'Sibling directory'),
-          React.createElement('option', { value: 'inside' }, 'Inside project'),
-        ),
-      ),
-      React.createElement('div', {
-        style: { display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' },
-      },
-        React.createElement('button', {
-          onClick: handleSave,
-          style: btnStyle,
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-        }, 'Save'),
       ),
     )
 
@@ -449,6 +432,7 @@ const SettingsModal: React.FC = () => {
     return React.createElement('div', {
       style: { display: 'flex', flexDirection: 'column' as const, gap: '16px' },
     },
+      // Theme selector — applies immediately
       React.createElement('div', null,
         React.createElement('label', { style: labelStyle }, 'Color mode'),
         React.createElement('div', {
@@ -479,29 +463,35 @@ const SettingsModal: React.FC = () => {
           ),
         ),
       ),
+      // Terminal font — applies immediately via store
       React.createElement('div', null,
         React.createElement('label', { style: labelStyle }, 'Terminal font'),
         React.createElement('select', {
+          value: terminalFont,
+          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => useStore.getState().setTerminalFont(e.target.value),
           style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
         },
           React.createElement('option', { value: 'Consolas' }, 'Consolas (default)'),
           React.createElement('option', { value: 'Cascadia Code' }, 'Cascadia Code'),
           React.createElement('option', { value: 'JetBrains Mono' }, 'JetBrains Mono'),
           React.createElement('option', { value: 'Fira Code' }, 'Fira Code'),
+          React.createElement('option', { value: 'Courier New' }, 'Courier New'),
         ),
+        React.createElement('div', {
+          style: { color: 'var(--text-disabled)', fontSize: '10px', marginTop: '2px' },
+        }, 'Applied immediately to all terminal instances'),
       ),
+      // Terminal font size — applies immediately via store
       React.createElement('div', null,
-        React.createElement('label', { style: labelStyle }, 'Terminal font size'),
-        React.createElement('select', {
-          style: { ...inputStyle, cursor: 'pointer', appearance: 'auto' as const },
-        },
-          React.createElement('option', { value: '12' }, '12px'),
-          React.createElement('option', { value: '13', selected: true }, 'Default (13px)'),
-          React.createElement('option', { value: '14' }, '14px'),
-          React.createElement('option', { value: '15' }, '15px'),
-          React.createElement('option', { value: '16' }, '16px'),
-        ),
+        React.createElement('label', { style: labelStyle }, `Terminal font size: ${terminalFontSize}px`),
+        React.createElement('input', {
+          type: 'range', min: 10, max: 20, step: 1,
+          value: terminalFontSize,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => useStore.getState().setTerminalFontSize(Number(e.target.value)),
+          style: { width: '100%', accentColor: 'var(--accent)' },
+        }),
       ),
+      // Keyboard shortcuts
       React.createElement('div', { style: sectionHeaderStyle }, 'Keyboard Shortcuts'),
       React.createElement('div', {
         style: { display: 'flex', flexDirection: 'column' as const, gap: '4px' },
@@ -511,8 +501,9 @@ const SettingsModal: React.FC = () => {
           ['Ctrl+N', 'New agent'],
           ['Ctrl+K', 'Command palette'],
           ['Ctrl+Space', 'Quick prompt'],
-          ['Ctrl+B', 'Toggle context panel'],
+          ['Ctrl+E', 'File explorer'],
           ['Ctrl+,', 'Settings'],
+          ['Ctrl+\\', 'Split terminal'],
           ['Ctrl+W', 'Close agent'],
           ['Escape', 'Close modal'],
         ].map(([key, action]) =>
@@ -543,89 +534,32 @@ const SettingsModal: React.FC = () => {
     React.createElement('div', {
       style: { display: 'flex', flexDirection: 'column' as const, gap: '16px' },
     },
-      // Runnio account placeholder
+      // GitHub token status
       React.createElement('div', {
         style: {
           padding: '16px', background: 'var(--bg-app)',
           border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)',
-          textAlign: 'center' as const,
         },
       },
         React.createElement('div', {
           style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500, marginBottom: '6px' },
-        }, 'Runnio Account'),
-        React.createElement('div', {
-          style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', marginBottom: '12px' },
-        }, 'Sign in to sync settings and access team features.'),
-        React.createElement('button', {
-          style: {
-            padding: '8px 20px', background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)',
-            color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--text-sm)',
-            transition: 'all 100ms',
-          },
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--accent)' },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)' },
-        }, 'Sign in with GitHub'),
-      ),
-      // GitHub Token
-      React.createElement('div', {
-        style: { borderTop: '1px solid var(--border-default)', paddingTop: '16px' },
-      },
-        React.createElement('div', { style: sectionHeaderStyle }, 'GitHub Token'),
-        React.createElement('div', {
-          style: { display: 'flex', gap: '8px', marginBottom: '8px' },
-        },
-          React.createElement('input', {
-            type: showToken ? 'text' : 'password', value: githubToken,
-            onChange: (e: React.ChangeEvent<HTMLInputElement>) => setGithubToken(e.target.value),
-            placeholder: 'ghp_...',
-            style: { ...inputStyle, flex: 1, fontFamily: 'Consolas, monospace' },
-          }),
-          React.createElement('button', {
-            onClick: () => setShowToken(!showToken),
-            style: {
-              padding: '8px 12px', background: 'transparent', border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', cursor: 'pointer',
-              fontSize: 'var(--text-sm)',
-            },
-          }, showToken ? 'Hide' : 'Show'),
-          React.createElement('button', {
-            onClick: handleTestGithub,
-            disabled: testing || !githubToken.trim(),
-            style: {
-              padding: '8px 12px', background: 'transparent', border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', cursor: 'pointer',
-              fontSize: 'var(--text-sm)', opacity: testing || !githubToken.trim() ? 0.5 : 1,
-            },
-          }, testing ? '...' : 'Test'),
-        ),
-        React.createElement('div', {
-          style: { color: 'var(--text-disabled)', fontSize: '10px', marginBottom: '8px' },
-        }, 'Required scopes: repo, pull_requests'),
-        testResult
+        }, 'GitHub'),
+        githubToken && testResult?.success
           ? React.createElement('div', {
-              style: {
-                padding: '10px', borderRadius: 'var(--radius-md)',
-                background: testResult.success ? '#0d1a0d' : '#1a0d0d',
-                border: '1px solid ' + (testResult.success ? 'var(--working)' : 'var(--error)'),
-                color: testResult.success ? 'var(--working)' : 'var(--error)',
-                fontSize: 'var(--text-sm)', marginBottom: '8px',
-              },
-            }, testResult.success
-              ? React.createElement(React.Fragment, null, React.createElement(Check, { size: 12, style: { display: 'inline' } }), ' Connected as @' + (testResult.login || ''))
-              : React.createElement(React.Fragment, null, React.createElement(X, { size: 12, style: { display: 'inline' } }), ' Authentication failed'))
-          : null,
-        React.createElement('div', {
-          style: { display: 'flex', justifyContent: 'flex-end' },
-        },
-          React.createElement('button', {
-            onClick: handleSave,
-            style: btnStyle,
-            onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.85' },
-            onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
-          }, 'Save'),
-        ),
+              style: { display: 'flex', alignItems: 'center', gap: '8px' },
+            },
+              React.createElement('span', { style: { color: 'var(--working)', fontSize: 'var(--text-sm)' } },
+                '\u2713 Connected as @' + (testResult.login || '')),
+              React.createElement('button', {
+                onClick: () => { setGithubToken(''); setTestResult(null); window.runnio.settings.writeGlobal({ githubToken: undefined }) },
+                style: {
+                  padding: '4px 8px', background: 'transparent', border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '10px',
+                },
+              }, 'Disconnect'),
+            )
+          : React.createElement('div', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' } },
+              'Not connected. Go to Integrations to add your token.'),
       ),
       // Developer mode
       React.createElement('div', {
@@ -634,7 +568,7 @@ const SettingsModal: React.FC = () => {
         React.createElement('div', { style: sectionHeaderStyle }, 'Developer Mode'),
         React.createElement('div', {
           style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' },
-        }, process.env.RUNNIO_DEV === 'true'
+        }, (typeof __RUNNIO_DEV__ !== 'undefined' && __RUNNIO_DEV__ === 'true')
           ? 'RUNNIO_DEV=true is active \u2014 all features unlocked'
           : 'Set RUNNIO_DEV=true to unlock all features during development'
         ),
