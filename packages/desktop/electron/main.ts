@@ -42,6 +42,73 @@ const CLAUDE_READY_SIGNALS = [
 // Signals that Claude Code is waiting for user input (idle/waiting state)
 const CLAUDE_IDLE_SIGNALS = ['claude>', 'Human:', '? ', '❯ ']
 
+// ── Cost parsing for Claude Code output ──
+// Claude Code outputs cost info in various formats after each interaction
+// We parse these from the terminal output stream
+interface TokenUsage {
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+  costUsd: number
+}
+
+// Strips ANSI escape sequences for clean regex matching
+function stripAnsi(str: string): string {
+  return str
+    .replace(/\x1b\[[\?]?[0-9;]*[A-Za-z]/g, '')
+    .replace(/\x1b\][^\x07]*\x07/g, '')
+    .replace(/\x1b\][^\x1b]*\x1b\\/g, '')
+    .replace(/\x1b[()][0-9A-Za-z]/g, '')
+}
+
+// Parse cost/token data from Claude Code terminal output
+// Claude Code shows: "Total cost: $X.XX" and "Total input tokens: N, output tokens: N"
+// Also: "> Token usage: Xk input, Yk output, $Z.ZZ cost"
+function parseCostFromOutput(rawData: string): Partial<TokenUsage> | null {
+  const data = stripAnsi(rawData)
+
+  // Pattern: "Total cost: $X.XX" or "Session cost: $X.XX" or "Cost: $X.XX"
+  const costMatch = data.match(/(?:total|session|api)?\s*cost[:\s]*\$([0-9]+\.?[0-9]*)/i)
+
+  // Pattern: token counts like "input: 12,345" "output: 6,789"
+  const inputMatch = data.match(/(?:input|prompt)\s*(?:tokens)?[:\s]*([0-9,]+[km]?)/i)
+  const outputMatch = data.match(/(?:output|completion|response)\s*(?:tokens)?[:\s]*([0-9,]+[km]?)/i)
+
+  // Pattern: cache info "cache read: 1,234" "cache write: 567"
+  const cacheReadMatch = data.match(/cache\s*(?:read|hit)[:\s]*([0-9,]+[km]?)/i)
+  const cacheWriteMatch = data.match(/cache\s*(?:write|creation)[:\s]*([0-9,]+[km]?)/i)
+
+  // Pattern: compact format "Xk input, Yk output" or "X input / Y output"
+  const compactMatch = data.match(/([0-9,.]+[km]?)\s*input\s*[,/]\s*([0-9,.]+[km]?)\s*output/i)
+
+  if (!costMatch && !inputMatch && !outputMatch && !compactMatch) return null
+
+  const parseTokenCount = (s: string): number => {
+    const cleaned = s.replace(/,/g, '').trim().toLowerCase()
+    if (cleaned.endsWith('k')) return Math.round(parseFloat(cleaned) * 1000)
+    if (cleaned.endsWith('m')) return Math.round(parseFloat(cleaned) * 1000000)
+    return parseInt(cleaned, 10) || 0
+  }
+
+  const result: Partial<TokenUsage> = {}
+
+  if (costMatch) result.costUsd = parseFloat(costMatch[1])
+
+  if (compactMatch) {
+    result.input = parseTokenCount(compactMatch[1])
+    result.output = parseTokenCount(compactMatch[2])
+  } else {
+    if (inputMatch) result.input = parseTokenCount(inputMatch[1])
+    if (outputMatch) result.output = parseTokenCount(outputMatch[1])
+  }
+
+  if (cacheReadMatch) result.cacheRead = parseTokenCount(cacheReadMatch[1])
+  if (cacheWriteMatch) result.cacheWrite = parseTokenCount(cacheWriteMatch[1])
+
+  return result
+}
+
 // Terminal registry — survives navigation, persistent across renderer lifecycle
 const TERMINAL_BUFFER_SIZE = 5000 // chunks to keep for replay on reconnect
 const terminalRegistry = new Map<string, {
@@ -54,6 +121,8 @@ const terminalRegistry = new Map<string, {
   lastActivityAt: number
   lastMeaningfulActivityAt: number
   worktreePath: string
+  tokenUsage: TokenUsage
+  costParseAccumulator: string  // accumulates recent output for multi-line cost parsing
 }>()
 
 // Cross-platform shell detection
@@ -492,7 +561,7 @@ function registerIpcHandlers() {
     }
 
     if (!nodePty) {
-      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
+      const entry = { pty: null, buffer: [] as string[], isAlive: true, simulated: true, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath), tokenUsage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 }, costParseAccumulator: '' }
       terminalRegistry.set(id, entry)
 
       const simMsg = `\x1b[36m[runnio]\x1b[0m Simulated terminal — node-pty not compiled\r\n`
@@ -524,7 +593,7 @@ function registerIpcHandlers() {
         useConpty: process.platform === 'win32',
       })
 
-      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
+      const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath), tokenUsage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 }, costParseAccumulator: '' }
       terminalRegistry.set(id, entry)
 
       pty.onData((data: string) => {
@@ -545,6 +614,29 @@ function registerIpcHandlers() {
         // Keep rolling buffer for replay on reconnect
         entry.buffer.push(data)
         if (entry.buffer.length > TERMINAL_BUFFER_SIZE) entry.buffer.shift()
+
+        // ── Cost/token parsing ──
+        // Accumulate recent output for multi-line cost detection
+        entry.costParseAccumulator += data
+        // Keep accumulator bounded (last ~2KB of output for cost parsing context)
+        if (entry.costParseAccumulator.length > 2048) {
+          entry.costParseAccumulator = entry.costParseAccumulator.slice(-1500)
+        }
+        const costUpdate = parseCostFromOutput(data)
+        if (costUpdate) {
+          // Update cumulative token usage for this terminal
+          if (costUpdate.input !== undefined) entry.tokenUsage.input += costUpdate.input
+          if (costUpdate.output !== undefined) entry.tokenUsage.output += costUpdate.output
+          if (costUpdate.cacheRead !== undefined) entry.tokenUsage.cacheRead += costUpdate.cacheRead
+          if (costUpdate.cacheWrite !== undefined) entry.tokenUsage.cacheWrite += costUpdate.cacheWrite
+          if (costUpdate.costUsd !== undefined) entry.tokenUsage.costUsd += costUpdate.costUsd
+          // Emit cost update to renderer
+          BrowserWindow.getAllWindows().forEach(win => {
+            if (!win.isDestroyed()) {
+              win.webContents.send('terminal:cost-update', id, JSON.parse(JSON.stringify(entry.tokenUsage)))
+            }
+          })
+        }
 
         // Claude readiness detection
         if (!entry.isClaudeReady) {
@@ -631,6 +723,13 @@ function registerIpcHandlers() {
   // Replay buffer for reconnecting terminal
   ipcMain.handle('terminal:get-buffer', (_: any, id: string) => {
     return terminalRegistry.get(id)?.buffer ?? []
+  })
+
+  // Get current token usage for a terminal
+  ipcMain.handle('terminal:get-cost', (_: any, id: string) => {
+    const entry = terminalRegistry.get(id)
+    if (!entry) return null
+    return JSON.parse(JSON.stringify(entry.tokenUsage))
   })
 
   // Check if terminal is alive

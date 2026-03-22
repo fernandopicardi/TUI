@@ -11,6 +11,7 @@ import GitHistory from '../components/GitHistory'
 import UpgradeGate from '../components/UpgradeGate'
 import AgentLaunchPanel, { buildLaunchCommand } from '../components/AgentLaunchPanel'
 import SplitTerminalSelector from '../components/SplitTerminalSelector'
+import CostTracker from '../components/CostTracker'
 
 type Tab = 'terminal' | 'files' | 'diff' | 'history' | 'pr' | 'notes'
 
@@ -186,6 +187,10 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
         }),
         agent.status,
       ),
+      // Cost tracker (compact) — gated by feature flag
+      agent.hasLaunched && agent.tokenUsage
+        ? React.createElement(CostTracker, { usage: agent.tokenUsage, variant: 'compact' })
+        : null,
       React.createElement('div', { style: { flex: 1 } }),
       // Split terminal button
       agent.hasLaunched

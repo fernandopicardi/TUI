@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
 import AgentStatusBadge from './AgentStatusBadge'
+import CostTracker from './CostTracker'
 
 const AgentBar: React.FC = () => {
   const projects = useStore(s => s.projects)
@@ -136,9 +137,17 @@ const AgentBar: React.FC = () => {
               )
             : null,
         ),
-        React.createElement('span', {
-          style: { color: 'var(--text-tertiary)', fontSize: '11px' },
-        }, getTimeSince(agent.lastActivity) || '\u00A0'),
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '6px' },
+        },
+          React.createElement('span', {
+            style: { color: 'var(--text-tertiary)', fontSize: '11px' },
+          }, getTimeSince(agent.lastActivity) || '\u00A0'),
+          // Cost badge
+          agent.tokenUsage
+            ? React.createElement(CostTracker, { usage: agent.tokenUsage, variant: 'badge' })
+            : null,
+        ),
       )
     }),
 

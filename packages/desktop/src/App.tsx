@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { useStore } from './hooks/useStore'
 import { useAgentStatusWatcher } from './hooks/useAgentStatus'
 import { useWorktreeSync } from './hooks/useWorktreeSync'
+import { useCostTracker } from './hooks/useCostTracker'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
 import AgentBar from './components/AgentBar'
@@ -52,6 +53,9 @@ const App: React.FC = () => {
 
   // Watch for external worktree changes
   useWorktreeSync()
+
+  // Track token usage / cost from terminal output
+  useCostTracker()
 
   useEffect(() => {
     if (window.runnio) setPreloadOk(true)
