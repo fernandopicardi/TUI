@@ -43,6 +43,7 @@ const CLAUDE_READY_SIGNALS = [
 const CLAUDE_IDLE_SIGNALS = ['claude>', 'Human:', '? ', '❯ ']
 
 // Terminal registry — survives navigation, persistent across renderer lifecycle
+const TERMINAL_BUFFER_SIZE = 5000 // chunks to keep for replay on reconnect
 const terminalRegistry = new Map<string, {
   pty: any
   buffer: string[]
@@ -54,6 +55,30 @@ const terminalRegistry = new Map<string, {
   lastMeaningfulActivityAt: number
   worktreePath: string
 }>()
+
+// Cross-platform shell detection
+function getDefaultShell(): { shell: string; args: string[] } {
+  const platform = process.platform
+  if (platform === 'win32') {
+    // Prefer PowerShell 7+ (pwsh), then Windows PowerShell, then cmd
+    const pwshPath = process.env.ProgramFiles
+      ? path.join(process.env.ProgramFiles, 'PowerShell', '7', 'pwsh.exe')
+      : null
+    if (pwshPath && fs.existsSync(pwshPath)) {
+      return { shell: pwshPath, args: ['-NoLogo'] }
+    }
+    // Fall back to cmd.exe (most reliable on all Windows versions)
+    return { shell: 'cmd.exe', args: [] }
+  }
+  if (platform === 'darwin') {
+    // macOS: respect $SHELL, default to zsh (macOS default since Catalina)
+    const userShell = process.env.SHELL || '/bin/zsh'
+    return { shell: userShell, args: ['--login'] }
+  }
+  // Linux: respect $SHELL, default to bash
+  const userShell = process.env.SHELL || '/bin/bash'
+  return { shell: userShell, args: ['--login'] }
+}
 
 // Worktree project watchers — polls worktrees per project
 const projectWorktreeWatchers = new Map<string, NodeJS.Timeout>()
@@ -484,13 +509,19 @@ function registerIpcHandlers() {
     }
 
     try {
-      const pty = nodePty.spawn('cmd.exe', [], {
-        name: 'xterm-color',
+      const { shell, args } = getDefaultShell()
+      const pty = nodePty.spawn(shell, args, {
+        name: 'xterm-256color',
         cols: 80,
         rows: 24,
         cwd: normalizePath(worktreePath),
-        env: process.env,
-        useConpty: true,
+        env: {
+          ...process.env,
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+          TERM_PROGRAM: 'runnio',
+        },
+        useConpty: process.platform === 'win32',
       })
 
       const entry = { pty, buffer: [] as string[], isAlive: true, simulated: false, isClaudeReady: false, pendingPrompt: null as string | null, lastActivityAt: Date.now(), lastMeaningfulActivityAt: Date.now(), worktreePath: normalizePath(worktreePath) }
@@ -511,9 +542,9 @@ function registerIpcHandlers() {
           entry.lastMeaningfulActivityAt = Date.now()
         }
 
-        // Keep last 1000 chunks for replay on reconnect
+        // Keep rolling buffer for replay on reconnect
         entry.buffer.push(data)
-        if (entry.buffer.length > 1000) entry.buffer.shift()
+        if (entry.buffer.length > TERMINAL_BUFFER_SIZE) entry.buffer.shift()
 
         // Claude readiness detection
         if (!entry.isClaudeReady) {
@@ -612,14 +643,18 @@ function registerIpcHandlers() {
     const entry = terminalRegistry.get(id)
     if (!entry || entry.simulated || !entry.pty) return
 
-    // ConPTY on Windows truncates large writes. Chunk paste data into safe blocks.
-    const CHUNK_SIZE = 1024
+    // Chunk large writes to prevent ConPTY truncation (Windows) and buffer overflow
+    // Windows ConPTY has a ~4KB limit; macOS/Linux are more permissive
+    const CHUNK_SIZE = process.platform === 'win32' ? 1024 : 4096
     if (data.length <= CHUNK_SIZE) {
       entry.pty.write(data)
     } else {
+      // Wrap in bracketed paste mode for multi-line content
+      const isMultiLine = data.includes('\n') || data.includes('\r')
       const chunks: string[] = []
-      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-        chunks.push(data.slice(i, i + CHUNK_SIZE))
+      const content = isMultiLine ? '\x1b[200~' + data + '\x1b[201~' : data
+      for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+        chunks.push(content.slice(i, i + CHUNK_SIZE))
       }
       let idx = 0
       const writeNext = () => {
@@ -628,7 +663,7 @@ function registerIpcHandlers() {
         if (!currentEntry || !currentEntry.pty) return
         currentEntry.pty.write(chunks[idx])
         idx++
-        if (idx < chunks.length) setTimeout(writeNext, 5)
+        if (idx < chunks.length) setTimeout(writeNext, 3)
       }
       writeNext()
     }
