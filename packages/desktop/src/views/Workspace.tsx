@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useCallback, useState, useMemo } from 'react'
 import { useStore } from '../hooks/useStore'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Columns2 } from 'lucide-react'
 import Terminal from '../components/Terminal'
 import DiffViewer from '../components/DiffViewer'
 import PRPanel from '../components/PRPanel'
@@ -54,6 +54,10 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
     if (!agent || !project) return
     useStore.getState().openDeleteAgent(project.id, agent.id)
   }, [agent, project])
+
+  const handleSplit = useCallback(() => {
+    useStore.getState().toggleSplitMode()
+  }, [])
 
   if (!agent || !project) {
     return React.createElement('div', {
@@ -126,6 +130,17 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
       ),
       React.createElement('div', { style: { flex: 1 } }),
       React.createElement('button', {
+        onClick: handleSplit,
+        title: 'Split terminal (Ctrl+\\)',
+        style: {
+          background: 'none', border: '1px solid var(--text-disabled)', borderRadius: 'var(--radius-sm)',
+          color: 'var(--text-secondary)', padding: '2px 10px', cursor: 'pointer', fontSize: 'var(--text-sm)',
+          transition: 'all 100ms', display: 'flex', alignItems: 'center', gap: '4px',
+        },
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-disabled)'; e.currentTarget.style.color = 'var(--text-secondary)' },
+      }, React.createElement(Columns2, { size: 12 }), ' Split'),
+      React.createElement('button', {
         onClick: handleDelete,
         style: {
           background: 'none', border: '1px solid #f8717166', borderRadius: 'var(--radius-sm)',
@@ -144,7 +159,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
             agent,
             projectName: project.name,
             onLaunch: (config) => {
-              const command = buildLaunchCommand(config.model, config.mode)
+              const command = buildLaunchCommand(config.model, config.mode, config.providerId)
               useStore.getState().setAgentLaunched(agent.id, config)
               window.runnio.terminal.create(agent.terminalId, agent.worktreePath, command)
                 .then(() => {
@@ -166,6 +181,7 @@ const Workspace: React.FC<Props> = ({ agentId }) => {
           id: terminalId,
           worktreePath: agent.worktreePath,
           initialPrompt: effectivePrompt,
+          visible: isActive && activeTab === 'terminal',
         })
       ),
       React.createElement('div', {

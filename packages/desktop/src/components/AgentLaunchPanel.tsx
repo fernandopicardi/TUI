@@ -7,15 +7,16 @@ import { AgentSession } from '../types'
 import { CLI_PROVIDERS, CliProvider, getProviderById, buildLaunchCommand as buildProviderCommand } from '../data/providers'
 import { ArrowRight } from 'lucide-react'
 
-// Re-export for backwards compatibility with Workspace.tsx
-export function buildLaunchCommand(model: string, mode: string): string {
-  const provider = CLI_PROVIDERS[0] // claude
+// Re-export for Workspace.tsx — supports provider selection
+export function buildLaunchCommand(model: string, mode: string, providerId?: string): string {
+  const provider = (providerId ? getProviderById(providerId) : null) || CLI_PROVIDERS[0]
   return buildProviderCommand(provider, model || undefined, mode as any)
 }
 
 const CLAUDE_MODELS = [
-  { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', badge: 'Most capable' },
-  { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', badge: 'Recommended' },
+  { id: '', label: 'Default', badge: 'CLI default (no --model flag)' },
+  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', badge: 'Most capable' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', badge: 'Recommended' },
   { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', badge: 'Fastest' },
 ]
 
@@ -35,7 +36,7 @@ const AgentLaunchPanel: React.FC<Props> = ({ agent, projectName, onLaunch }) => 
   const defaultModel = useStore(s => s.defaultModel)
   const defaultMode = useStore(s => s.defaultMode)
   const [providerId, setProviderId] = useState(agent.providerId || 'claude')
-  const [model, setModel] = useState(defaultModel || 'claude-sonnet-4-5')
+  const [model, setModel] = useState(defaultModel ?? '')
   const [customModel, setCustomModel] = useState('')
   const [mode, setMode] = useState<'normal' | 'plan' | 'auto'>(defaultMode || 'normal')
   const [initialPrompt, setInitialPrompt] = useState('')

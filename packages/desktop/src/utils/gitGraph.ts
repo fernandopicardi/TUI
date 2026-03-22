@@ -4,6 +4,7 @@ export interface CommitWithLane extends GitCommitData {
   lane: number
   laneColor: string
   mergeFrom: number[]
+  isAgent: boolean
 }
 
 export const LANE_COLORS = [
@@ -29,14 +30,60 @@ const AGENT_EMAIL_PATTERNS = [
   'agent@',
   'noreply@claude',
   'noreply@anthropic',
+  '@claude.ai',
 ]
 
-export function isAgentCommit(email: string): boolean {
-  const lower = email.toLowerCase()
-  return AGENT_EMAIL_PATTERNS.some(p => lower.includes(p))
+const AGENT_COAUTHOR_KEYWORDS = [
+  'claude', 'copilot', 'cursor', 'codeium', 'codex',
+]
+
+/**
+ * Determines if a commit was made by or with an agent.
+ * Checks (in order): email patterns, author name, Co-Authored-By in body, branch matching.
+ */
+export function detectAgentCommit(
+  commit: GitCommitData,
+  agentBranches?: Set<string>,
+): boolean {
+  const email = commit.authorEmail.toLowerCase()
+  const name = commit.author.toLowerCase()
+  const body = (commit.body || '').toLowerCase()
+
+  // 1. Email patterns
+  if (AGENT_EMAIL_PATTERNS.some(p => email.includes(p))) return true
+
+  // 2. Author name contains agent identifier
+  if (name.includes('claude') || name.includes('copilot') || name.includes('cursor')) return true
+
+  // 3. Co-Authored-By line references an agent
+  if (body.includes('co-authored-by')) {
+    if (AGENT_COAUTHOR_KEYWORDS.some(k => body.includes(k))) return true
+  }
+
+  // 4. Commit is on a branch that belongs to a known agent in the store
+  if (agentBranches && agentBranches.size > 0) {
+    for (const ref of commit.refs) {
+      const cleaned = ref
+        .replace('refs/heads/', '')
+        .replace('refs/remotes/origin/', '')
+        .replace(/HEAD -> /, '')
+        .trim()
+      if (cleaned && agentBranches.has(cleaned)) return true
+    }
+  }
+
+  return false
 }
 
-export function assignLanes(commits: GitCommitData[]): CommitWithLane[] {
+/** Backwards-compatible alias — email-only check */
+export function isAgentCommit(email: string): boolean {
+  return AGENT_EMAIL_PATTERNS.some(p => email.toLowerCase().includes(p))
+}
+
+export function assignLanes(
+  commits: GitCommitData[],
+  agentBranches?: Set<string>,
+): CommitWithLane[] {
   if (!commits.length) return []
 
   const lanes: (string | null)[] = []
@@ -95,17 +142,21 @@ export function assignLanes(commits: GitCommitData[]): CommitWithLane[] {
       lane,
       laneColor: getLaneColor(lane),
       mergeFrom,
+      isAgent: detectAgentCommit(commit, agentBranches),
     })
   })
 
   return result
 }
 
-export function getActiveLanes(commits: CommitWithLane[], index: number): Set<number> {
+/**
+ * Computes which lanes should have vertical lines drawn at a given row.
+ * Looks at ±2 neighboring commits for lane continuity.
+ */
+export function getActiveLanesAt(commits: CommitWithLane[], index: number): Set<number> {
   const active = new Set<number>()
-  // Look at current and surrounding commits to determine which lanes are active
-  const start = Math.max(0, index - 1)
-  const end = Math.min(commits.length, index + 2)
+  const start = Math.max(0, index - 2)
+  const end = Math.min(commits.length, index + 3)
   for (let i = start; i < end; i++) {
     active.add(commits[i].lane)
     commits[i].mergeFrom.forEach(l => active.add(l))

@@ -59,10 +59,10 @@ Branch: fix-1/foundation-icons-theme
 Status: Complete — ready to merge
 Owns: All component files (icon replacements), index.html (CSS vars), features.ts (plan default), themes.ts, store/index.ts (theme default)
 
-### Agent 3 — [Not assigned]
-Branch: (TBD)
-Status: Not started
-Owns: (TBD)
+### Agent Fix-2 — Git History Deep Rework
+Branch: fix-2/git-history-deep
+Status: Complete — ready to merge
+Owns: GitHistory.tsx, gitGraph.ts, main.ts (git:commit-files handler)
 
 ### Agent 4 — [Not assigned]
 Branch: (TBD)

@@ -143,6 +143,18 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
     return computeLineDiff(orig, mod)
   }, [diff?.original, diff?.modified])
 
+  // Pre-compute highlighted lines for the selected file
+  // NOTE: Must be above early returns so hooks always run in the same order
+  const highlightedLines = useMemo(() => {
+    if (!diff || !selectedFile) return { left: [] as string[], right: [] as string[] }
+    const origHtml = highlightCode(diff.original || '', selectedFile)
+    const modHtml = highlightCode(diff.modified || '', selectedFile)
+    return {
+      left: origHtml.split('\n'),
+      right: modHtml.split('\n'),
+    }
+  }, [diff?.original, diff?.modified, selectedFile])
+
   // Synchronized scrolling between left and right panes
   const handleScroll = useCallback((source: 'left' | 'right') => {
     if (syncingScroll.current) return
@@ -174,17 +186,6 @@ const DiffViewer: React.FC<Props> = ({ worktreePath, visible }) => {
       }, 'Refresh'),
     )
   }
-
-  // Pre-compute highlighted lines for the selected file
-  const highlightedLines = useMemo(() => {
-    if (!diff || !selectedFile) return { left: [] as string[], right: [] as string[] }
-    const origHtml = highlightCode(diff.original || '', selectedFile)
-    const modHtml = highlightCode(diff.modified || '', selectedFile)
-    return {
-      left: origHtml.split('\n'),
-      right: modHtml.split('\n'),
-    }
-  }, [diff?.original, diff?.modified, selectedFile])
 
   const renderLineColumn = (lines: DiffLine[], side: 'left' | 'right') => {
     const hlLines = side === 'left' ? highlightedLines.left : highlightedLines.right

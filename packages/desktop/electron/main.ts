@@ -64,7 +64,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#0d1117',
     titleBarStyle: 'hidden',
     frame: false,
     webPreferences: {
@@ -863,14 +863,33 @@ function registerIpcHandlers() {
   ipcMain.handle('git:commit-files', async (_e, worktreePath: string, hash: string) => {
     try {
       const git = simpleGit(normalizePath(worktreePath))
-      const result = await git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', hash])
-      const files = result
+
+      // Get status letters (M/A/D/R)
+      const statusResult = await git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', hash])
+      const statusMap = new Map<string, string>()
+      statusResult.split('\n').filter(Boolean).forEach(line => {
+        const [status, ...pathParts] = line.split('\t')
+        statusMap.set(pathParts.join('\t').trim(), status.trim())
+      })
+
+      // Get additions/deletions per file
+      const numstatResult = await git.raw(['diff-tree', '--no-commit-id', '-r', '--numstat', hash])
+      const files = numstatResult
         .split('\n')
         .filter(Boolean)
         .map(line => {
-          const [status, ...pathParts] = line.split('\t')
-          return { status: status.trim(), path: pathParts.join('\t').trim() }
+          const parts = line.split('\t')
+          const additions = parts[0] === '-' ? 0 : parseInt(parts[0], 10) || 0
+          const deletions = parts[1] === '-' ? 0 : parseInt(parts[1], 10) || 0
+          const filePath = parts.slice(2).join('\t').trim()
+          return {
+            status: statusMap.get(filePath) || 'M',
+            path: filePath,
+            additions,
+            deletions,
+          }
         })
+
       return JSON.parse(JSON.stringify(files))
     } catch {
       return []

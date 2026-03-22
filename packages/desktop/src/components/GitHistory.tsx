@@ -2,11 +2,19 @@ import * as React from 'react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useStore } from '../store/index'
 import { GitCommitData } from '../types'
-import { CommitWithLane, assignLanes, getLaneColor, isAgentCommit, formatTimeAgo } from '../utils/gitGraph'
+import { CommitWithLane, assignLanes, getLaneColor, getActiveLanesAt, detectAgentCommit, formatTimeAgo } from '../utils/gitGraph'
+import { Search, X, GitBranch, GitMerge, Bot, User, Copy, Check, ExternalLink, RotateCcw } from 'lucide-react'
 
 interface Props {
   worktreePath: string
   visible: boolean
+}
+
+interface CommitFileEntry {
+  status: string
+  path: string
+  additions: number
+  deletions: number
 }
 
 type HistoryMode = 'code' | 'people'
@@ -14,6 +22,124 @@ type HistoryMode = 'code' | 'people'
 const ROW_HEIGHT = 36
 const LANE_WIDTH = 16
 const BUFFER_ROWS = 15
+
+// ── Provider colors for agent avatars ──
+const AGENT_AVATAR_COLORS: Record<string, string> = {
+  claude: '#d97706',
+  copilot: '#1f883d',
+  cursor: '#7c3aed',
+  codeium: '#09b6a2',
+  codex: '#10b981',
+  default: '#6366f1',
+}
+
+function getAgentAvatarColor(commit: GitCommitData): string {
+  const body = (commit.body || '').toLowerCase()
+  const email = commit.authorEmail.toLowerCase()
+  if (body.includes('claude') || email.includes('claude') || email.includes('anthropic')) return AGENT_AVATAR_COLORS.claude
+  if (body.includes('copilot') || email.includes('copilot')) return AGENT_AVATAR_COLORS.copilot
+  if (body.includes('cursor')) return AGENT_AVATAR_COLORS.cursor
+  if (body.includes('codeium')) return AGENT_AVATAR_COLORS.codeium
+  if (body.includes('codex') || email.includes('codex')) return AGENT_AVATAR_COLORS.codex
+  return AGENT_AVATAR_COLORS.default
+}
+
+function getAgentInitial(commit: GitCommitData): string {
+  const body = (commit.body || '').toLowerCase()
+  const email = commit.authorEmail.toLowerCase()
+  if (body.includes('claude') || email.includes('claude') || email.includes('anthropic')) return 'C'
+  if (body.includes('copilot') || email.includes('copilot')) return 'GH'
+  if (body.includes('cursor')) return 'Cu'
+  if (body.includes('codeium')) return 'Cd'
+  if (body.includes('codex') || email.includes('codex')) return 'Cx'
+  return 'A'
+}
+
+function getHumanInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return (name[0] || '?').toUpperCase()
+}
+
+// ── Avatar component (agent or human) ──
+function renderAvatar(
+  commit: GitCommitData & { isAgent: boolean },
+  avatarCache: Record<string, string>,
+  size: number,
+): React.ReactElement {
+  if (commit.isAgent) {
+    const bg = getAgentAvatarColor(commit)
+    const initial = getAgentInitial(commit)
+    return React.createElement('div', {
+      style: {
+        width: size, height: size, borderRadius: '50%', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        background: bg, color: '#fff', fontSize: Math.max(size * 0.4, 9) + 'px',
+        fontWeight: 700, letterSpacing: '-0.02em',
+        border: `1.5px solid ${bg}88`,
+      },
+      title: 'Agent commit',
+    }, initial)
+  }
+
+  const avatar = avatarCache[commit.authorEmail]
+  if (avatar) {
+    return React.createElement('img', {
+      src: avatar, width: size, height: size,
+      style: { borderRadius: '50%', border: '1px solid var(--border-default)', flexShrink: 0 },
+    })
+  }
+
+  // Initials fallback
+  const initials = getHumanInitials(commit.author)
+  const hue = commit.authorEmail.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360
+  return React.createElement('div', {
+    style: {
+      width: size, height: size, borderRadius: '50%', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      background: `hsl(${hue}, 30%, 25%)`, color: `hsl(${hue}, 40%, 70%)`,
+      fontSize: Math.max(size * 0.4, 9) + 'px', fontWeight: 600,
+      border: '1px solid var(--border-default)',
+    },
+  }, initials)
+}
+
+// ── Avatar group (overlapping, up to 3) ──
+function renderAvatarGroup(
+  commits: (GitCommitData & { isAgent: boolean })[],
+  avatarCache: Record<string, string>,
+  size: number,
+): React.ReactElement {
+  const seen = new Set<string>()
+  const unique: typeof commits = []
+  for (const c of commits) {
+    const key = c.authorEmail.toLowerCase()
+    if (!seen.has(key)) {
+      seen.add(key)
+      unique.push(c)
+    }
+    if (unique.length >= 4) break
+  }
+
+  const show = unique.slice(0, 3)
+  const extra = unique.length > 3 ? unique.length - 3 : 0
+
+  return React.createElement('div', {
+    style: { display: 'flex', alignItems: 'center' },
+  },
+    ...show.map((c, i) =>
+      React.createElement('div', {
+        key: c.authorEmail + i,
+        style: { marginLeft: i === 0 ? 0 : -(size * 0.35) + 'px', zIndex: show.length - i, position: 'relative' as const },
+      }, renderAvatar(c, avatarCache, size))
+    ),
+    extra > 0
+      ? React.createElement('span', {
+          style: { marginLeft: '4px', fontSize: '10px', color: 'var(--text-disabled)' },
+        }, `+${extra}`)
+      : null,
+  )
+}
 
 const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   const [commits, setCommits] = useState<CommitWithLane[]>([])
@@ -23,7 +149,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<HistoryMode>('code')
   const [selectedCommit, setSelectedCommit] = useState<CommitWithLane | null>(null)
-  const [commitFiles, setCommitFiles] = useState<{ status: string; path: string }[]>([])
+  const [commitFiles, setCommitFiles] = useState<CommitFileEntry[]>([])
   const [commitFilesLoading, setCommitFilesLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -45,12 +171,17 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     return map
   }, [allAgents])
 
+  // Set of branch names for agent detection in assignLanes
+  const agentBranchSet = useMemo(() => new Set(allAgents.map(a => a.branch)), [allAgents])
+  const agentBranchSetRef = useRef(agentBranchSet)
+  agentBranchSetRef.current = agentBranchSet
+
   const fetchLog = useCallback(() => {
     if (!window.runnio?.git?.log) return
     window.runnio.git.log(worktreePath, { maxCount: 500 })
       .then(result => {
         if (result.error) { setError(result.error); return }
-        const withLanes = assignLanes(result.commits)
+        const withLanes = assignLanes(result.commits, agentBranchSetRef.current)
         setCommits(withLanes)
         setBranches(result.branches)
         setCurrentBranch(result.currentBranch)
@@ -89,7 +220,15 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     if (!selectedCommit) { setCommitFiles([]); return }
     setCommitFilesLoading(true)
     window.runnio.git.commitFiles(worktreePath, selectedCommit.hash)
-      .then(setCommitFiles)
+      .then((files: any[]) => {
+        // Handle both old format ({ status, path }) and new format ({ status, path, additions, deletions })
+        setCommitFiles(files.map(f => ({
+          status: f.status || 'M',
+          path: f.path || '',
+          additions: f.additions ?? -1,
+          deletions: f.deletions ?? -1,
+        })))
+      })
       .catch(() => setCommitFiles([]))
       .finally(() => setCommitFilesLoading(false))
   }, [selectedCommit?.hash, worktreePath])
@@ -152,9 +291,9 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     if (typeFilter === 'merges') {
       result = result.filter(c => c.parents.length > 1)
     } else if (typeFilter === 'agent') {
-      result = result.filter(c => isAgentCommit(c.authorEmail))
+      result = result.filter(c => c.isAgent)
     } else if (typeFilter === 'human') {
-      result = result.filter(c => !isAgentCommit(c.authorEmail))
+      result = result.filter(c => !c.isAgent)
     }
     return result
   }, [commits, searchQuery, branchFilter, typeFilter])
@@ -196,18 +335,31 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     return branches.filter(b => !b.startsWith('remotes/'))
   }, [branches])
 
-  // People mode data
+  // People mode data — split into agents and humans
   const authorGroups = useMemo(() => {
-    const groups = new Map<string, { author: string; email: string; commits: CommitWithLane[]; avatar: string }>()
+    const agentGroups = new Map<string, { author: string; email: string; commits: CommitWithLane[]; isAgent: true }>()
+    const humanGroups = new Map<string, { author: string; email: string; commits: CommitWithLane[]; isAgent: false }>()
+
     filteredCommits.forEach(c => {
       const key = c.authorEmail.toLowerCase().trim()
-      if (!groups.has(key)) {
-        groups.set(key, { author: c.author, email: c.authorEmail, commits: [], avatar: avatarCache[c.authorEmail] || '' })
+      if (c.isAgent) {
+        if (!agentGroups.has(key)) {
+          agentGroups.set(key, { author: c.author, email: c.authorEmail, commits: [], isAgent: true })
+        }
+        agentGroups.get(key)!.commits.push(c)
+      } else {
+        if (!humanGroups.has(key)) {
+          humanGroups.set(key, { author: c.author, email: c.authorEmail, commits: [], isAgent: false })
+        }
+        humanGroups.get(key)!.commits.push(c)
       }
-      groups.get(key)!.commits.push(c)
     })
-    return Array.from(groups.values()).sort((a, b) => b.commits.length - a.commits.length)
-  }, [filteredCommits, avatarCache])
+
+    return {
+      agents: Array.from(agentGroups.values()).sort((a, b) => b.commits.length - a.commits.length),
+      humans: Array.from(humanGroups.values()).sort((a, b) => b.commits.length - a.commits.length),
+    }
+  }, [filteredCommits])
 
   // File status colors
   const fileStatusColor = (s: string) => {
@@ -255,65 +407,59 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     }, `Error: ${error}`)
   }
 
-  // ── Render commit row SVG ──
+  // ── Render commit row SVG graph ──
   const renderGraphSvg = (commit: CommitWithLane, index: number) => {
     const cx = commit.lane * LANE_WIDTH + LANE_WIDTH / 2
     const cy = ROW_HEIGHT / 2
-    const isAgent = isAgentCommit(commit.authorEmail)
     const isHEAD = commit.refs.some(r => r.includes('HEAD'))
 
     const elements: React.ReactElement[] = []
 
-    // Vertical lines for active lanes
-    const activeLanes = new Set<number>()
-    activeLanes.add(commit.lane)
-    commit.mergeFrom.forEach(l => activeLanes.add(l))
-    // Check neighboring commits for continuity
-    if (index > 0) {
-      activeLanes.add(filteredCommits[index - 1].lane)
-    }
-    if (index < filteredCommits.length - 1) {
-      const next = filteredCommits[index + 1]
-      activeLanes.add(next.lane)
-      next.mergeFrom.forEach(l => activeLanes.add(l))
-    }
+    // Active lanes — determines which vertical lines to draw
+    const activeLanes = getActiveLanesAt(filteredCommits, index)
 
+    // Vertical lines for active lanes
     activeLanes.forEach(lane => {
       const lx = lane * LANE_WIDTH + LANE_WIDTH / 2
       elements.push(
         React.createElement('line', {
           key: `vl-${lane}`,
           x1: lx, y1: 0, x2: lx, y2: ROW_HEIGHT,
-          stroke: getLaneColor(lane), strokeWidth: 1.5, opacity: lane === commit.lane ? 0.7 : 0.3,
+          stroke: getLaneColor(lane), strokeWidth: 1.5,
+          opacity: lane === commit.lane ? 0.7 : 0.3,
         })
       )
     })
 
-    // Merge curves — from mergeFrom lanes converging to this commit's lane
+    // Merge curves — from mergeFrom lanes converging TO this commit's dot
+    // The curve starts at the top of this row (incoming from the lane above)
+    // and ends at the commit dot position (cy)
     commit.mergeFrom.forEach(fromLane => {
       const x1 = fromLane * LANE_WIDTH + LANE_WIDTH / 2
       const x2 = cx
-      const midY = ROW_HEIGHT / 2
+      const midY = cy / 2  // midpoint between 0 and cy
       elements.push(
         React.createElement('path', {
           key: `merge-${fromLane}`,
-          d: `M ${x1} 0 C ${x1} ${midY} ${x2} ${midY} ${x2} ${ROW_HEIGHT}`,
+          d: `M ${x1} 0 C ${x1} ${midY} ${x2} ${midY} ${x2} ${cy}`,
           stroke: getLaneColor(fromLane), strokeWidth: 1.5, fill: 'none', opacity: 0.7,
         })
       )
     })
 
-    // Branch-off curves — from this commit's lane to parent lanes in different positions
+    // Branch-off curves — from commit dot diverging TOWARD parent lanes below
+    // The curve starts at the commit dot position (cy) and ends at the bottom
+    // of this row (continuing into the parent's lane below)
     commit.parents.forEach((parentHash, pi) => {
       const parentLane = commitLaneMap.get(parentHash)
       if (parentLane !== undefined && parentLane !== commit.lane && !commit.mergeFrom.includes(parentLane)) {
         const x1 = cx
         const x2 = parentLane * LANE_WIDTH + LANE_WIDTH / 2
-        const midY = ROW_HEIGHT / 2
+        const midY = cy + (ROW_HEIGHT - cy) / 2  // midpoint between cy and ROW_HEIGHT
         elements.push(
           React.createElement('path', {
             key: `branch-${pi}`,
-            d: `M ${x1} 0 C ${x1} ${midY} ${x2} ${midY} ${x2} ${ROW_HEIGHT}`,
+            d: `M ${x1} ${cy} C ${x1} ${midY} ${x2} ${midY} ${x2} ${ROW_HEIGHT}`,
             stroke: commit.laneColor, strokeWidth: 1.5, fill: 'none', opacity: 0.7,
           })
         )
@@ -321,8 +467,8 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     })
 
     // Commit node
-    if (isAgent) {
-      // Diamond for agent commits
+    if (commit.isAgent) {
+      // Diamond for agent commits — filled with lane color
       const s = isHEAD ? 6 : 5
       elements.push(
         React.createElement('polygon', {
@@ -332,6 +478,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
         })
       )
     } else {
+      // Circle for human commits — outlined
       const r = isHEAD ? 5.5 : 4.5
       elements.push(
         React.createElement('circle', {
@@ -354,8 +501,7 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
     if (!refs.length) return null
     return refs.map((ref, i) => {
       const parsed = parseRef(ref)
-      if (parsed.isRemote && !parsed.isHead) return null // skip remote-only refs
-      const isMain = parsed.label === 'main' || parsed.label === 'master' || parsed.isHead
+      if (parsed.isRemote && !parsed.isHead) return null
       const isTag = parsed.isTag
       const agentOnBranch = agentBranches.get(parsed.label)
 
@@ -387,8 +533,6 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   // ── Code mode row ──
   const renderCodeRow = (commit: CommitWithLane, index: number) => {
     const isSelected = selectedCommit?.hash === commit.hash
-    const isAgent = isAgentCommit(commit.authorEmail)
-    const avatar = avatarCache[commit.authorEmail]
 
     return React.createElement('div', {
       key: commit.hash,
@@ -396,12 +540,12 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       style: {
         display: 'flex', alignItems: 'center', height: ROW_HEIGHT + 'px',
         padding: '0 8px 0 0', cursor: 'pointer',
-        background: isSelected ? 'var(--bg-selected)' : isAgent ? '#6366f108' : 'transparent',
+        background: isSelected ? 'var(--bg-selected)' : commit.isAgent ? `${commit.laneColor}08` : 'transparent',
         borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
         transition: 'background 100ms',
       },
       onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)' },
-      onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = isAgent ? '#6366f108' : 'transparent' },
+      onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { if (!isSelected) e.currentTarget.style.background = commit.isAgent ? `${commit.laneColor}08` : 'transparent' },
     },
       // SVG graph
       renderGraphSvg(commit, index),
@@ -424,18 +568,11 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
         }, commit.message),
         ...(renderRefs(commit.refs) || []),
       ),
-      // Author
+      // Author avatar + name
       React.createElement('div', {
-        style: { display: 'flex', alignItems: 'center', gap: '4px', width: '120px', flexShrink: 0, overflow: 'hidden' },
+        style: { display: 'flex', alignItems: 'center', gap: '4px', width: '130px', flexShrink: 0, overflow: 'hidden' },
       },
-        isAgent
-          ? React.createElement('span', { style: { fontSize: '10px', color: 'var(--accent)' } }, '\u25C6')
-          : avatar
-            ? React.createElement('img', {
-                src: avatar, width: 16, height: 16,
-                style: { borderRadius: '50%', border: '1px solid var(--border-default)' },
-              })
-            : React.createElement('span', { style: { width: '16px', height: '16px', borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', flexShrink: 0 } }),
+        renderAvatar(commit, avatarCache, 16),
         React.createElement('span', {
           style: { fontSize: '11px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
         }, commit.author),
@@ -450,98 +587,139 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
 
   // ── People mode ──
   const renderPeopleMode = () => {
-    if (!authorGroups.length) {
+    const { agents, humans } = authorGroups
+
+    if (agents.length === 0 && humans.length === 0) {
       return React.createElement('div', {
         style: { padding: '40px', textAlign: 'center' as const, color: 'var(--text-tertiary)' },
       }, 'No commits found')
     }
 
+    const renderAuthorSection = (
+      group: { author: string; email: string; commits: CommitWithLane[]; isAgent: boolean },
+    ) => {
+      return React.createElement('div', {
+        key: group.email,
+        style: { padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)' },
+      },
+        // Author header
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' },
+        },
+          renderAvatar(
+            { ...group.commits[0], isAgent: group.isAgent } as CommitWithLane,
+            avatarCache,
+            32,
+          ),
+          React.createElement('div', null,
+            React.createElement('div', {
+              style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' },
+            },
+              group.author,
+              group.isAgent
+                ? React.createElement('span', {
+                    style: {
+                      fontSize: '9px', padding: '1px 5px', borderRadius: '3px',
+                      background: getAgentAvatarColor(group.commits[0]) + '20',
+                      color: getAgentAvatarColor(group.commits[0]),
+                      fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+                    },
+                  }, 'Agent')
+                : null,
+            ),
+            React.createElement('div', {
+              style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' },
+            }, group.email),
+          ),
+          React.createElement('span', {
+            style: {
+              marginLeft: 'auto', padding: '2px 8px', background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-default)', borderRadius: '10px',
+              fontSize: '11px', color: 'var(--text-secondary)',
+            },
+          }, `${group.commits.length} commits`),
+        ),
+        // Commit list for this author
+        React.createElement('div', {
+          style: { display: 'flex', flexDirection: 'column' as const, gap: '2px', paddingLeft: '42px' },
+        },
+          ...group.commits.slice(0, 10).map(c =>
+            React.createElement('div', {
+              key: c.hash,
+              onClick: () => setSelectedCommit(c),
+              style: {
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px',
+                borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'background 100ms',
+              },
+              onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
+              onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'transparent' },
+            },
+              React.createElement('span', {
+                style: { width: '8px', height: '8px', borderRadius: c.isAgent ? '2px' : '50%', background: c.laneColor, flexShrink: 0, transform: c.isAgent ? 'rotate(45deg)' : 'none' },
+              }),
+              React.createElement('span', {
+                style: { fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'Consolas, monospace', flexShrink: 0 },
+              }, c.hashShort),
+              React.createElement('span', {
+                style: { fontSize: 'var(--text-sm)', color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+              }, c.message),
+              React.createElement('span', {
+                style: { fontSize: '10px', color: 'var(--text-disabled)', flexShrink: 0 },
+              }, formatTimeAgo(c.date)),
+            )
+          ),
+          group.commits.length > 10
+            ? React.createElement('div', {
+                style: { padding: '4px 8px', fontSize: '11px', color: 'var(--text-disabled)' },
+              }, `+ ${group.commits.length - 10} more`)
+            : null,
+        ),
+      )
+    }
+
     return React.createElement('div', {
       style: { flex: 1, overflowY: 'auto' as const, padding: '8px 0' },
     },
-      ...authorGroups.map(group => {
-        const isAgent = isAgentCommit(group.email)
-
-        return React.createElement('div', {
-          key: group.email,
-          style: { padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)' },
-        },
-          // Author header
-          React.createElement('div', {
-            style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' },
-          },
-            isAgent
-              ? React.createElement('div', {
-                  style: {
-                    width: '32px', height: '32px', borderRadius: '50%', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)',
-                    border: '2px solid var(--border-default)', fontSize: '14px', color: 'var(--accent)',
-                  },
-                }, '\u25C6')
-              : group.avatar
-                ? React.createElement('img', {
-                    src: group.avatar, width: 32, height: 32,
-                    style: { borderRadius: '50%', border: '2px solid var(--border-default)' },
-                  })
-                : React.createElement('div', {
-                    style: {
-                      width: '32px', height: '32px', borderRadius: '50%',
-                      background: 'var(--bg-elevated)', border: '2px solid var(--border-default)',
-                    },
-                  }),
-            React.createElement('div', null,
-              React.createElement('div', {
-                style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500 },
-              }, group.author, isAgent ? ' (Agent)' : ''),
-              React.createElement('div', {
-                style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' },
-              }, group.email),
-            ),
-            React.createElement('span', {
+      // Agents section header
+      agents.length > 0
+        ? React.createElement(React.Fragment, null,
+            React.createElement('div', {
               style: {
-                marginLeft: 'auto', padding: '2px 8px', background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-default)', borderRadius: '10px',
-                fontSize: '11px', color: 'var(--text-secondary)',
+                padding: '6px 16px', display: 'flex', alignItems: 'center', gap: '6px',
+                borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
               },
-            }, `${group.commits.length} commits`),
-          ),
-          // Commit list for this author
-          React.createElement('div', {
-            style: { display: 'flex', flexDirection: 'column' as const, gap: '2px', paddingLeft: '42px' },
-          },
-            ...group.commits.slice(0, 10).map(c =>
-              React.createElement('div', {
-                key: c.hash,
-                onClick: () => setSelectedCommit(c),
-                style: {
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px',
-                  borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'background 100ms',
-                },
-                onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' },
-                onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'transparent' },
-              },
-                React.createElement('span', {
-                  style: { width: '8px', height: '8px', borderRadius: '50%', background: c.laneColor, flexShrink: 0 },
-                }),
-                React.createElement('span', {
-                  style: { fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'Consolas, monospace', flexShrink: 0 },
-                }, c.hashShort),
-                React.createElement('span', {
-                  style: { fontSize: 'var(--text-sm)', color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
-                }, c.message),
-                React.createElement('span', {
-                  style: { fontSize: '10px', color: 'var(--text-disabled)', flexShrink: 0 },
-                }, formatTimeAgo(c.date)),
-              )
+            },
+              React.createElement(Bot, { size: 13, color: 'var(--accent)' }),
+              React.createElement('span', {
+                style: { fontSize: '11px', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' },
+              }, 'Agents'),
+              React.createElement('span', {
+                style: { fontSize: '10px', color: 'var(--text-disabled)' },
+              }, `${agents.reduce((sum, g) => sum + g.commits.length, 0)} commits`),
             ),
-            group.commits.length > 10
-              ? React.createElement('div', {
-                  style: { padding: '4px 8px', fontSize: '11px', color: 'var(--text-disabled)' },
-                }, `+ ${group.commits.length - 10} more`)
-              : null,
-          ),
-        )
-      }),
+            ...agents.map(renderAuthorSection),
+          )
+        : null,
+      // Humans section header
+      humans.length > 0
+        ? React.createElement(React.Fragment, null,
+            React.createElement('div', {
+              style: {
+                padding: '6px 16px', display: 'flex', alignItems: 'center', gap: '6px',
+                borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
+              },
+            },
+              React.createElement(User, { size: 13, color: 'var(--text-secondary)' }),
+              React.createElement('span', {
+                style: { fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' },
+              }, 'Contributors'),
+              React.createElement('span', {
+                style: { fontSize: '10px', color: 'var(--text-disabled)' },
+              }, `${humans.reduce((sum, g) => sum + g.commits.length, 0)} commits`),
+            ),
+            ...humans.map(renderAuthorSection),
+          )
+        : null,
     )
   }
 
@@ -549,12 +727,11 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
   const renderDetailPanel = () => {
     if (!selectedCommit) return null
     const c = selectedCommit
-    const isAgent = isAgentCommit(c.authorEmail)
-    const avatar = avatarCache[c.authorEmail]
+    const isMerge = c.parents.length > 1
 
     return React.createElement('div', {
       style: {
-        width: '300px', borderLeft: '1px solid var(--border-default)',
+        width: '320px', borderLeft: '1px solid var(--border-default)',
         display: 'flex', flexDirection: 'column' as const, overflow: 'hidden',
         flexShrink: 0, animation: 'fadeIn 0.15s ease-out',
       },
@@ -563,35 +740,106 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--border-default)' },
       },
-        React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 } }, 'Commit details'),
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '8px' },
+        },
+          React.createElement('span', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 500 } }, 'Commit details'),
+          // Agent / Human badge
+          React.createElement('span', {
+            style: {
+              fontSize: '9px', padding: '1px 6px', borderRadius: '3px', fontWeight: 600,
+              letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+              background: c.isAgent ? getAgentAvatarColor(c) + '20' : 'var(--bg-elevated)',
+              color: c.isAgent ? getAgentAvatarColor(c) : 'var(--text-tertiary)',
+              border: `1px solid ${c.isAgent ? getAgentAvatarColor(c) + '44' : 'var(--border-default)'}`,
+            },
+          }, c.isAgent ? 'Agent' : 'Human'),
+          // Merge indicator
+          isMerge
+            ? React.createElement('span', {
+                style: {
+                  fontSize: '9px', padding: '1px 6px', borderRadius: '3px', fontWeight: 600,
+                  background: '#a78bfa20', color: '#a78bfa', border: '1px solid #a78bfa44',
+                  display: 'inline-flex', alignItems: 'center', gap: '3px',
+                },
+              },
+                React.createElement(GitMerge, { size: 9 }),
+                'Merge',
+              )
+            : null,
+        ),
         React.createElement('button', {
           onClick: () => setSelectedCommit(null),
-          style: { background: 'none', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer', fontSize: '14px', transition: 'color 100ms' },
+          style: { background: 'none', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer', fontSize: '14px', transition: 'color 100ms', display: 'flex', alignItems: 'center' },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-primary)' },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'var(--text-disabled)' },
-        }, '\u00D7'),
+        }, React.createElement(X, { size: 14 })),
       ),
       // Content
       React.createElement('div', {
         style: { flex: 1, overflowY: 'auto' as const, padding: '14px' },
       },
-        // Author
+        // Author with avatar
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' },
         },
-          isAgent
-            ? React.createElement('div', {
-                style: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', border: '2px solid var(--border-default)', fontSize: '18px', color: 'var(--accent)', flexShrink: 0 },
-              }, '\u25C6')
-            : avatar
-              ? React.createElement('img', { src: avatar, width: 40, height: 40, style: { borderRadius: '50%', border: '2px solid var(--border-default)', flexShrink: 0 } })
-              : React.createElement('div', { style: { width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-elevated)', border: '2px solid var(--border-default)', flexShrink: 0 } }),
+          renderAvatar(c, avatarCache, 40),
           React.createElement('div', null,
-            React.createElement('div', { style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500 } }, c.author),
+            React.createElement('div', {
+              style: { color: 'var(--text-primary)', fontSize: 'var(--text-md)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' },
+            },
+              c.author,
+              c.isAgent
+                ? React.createElement('span', {
+                    style: { display: 'flex', alignItems: 'center' },
+                    title: 'Agent commit',
+                  }, React.createElement(Bot, { size: 12, color: getAgentAvatarColor(c) }))
+                : null,
+            ),
             React.createElement('div', { style: { color: 'var(--text-disabled)', fontSize: 'var(--text-xs)' } }, c.authorEmail),
-            React.createElement('div', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' } }, formatTimeAgo(c.date) + ' \u00B7 ' + new Date(c.date).toLocaleDateString()),
+            React.createElement('div', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' } },
+              formatTimeAgo(c.date) + ' \u00B7 ' + new Date(c.date).toLocaleDateString()),
           ),
         ),
+        // Agent info
+        c.isAgent
+          ? React.createElement('div', {
+              style: {
+                padding: '8px 10px', marginBottom: '12px', borderRadius: '6px',
+                background: getAgentAvatarColor(c) + '10',
+                border: `1px solid ${getAgentAvatarColor(c)}22`,
+                display: 'flex', alignItems: 'center', gap: '8px',
+              },
+            },
+              React.createElement(Bot, { size: 14, color: getAgentAvatarColor(c) }),
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' } }, 'Agent commit'),
+                React.createElement('div', { style: { fontSize: '10px', color: 'var(--text-tertiary)' } },
+                  c.refs.length > 0
+                    ? `Branch: ${c.refs.map(r => r.replace('refs/heads/', '').replace(/HEAD -> /, '')).filter(r => !r.includes('refs/')).join(', ') || 'detached'}`
+                    : 'No branch ref',
+                ),
+              ),
+            )
+          : null,
+        // Merge info
+        isMerge
+          ? React.createElement('div', {
+              style: {
+                padding: '8px 10px', marginBottom: '12px', borderRadius: '6px',
+                background: '#a78bfa10', border: '1px solid #a78bfa22',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              },
+            },
+              React.createElement(GitMerge, { size: 14, color: '#a78bfa' }),
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' } }, `Merge commit (${c.parents.length} parents)`),
+                React.createElement('div', { style: { fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'Consolas, monospace' } },
+                  c.parents.map(p => p.slice(0, 7)).join(' + '),
+                ),
+              ),
+            )
+          : null,
         // Hash
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' },
@@ -605,10 +853,16 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
               padding: '2px 8px', background: 'transparent', border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-sm)', color: copiedHash ? 'var(--working)' : 'var(--text-secondary)',
               cursor: 'pointer', fontSize: '10px', flexShrink: 0, transition: 'all 100ms',
+              display: 'flex', alignItems: 'center', gap: '3px',
             },
-          }, copiedHash ? 'Copied \u2713' : 'Copy'),
+          },
+            copiedHash
+              ? React.createElement(Check, { size: 10 })
+              : React.createElement(Copy, { size: 10 }),
+            copiedHash ? 'Copied' : 'Copy',
+          ),
         ),
-        // Message
+        // Message (full, with line breaks)
         React.createElement('div', {
           style: { color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontWeight: 500, marginBottom: '8px', lineHeight: '1.4' },
         }, c.message),
@@ -639,8 +893,11 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
                     const parent = commits.find(cc => cc.hash === p)
                     if (parent) setSelectedCommit(parent)
                   },
-                  style: { fontSize: '11px', color: 'var(--accent)', fontFamily: 'Consolas, monospace', cursor: 'pointer', padding: '2px 0' },
-                }, p.slice(0, 7) + ' \u2192')
+                  style: { fontSize: '11px', color: 'var(--accent)', fontFamily: 'Consolas, monospace', cursor: 'pointer', padding: '2px 0', display: 'flex', alignItems: 'center', gap: '4px' },
+                },
+                  React.createElement(GitBranch, { size: 10 }),
+                  p.slice(0, 7),
+                )
               ),
             )
           : null,
@@ -657,14 +914,27 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
                   ...commitFiles.map(f =>
                     React.createElement('div', {
                       key: f.path,
-                      style: { display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0' },
+                      style: { display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0' },
                     },
                       React.createElement('span', {
-                        style: { fontSize: '10px', fontWeight: 600, color: fileStatusColor(f.status), width: '10px' },
+                        style: { fontSize: '10px', fontWeight: 600, color: fileStatusColor(f.status), width: '10px', flexShrink: 0 },
                       }, fileStatusIcon(f.status)),
                       React.createElement('span', {
-                        style: { fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
-                      }, f.path),
+                        style: { fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 },
+                      }, f.path.split(/[\\/]/).pop()),
+                      // +X -Y stats
+                      f.additions >= 0 || f.deletions >= 0
+                        ? React.createElement('span', {
+                            style: { fontSize: '10px', fontFamily: 'Consolas, monospace', flexShrink: 0, display: 'flex', gap: '4px' },
+                          },
+                            f.additions > 0
+                              ? React.createElement('span', { style: { color: 'var(--working)' } }, `+${f.additions}`)
+                              : null,
+                            f.deletions > 0
+                              ? React.createElement('span', { style: { color: 'var(--error)' } }, `-${f.deletions}`)
+                              : null,
+                          )
+                        : null,
                     )
                   ),
                 ),
@@ -678,11 +948,14 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
             style: {
               padding: '6px 12px', background: 'transparent', border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--text-xs)',
-              transition: 'all 100ms',
+              transition: 'all 100ms', display: 'flex', alignItems: 'center', gap: '4px',
             },
             onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--text-secondary)' },
             onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)' },
-          }, 'Checkout'),
+          },
+            React.createElement(RotateCcw, { size: 11 }),
+            'Checkout',
+          ),
         ),
       ),
     )
@@ -797,8 +1070,9 @@ const GitHistory: React.FC<Props> = ({ worktreePath, visible }) => {
         style: {
           background: 'none', border: 'none', cursor: 'pointer', color: isSearchOpen ? 'var(--accent)' : 'var(--text-disabled)',
           fontSize: 'var(--text-sm)', padding: '2px 4px', flexShrink: 0, transition: 'color 100ms',
+          display: 'flex', alignItems: 'center',
         },
-      }, '\uD83D\uDD0D'),
+      }, React.createElement(Search, { size: 13 })),
     ),
 
     // Content area

@@ -44,7 +44,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 | Terminal | Done | xterm.js + FitAddon, Ctrl+V paste with dedup, right-click paste, auto-resize |
 | Files | Done | Recursive tree with git status (M/A/D/?), click-to-read viewer, 500 file limit, binary detection |
 | Diff | Done | Custom LCS-based line diff, side-by-side panes, auto-refresh on tab switch, 5s polling, 2000 line cap, syntax highlighting via highlight.js. No synchronized scrolling. |
-| History | Done | SVG bezier graph with lane colors and merge/branch-off curves, Code mode with virtual scroll (36px rows), People mode with author grouping. Gravatar avatars, agent diamond nodes, detail panel with files/checkout. |
+| History | Done | SVG bezier graph with proper merge/branch-off curves (converge at commit dot, S-curve control points). Agent detection via email + Co-Authored-By + branch matching. Agent diamond nodes, provider-colored avatars, human initials fallback. People mode with Agents/Contributors swimlanes. Detail panel with agent/human/merge badges, file stats (+X -Y), avatar groups. Virtual scroll (36px rows, 500 commit cap). |
 | PR | Done | 3-step flow (files/form/done), inline GitHub token input with validation, real GitHub API calls |
 | Notes | Done | Per-branch localStorage, auto-save with 1s debounce |
 
@@ -52,7 +52,7 @@ Runnio is a desktop app for orchestrating multiple Claude Code agents in paralle
 
 | Component | Lines | Status |
 |-----------|-------|--------|
-| GitHistory | 778 | Done — Code/People modes, SVG graph, virtual scroll, detail panel |
+| GitHistory | ~900 | Done — Code/People modes, SVG graph with proper bezier curves, agent detection (email + body + branch), provider avatars, avatar groups, enhanced detail panel with badges and file stats |
 | PRPanel | 342 | Done — GitHub API, inline token setup |
 | DiffViewer | 306 | Done — LCS diff, file tabs, polling |
 | SettingsModal | ~500 | Done — 6-section left-nav: General, Agents (CLI detection), Integrations, Repository, Interface (theme), Account |
@@ -117,7 +117,7 @@ Renderer (React 18 + Zustand)
 8. **Diff 2000 line cap** — Large files truncated
 10. **File tree 500 file limit** — Large repos incomplete
 11. **No synchronized scrolling** in diff viewer
-12. **People mode is simple** — Author-grouped commit list, no swimlanes or sparklines
+12. **People mode** — Agent/Contributor swimlanes with commit lists, no sparklines or density charts yet
 
 ## Pending Work — Next Session Priorities
 

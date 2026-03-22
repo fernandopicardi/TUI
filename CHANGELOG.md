@@ -1,5 +1,26 @@
 # Runnio Changelog
 
+## v0.1.6 — 2026-03-22
+
+### Fixed
+- **Git History bezier curves**: Merge curves now converge at the commit dot (cy) instead of overshooting to row bottom. Branch-off curves diverge from the commit dot downward. Both use proper S-curve control points with vertical tangents at endpoints.
+- **Agent commit detection**: Now checks Co-Authored-By lines in commit body (catches Claude Code's standard `Co-Authored-By: Claude` pattern), author name patterns, and cross-references against known agent branches in the store. Previously only checked email patterns, causing all commits to appear as "Human commits".
+- **Active lanes computation**: Extended neighbor range from ±1 to ±2 for more accurate vertical line rendering at merge/branch points.
+- **DiffViewer hooks crash**: Moved `highlightedLines` useMemo above early returns to fix "Rendered more hooks than during the previous render" error.
+
+### Added
+- **Agent vs human visual distinction**: Agent commits show diamond nodes (filled) in SVG graph, colored provider avatars (Claude=amber, Copilot=green, Cursor=purple, Codex=emerald), and subtle lane-color background tint. Human commits show outlined circle nodes with Gravatar/initials avatars.
+- **Avatar system**: Provider-colored circle with initial for agents (C, GH, Cu, Cd, Cx). Hue-based initials fallback for humans when Gravatar unavailable. Avatar group component (overlapping, up to 3) for merge commit displays.
+- **People mode swimlanes**: Agents section at top with Bot icon header, Contributors section below with User icon header. Each section shows commit counts. Agent entries display provider badge.
+- **Detail panel enhancements**: Agent/Human badge, Merge badge with parent count, agent info card with branch name, merge info card with parent hashes, file change stats (+X -Y per file), Lucide icons for Copy/Check/Checkout/GitBranch actions.
+- **File change statistics**: `git:commit-files` IPC handler now returns additions/deletions per file via `git diff-tree --numstat`, displayed in detail panel.
+- **Agent creation improvements**: Updated Claude models to 4.6 (Opus 4.6, Sonnet 4.6), added "Default" option that runs `claude` without `--model` flag, fixed provider selection to actually use the selected provider's command.
+
+### Known limitations
+- Repos with 1000+ commits may show slower initial load (500 commit cap applies)
+- Filtered views (search/branch/type) may show slightly imprecise lane lines between non-adjacent commits
+- Avatar group currently shows in People mode headers; detail panel uses single avatar
+
 ## v0.1.5 — 2026-03-21
 
 ### Added
