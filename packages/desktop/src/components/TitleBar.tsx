@@ -11,22 +11,36 @@ const TitleBar: React.FC<{ projectName?: string }> = ({ projectName }) => {
       WebkitAppRegion: 'drag', flexShrink: 0, userSelect: 'none',
     } as React.CSSProperties,
   },
-    // Left — logo + name
+    // Left — logo + name (clickable to go home)
     React.createElement('div', {
       style: { display: 'flex', alignItems: 'center', gap: '10px' },
     },
-      React.createElement('span', {
+      React.createElement('button', {
+        onClick: () => useStore.getState().setActiveAgent(null),
+        title: 'Back to Dashboard',
         style: {
-          fontSize: '16px',
-          background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '2px 4px', borderRadius: 'var(--radius-sm)',
+          transition: 'opacity 120ms',
+          WebkitAppRegion: 'no-drag',
         } as React.CSSProperties,
-      }, '\u25C6'),
-      React.createElement('span', {
-        style: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 },
-      }, 'Runnio'),
+        onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '0.75' },
+        onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.opacity = '1' },
+      },
+        React.createElement('span', {
+          style: {
+            fontSize: '16px',
+            background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 700,
+          } as React.CSSProperties,
+        }, '\u25C6'),
+        React.createElement('span', {
+          style: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 },
+        }, 'Runnio'),
+      ),
       projectName
         ? React.createElement(React.Fragment, null,
             React.createElement('span', { style: { color: 'var(--text-disabled)', fontSize: '12px' } }, '/'),

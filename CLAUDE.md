@@ -128,3 +128,6 @@ To add a plugin: implement `RunnioPlugin` (name, priority, detect, load) and cal
 - **Zustand hydration** — App.tsx has a guard that waits for localStorage hydration. Without it, state appears empty on first render.
 - **esbuild 3 targets** — main.ts and preload.ts compile as CJS (Node), renderer compiles as ESM (browser). Don't mix imports.
 - **simple-git in worktrees** — pass the worktree path, not the repo root. Each worktree has its own HEAD.
+
+## Workflow rules
+- **Always merge after commit** — every commit must be followed by a merge to main. Do not leave work sitting on feature branches without merging.

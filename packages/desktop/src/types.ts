@@ -23,7 +23,7 @@ export interface AgentSession {
   terminalId: string            // pty id in main process
   isTerminalAlive: boolean
   notes?: string
-  tokenUsage?: { input: number; output: number; costUsd: number }
+  tokenUsage?: { input: number; output: number; cacheRead: number; cacheWrite: number; costUsd: number }
   source?: 'internal' | 'external'
   prUrl?: string
   prNumber?: number
@@ -147,6 +147,8 @@ export interface RunnioAPI {
     getBuffer: (id: string) => Promise<string[]>
     isAlive: (id: string) => Promise<boolean>
     injectWhenReady: (id: string, prompt: string) => Promise<{ success: boolean; immediate?: boolean; queued?: boolean }>
+    getCost: (id: string) => Promise<{ input: number; output: number; cacheRead: number; cacheWrite: number; costUsd: number } | null>
+    onCostUpdate: (cb: (id: string, usage: { input: number; output: number; cacheRead: number; cacheWrite: number; costUsd: number }) => void) => () => void
   }
   files: {
     list: (rootPath: string) => Promise<FileEntry[]>

@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { useStore } from './hooks/useStore'
 import { useAgentStatusWatcher } from './hooks/useAgentStatus'
 import { useWorktreeSync } from './hooks/useWorktreeSync'
+import { useCostTracker } from './hooks/useCostTracker'
 import TitleBar from './components/TitleBar'
 import Toast from './components/Toast'
 import AgentBar from './components/AgentBar'
@@ -53,6 +54,9 @@ const App: React.FC = () => {
   // Watch for external worktree changes
   useWorktreeSync()
 
+  // Track token usage / cost from terminal output
+  useCostTracker()
+
   useEffect(() => {
     if (window.runnio) setPreloadOk(true)
     else console.error('[runnio] PRELOAD FAILED')
@@ -70,6 +74,8 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); s.toggleContextPanel(); return }
       if (e.ctrlKey && e.key === ',') { e.preventDefault(); s.openSettings(); return }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); s.setActiveAgent(null); return }
+      // Ctrl+\ — toggle split terminal selector (dispatched as custom event for Workspace to handle)
+      if (e.ctrlKey && e.key === '\\') { e.preventDefault(); window.dispatchEvent(new CustomEvent('runnio:toggle-split')); return }
       if (e.key === 'Escape') {
         s.closeAddProject()
         s.closeCreateAgent()

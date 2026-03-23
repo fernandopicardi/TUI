@@ -41,19 +41,33 @@ await esbuild.build({
   sourcemap: true,
 })
 
-// Copy xterm CSS to dist
+// Copy xterm CSS to dist — supports both scoped (@xterm/xterm) and legacy (xterm) package paths
 try {
-  const xtermCss = path.resolve('node_modules/xterm/css/xterm.css')
-  if (!fs.existsSync(xtermCss)) {
-    // Try pnpm hoisted location
-    const hoisted = path.resolve('../../node_modules/.pnpm/xterm@5.3.0/node_modules/xterm/css/xterm.css')
-    if (fs.existsSync(hoisted)) {
-      fs.copyFileSync(hoisted, 'dist/xterm.css')
-    }
+  const candidates = [
+    path.resolve('node_modules/@xterm/xterm/css/xterm.css'),
+    path.resolve('node_modules/xterm/css/xterm.css'),
+    // pnpm hoisted locations
+    path.resolve('../../node_modules/.pnpm/@xterm+xterm@5.5.0/node_modules/@xterm/xterm/css/xterm.css'),
+    path.resolve('../../node_modules/.pnpm/xterm@5.3.0/node_modules/xterm/css/xterm.css'),
+  ]
+  const found = candidates.find(p => fs.existsSync(p))
+  if (found) {
+    fs.copyFileSync(found, 'dist/xterm.css')
+    console.log('xterm.css copied to dist/')
   } else {
-    fs.copyFileSync(xtermCss, 'dist/xterm.css')
+    // Try to find it dynamically via glob-like search in pnpm store
+    const pnpmDir = path.resolve('../../node_modules/.pnpm')
+    if (fs.existsSync(pnpmDir)) {
+      const dirs = fs.readdirSync(pnpmDir).filter(d => d.startsWith('@xterm+xterm@'))
+      if (dirs.length > 0) {
+        const cssPath = path.join(pnpmDir, dirs[0], 'node_modules/@xterm/xterm/css/xterm.css')
+        if (fs.existsSync(cssPath)) {
+          fs.copyFileSync(cssPath, 'dist/xterm.css')
+          console.log('xterm.css copied to dist/ (from pnpm store)')
+        }
+      }
+    }
   }
-  console.log('xterm.css copied to dist/')
 } catch (e) {
   console.warn('Warning: could not copy xterm.css:', e.message)
 }

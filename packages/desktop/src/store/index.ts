@@ -55,6 +55,11 @@ export interface RunnioStore {
   openDeleteAgent: (projectId: string, agentId: string) => void
   closeDeleteAgent: () => void
 
+  // Split terminal
+  splitPairs: Record<string, string>  // agentId → splitWithAgentId
+  setSplitAgent: (agentId: string, splitWithAgentId: string) => void
+  clearSplit: (agentId: string) => void
+
   // Toast
   showToast: (message: string, type?: 'info' | 'success' | 'warning') => void
   dismissToast: (id: string) => void
@@ -85,6 +90,7 @@ export const useStore = create<RunnioStore>()(
       deleteAgentTarget: null,
       toasts: [],
       initPrompt: null,
+      splitPairs: {},
       defaultModel: 'claude-sonnet-4-5',
       defaultMode: 'normal' as 'normal' | 'plan' | 'auto',
 
@@ -179,6 +185,14 @@ export const useStore = create<RunnioStore>()(
 
       setDefaultModel: (model) => set({ defaultModel: model }),
       setDefaultMode: (mode) => set({ defaultMode: mode }),
+
+      setSplitAgent: (agentId, splitWithAgentId) => set(s => ({
+        splitPairs: { ...s.splitPairs, [agentId]: splitWithAgentId },
+      })),
+      clearSplit: (agentId) => set(s => {
+        const { [agentId]: _, ...rest } = s.splitPairs
+        return { splitPairs: rest }
+      }),
 
       openAddProject: () => set({ isAddProjectModalOpen: true }),
       closeAddProject: () => set({ isAddProjectModalOpen: false }),

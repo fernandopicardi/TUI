@@ -1,10 +1,12 @@
 import * as React from 'react'
 import { useStore } from '../store/index'
 import AgentStatusBadge from './AgentStatusBadge'
+import CostTracker from './CostTracker'
 
 const AgentBar: React.FC = () => {
   const projects = useStore(s => s.projects)
   const activeAgentId = useStore(s => s.activeAgentId)
+  const splitPairs = useStore(s => s.splitPairs)
   const allAgents = projects.flatMap(p => p.agents)
 
   const working = allAgents.filter(a => a.status === 'working').length
@@ -80,6 +82,7 @@ const AgentBar: React.FC = () => {
       const isActive = agent.id === activeAgentId
       const isAttention = agent.status === 'waiting' && agent.lastActivity
         && (Date.now() - agent.lastActivity) > 120000
+      const isSplit = !!splitPairs[agent.id]
 
       const statusBorderColor = agent.status === 'working' ? 'var(--working)'
         : agent.status === 'waiting' ? 'var(--waiting)'
@@ -122,10 +125,29 @@ const AgentBar: React.FC = () => {
               maxWidth: '120px',
             },
           }, agent.branch),
+          // Split indicator
+          isSplit
+            ? React.createElement('svg', {
+                width: 11, height: 11, viewBox: '0 0 16 16', fill: 'none',
+                title: 'Split view active',
+                style: { color: 'var(--accent)', flexShrink: 0 },
+              },
+                React.createElement('rect', { x: 1, y: 1, width: 6, height: 14, rx: 1.5, stroke: 'currentColor', strokeWidth: 1.5 }),
+                React.createElement('rect', { x: 9, y: 1, width: 6, height: 14, rx: 1.5, stroke: 'currentColor', strokeWidth: 1.5 }),
+              )
+            : null,
         ),
-        React.createElement('span', {
-          style: { color: 'var(--text-tertiary)', fontSize: '11px' },
-        }, getTimeSince(agent.lastActivity) || '\u00A0'),
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '6px' },
+        },
+          React.createElement('span', {
+            style: { color: 'var(--text-tertiary)', fontSize: '11px' },
+          }, getTimeSince(agent.lastActivity) || '\u00A0'),
+          // Cost badge
+          agent.tokenUsage
+            ? React.createElement(CostTracker, { usage: agent.tokenUsage, variant: 'badge' })
+            : null,
+        ),
       )
     }),
 

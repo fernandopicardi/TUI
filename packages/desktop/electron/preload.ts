@@ -74,6 +74,13 @@ contextBridge.exposeInMainWorld('runnio', {
       ipcRenderer.invoke('terminal:is-alive', id),
     injectWhenReady: (id: string, prompt: string) =>
       ipcRenderer.invoke('terminal:inject-when-ready', id, prompt),
+    getCost: (id: string) =>
+      ipcRenderer.invoke('terminal:get-cost', id),
+    onCostUpdate: (cb: (id: string, usage: any) => void) => {
+      const handler = (_event: unknown, id: string, usage: any) => cb(id, usage)
+      ipcRenderer.on('terminal:cost-update', handler)
+      return () => { ipcRenderer.removeListener('terminal:cost-update', handler) }
+    },
   },
   files: {
     list: (rootPath: string) =>
